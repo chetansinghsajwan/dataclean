@@ -1,0 +1,7 @@
+{
+    "name": "dataclean",
+    "dockerFile": "Dockerfile",
+    "containerEnv": {
+        "PYTHONPATH": "${containerWorkspaceFolder}"
+    }
+}
