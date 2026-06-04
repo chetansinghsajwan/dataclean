@@ -3,5 +3,28 @@
     "dockerFile": "Dockerfile",
     "containerEnv": {
         "PYTHONPATH": "${containerWorkspaceFolder}"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "charliermarsh.ruff"
+            ],
+            "settings": {
+                "[python]": {
+                    "editor.defaultFormatter": "charliermarsh.ruff",
+                    "editor.formatOnSave": true,
+                    "editor.codeActionsOnSave": {
+
+                        // Auto-sorts & cleans imports on save
+                        "source.organizeImports": "always",
+
+                        // Auto-fixes lint violations (like removing unused imports)
+                        "source.fixAll": "always"
+                    }
+                }
+            }
+        }
     }
 }
