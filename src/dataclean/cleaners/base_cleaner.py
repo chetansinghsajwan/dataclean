@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from src.dataclean.engine.dataframe import DataFrame
+from dataclean.engine.dataframe import DataFrame
 
 
 @dataclass(frozen=True)

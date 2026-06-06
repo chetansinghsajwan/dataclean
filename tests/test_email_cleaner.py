@@ -1,4 +1,4 @@
-from src.dataclean.cleaners.email_cleaner import EmailCleaner
+from dataclean.cleaners.email_cleaner import EmailCleaner
 
 test_cases = [
     {
