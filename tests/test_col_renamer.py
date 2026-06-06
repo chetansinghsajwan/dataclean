@@ -1,4 +1,4 @@
-from src.dataclean.col_renamer import ColRenamer
+from dataclean.col_renamer import ColRenamer
 
 test_cases = [
     # ==========================================

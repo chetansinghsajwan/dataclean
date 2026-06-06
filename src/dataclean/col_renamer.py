@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Literal, get_args
+from typing import Iterable, Literal, get_args
 
 import wordninja
 
@@ -33,11 +33,7 @@ class ColRenamer:
 
         object.__setattr__(self, "_renamer", self._get_renamer(self.case))
 
-    def get_rename_map(self, df) -> dict[str, str]:
-
-        return self.rename_cols(df.columns)
-
-    def rename_cols(self, cols: list[str]) -> dict[str, str]:
+    def rename_cols(self, cols: Iterable[str]) -> dict[str, str]:
 
         rename_map = dict()
         for col in cols:

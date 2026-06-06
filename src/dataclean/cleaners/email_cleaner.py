@@ -1,6 +1,9 @@
+import re
 from dataclasses import dataclass
 from typing import override
-import re
+
+from dataclean.engine.dataframe import DataFrame
+
 from .base_cleaner import BaseCleaner
 
 
@@ -17,6 +20,10 @@ class EmailCleaner(BaseCleaner):
         local: str
         tag: str | None
         domain: str
+
+    @override
+    def name(self) -> str:
+        return "EmailCleaner"
 
     @override
     def clean_value(self, v: str) -> str | None:
@@ -66,6 +73,10 @@ class EmailCleaner(BaseCleaner):
             )
 
             return email_str
+
+    @override
+    def get_date_type_confidence(self, df: DataFrame, cols: tuple[str]) -> float:
+        return 1 if "email" in cols[0].lower() else 0
 
     def _parse_email(self, v: str) -> EmailComponents | None:
 
