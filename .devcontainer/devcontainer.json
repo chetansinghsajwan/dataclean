@@ -2,7 +2,8 @@
     "name": "dataclean",
     "dockerFile": "Dockerfile",
     "containerEnv": {
-        "PYTHONPATH": "${containerWorkspaceFolder}"
+        "PYTHONPATH": "${containerWorkspaceFolder}/src",
+        "UV_PYTHON": "3.12"
     },
     "customizations": {
         "vscode": {

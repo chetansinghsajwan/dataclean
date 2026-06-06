@@ -1,13 +1,13 @@
 from logging import Logger, getLogger
 from typing import Iterable, Mapping
 
-from src.dataclean.cleaners.base_cleaner import BaseCleaner
-from src.dataclean.col_renamer import ColRenamer
-from src.dataclean.config import config
-from src.dataclean.engine.dataframe import DataFrame
+from dataclean.cleaners.base_cleaner import BaseCleaner
+from dataclean.col_renamer import ColRenamer
+from dataclean.config import config
+from dataclean.engine.dataframe import DataFrame
 
 
-def get_cleaner(df: DataFrame, cols: list[str]) -> (BaseCleaner, float):
+def get_cleaner(df: DataFrame, cols: Iterable[str]) -> (BaseCleaner, float):
     selected_cleaner: BaseCleaner = None
     selected_cleaner_confidence: float = 0
 
@@ -25,7 +25,19 @@ def get_cleaner(df: DataFrame, cols: list[str]) -> (BaseCleaner, float):
     return selected_cleaner, selected_cleaner_confidence
 
 
-def clean_df(
+def _wrap_df(df: any) -> None:
+
+    if isinstance(df, DataFrame):
+        return df
+
+    for api in config.dataframe_apis:
+        if api.supports(df):
+            return api(df)
+
+    return None
+
+
+def clean(
     df: DataFrame,
     rename_cols: bool = True,
     rename_col_map: Mapping[str, str] | None = None,
@@ -40,9 +52,20 @@ def clean_df(
     if logger is None:
         logger = getLogger(__name__)
 
+    wrapped_df = _wrap_df(df)
+    if wrapped_df is None:
+        e = TypeError(
+            f"Dataframe of type '{type(df)}' is not supported. Register your dataframe."
+        )
+        logger.error(e)
+
+        raise e
+
+    df = wrapped_df
+
     logger.debug("Cleaning data...")
 
-    logger.debug(f"df: {df.columns()}")
+    logger.debug(f"df: {df.cols()}")
     logger.debug(f"{rename_cols=}")
     logger.debug(f"{rename_col_map=}")
     logger.debug(f"{col_renamer=}")
@@ -51,7 +74,7 @@ def clean_df(
     logger.debug(f"{use_global_config=}")
 
     if ignore_cols is None:
-        ignore_cols = None
+        ignore_cols = list()
 
     if use_global_config:
         logger.debug(f"Global config: {config}")
@@ -60,12 +83,12 @@ def clean_df(
 
     if rename_cols:
         if rename_col_map is None:
-            rename_col_map = col_renamer.generate_rename_map(df.columns())
+            rename_col_map = col_renamer.rename_cols(df.cols())
         else:
             cols_to_auto_rename = [
-                col for col in df.columns() if col not in rename_col_map
+                col for col in df.cols() if col not in rename_col_map
             ]
-            auto_rename_col_map = col_renamer.generate_rename_map(cols_to_auto_rename)
+            auto_rename_col_map = col_renamer.rename_cols(cols_to_auto_rename)
 
             logger.debug(f"Rename map from the column renamer: {auto_rename_col_map}")
 
@@ -76,12 +99,19 @@ def clean_df(
         df.rename_cols(rename_col_map)
 
     if clean_cols:
-        auto_clean_columns = [col for col in df.columns() if col not in cleaners]
+        if cleaners is None:
+            cleaners = list()
+
+        auto_clean_cols = [col for col in df.cols() if col not in cleaners]
         col_cleaner_map = dict()
 
-        for col in auto_clean_columns:
+        for col in auto_clean_cols:
             logger.debug(f"Finding cleaner for col '{col}'")
-            cleaner, cleaner_confidence = get_cleaner(df, (col))
+            cleaner, cleaner_confidence = get_cleaner(df, (col,))
+
+            if cleaner is None:
+                logger.warning(f"No cleaner found for col '{col}'")
+                continue
 
             logger.debug(
                 f"Found cleaner '{cleaner.name()}' for '{col}' with confidence '{cleaner_confidence}'"
@@ -89,6 +119,11 @@ def clean_df(
 
             col_cleaner_map[col] = cleaner
 
-        df.add_columns({col: cleaner.clean_value for col in col_cleaner_map})
+        df.add_cols(
+            {
+                f"{col}_cleaned": (cleaner.clean_value, col)
+                for col, cleaner in col_cleaner_map.items()
+            }
+        )
 
     return df

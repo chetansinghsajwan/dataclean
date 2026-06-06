@@ -1,0 +1,11 @@
+ID,First Name,Middle Name,Last Name,Email,Phone,Tel,Fax,Business Type,Business Sector,Business Size,Client Partner ID,Client Partner Name,Country,County,Town,Post Code,Address Line 1,Address Line 2,Address Line 3
+1,Rahul,Kumar,Sharma, Rahul.sharma+spam@gmail.com,+91 9876543210,011-23456789,,Private Limited,IT,500,CP-990,TechCorp Solutions,India,Delhi,New Delhi,110001,"12, Barakhamba Road",Connaught Place,
+2,PRIYA,,PATEL,priya.patel@yahoo.co.in,98765 43211,,,LLC,Healthcare,Large,CP-441,MedVantage,India,Maharashtra,Mumbai,400001,45 Nariman Point,,
+3,Amit,,Kumar,amit.kumar.99@outlook.com,919876543212,,,proprietorship,retail,micro,,,IN,Karnataka,Bangalore,560001,"MG Road, No 100",Near Metro Station,Block A
+4,Rahul,K.,sharma,rahulsharma@gmail.com,919876543210,1123456789,,PRIVATELIMITED,info tech,500,CP-990,TechCorp Solutions,India,Delhi,New delhi,110001,"12, Barakhamba Rd",Connaught Place,
+NaN,ananya,devi,das,ananya.das@company.com,9.88E+09,,,Corporation,Finance,Medium,CP-112,FinGrowth,India,West Bengal,Kolkata,700001,"Salt Lake, Sec V",,
+6,Vikram,Singh,,vikram.singh+test1@gmail.com,9876543214,,,Partnership,Manufacturing,50,CP-332,BuildInd,INDIA,Haryana,Gurgaon,122001,"Sector 45, Plot 12",,
+7,Sneha,,Reddy,sneha.reddy@domain,N/A,,,Pvt Ltd,E-commerce,SMALL,CP-883,E-Market,India,Telangana,Hyderabad,500081,Hitech City,Phase 2,
+8,Rajesh,Kumar,Verma,rajesh.v@gmail.com,9876543216,,,Private Limited,Education,120,CP-990,TechCorp Solutions Ltd,India,Tamil Nadu,Chennai,600001,Anna Salai,,
+9,Rohan,,Malhotra,rohan.malhotra@hotmail.com,+91-98765-43217,,,Ltd,Logis.,Medium,CP-115,LogiChain,India,Maharashtra,Pune,411001,"Wakad, Sr No 44",Appt 402,Near Highway
+10,pooja,kumari,mishra,poojamishra@yahoo.com,987654321,12345,,Sole Prop,Consult.,5,CP-001,Alpha Consulting,IND,Bihar,Patna,800001,Fraser Road,,
