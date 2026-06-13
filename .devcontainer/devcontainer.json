@@ -5,6 +5,12 @@
         "PYTHONPATH": "${containerWorkspaceFolder}/src",
         "UV_PYTHON": "3.12"
     },
+    "features": {
+        "ghcr.io/devcontainers/features/java:1": {
+        "version": "lts",
+        "jdkDistro": "open"
+      }
+    },
     "customizations": {
         "vscode": {
             "extensions": [
