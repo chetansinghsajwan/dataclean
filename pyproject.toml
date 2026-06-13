@@ -5,9 +5,14 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "grpcio>=1.81.0",
+    "grpcio-status>=1.81.0",
     "numpy>=2.4.6",
     "pandas>=2.3.3",
+    "pyarrow>=24.0.0",
+    "pyspark>=4.1.2",
     "wordninja>=2.0.0",
+    "zstandard>=0.25.0",
 ]
 
 [build-system]
