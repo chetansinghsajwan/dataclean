@@ -7,6 +7,7 @@ class Config:
     cleaners: list[str] = []
     col_renamer: ColRenamer
     dataframe_apis: list[DataFrame]
+    inplace: bool
 
     def __init__(
         self,
@@ -14,11 +15,13 @@ class Config:
         ignore_cols: list[str] = [],
         cleaners: list[str] = [],
         dataframe_apis: list[DataFrame] = [],
+        inplace: bool = True,
     ):
         self.col_renamer = col_renamer
         self.ignore_cols = ignore_cols
         self.cleaners = cleaners
         self.dataframe_apis = dataframe_apis
+        self.inplace = inplace
 
 
 config = Config(

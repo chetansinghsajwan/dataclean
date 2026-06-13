@@ -2,11 +2,12 @@ import re
 from dataclasses import dataclass
 from typing import override
 
-from dataclean.engine.dataframe import DataFrame
+from dataclean.engine.dataframe import DataFrame, DataType
 
 from .base_cleaner import BaseCleaner
 
 
+# TODO: Need to add functionality to parse display name
 @dataclass(frozen=True)
 class EmailCleaner(BaseCleaner):
     keep_tags: bool = True
@@ -21,9 +22,18 @@ class EmailCleaner(BaseCleaner):
         tag: str | None
         domain: str
 
+
+
     @override
     def name(self) -> str:
         return "EmailCleaner"
+
+    @override
+    def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
+        if self.split_components:
+            return (("local", "str"), ("tag", "str"), ("domain", "str"))
+
+        return "str"
 
     @override
     def clean_value(self, v: str) -> str | None:
@@ -65,14 +75,10 @@ class EmailCleaner(BaseCleaner):
         if self.split_components:
             return (email.local, email.tag, email.domain)
 
-        else:
-            email_str = (
-                f"{email.local}+{email.tag}@{email.domain}"
-                if email.tag
-                else f"{email.local}@{email.domain}"
-            )
+        if email.tag is not None:
+            return f"{email.local}+{email.tag}@{email.domain}"
 
-            return email_str
+        return f"{email.local}@{email.domain}"
 
     @override
     def get_date_type_confidence(self, df: DataFrame, cols: tuple[str]) -> float:

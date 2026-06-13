@@ -5,6 +5,8 @@ from typing import Iterable, Literal, get_args
 import wordninja
 
 
+# TODO: Need to add functionality to override name renaming
+# TODO: Need to add functionality to output in different formats
 @dataclass(frozen=True)
 class ColRenamer:
     CaseTypes = Literal[
