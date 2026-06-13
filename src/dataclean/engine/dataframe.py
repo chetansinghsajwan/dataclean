@@ -1,17 +1,42 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
-from typing import Callable, Mapping
+from dataclasses import dataclass
+from typing import Any, Callable, Iterator, Literal, Mapping
+
+DataType = Literal[
+    "str",
+    "bool",
+    "int",
+    "float",
+    "double",
+]
+
+
+@dataclass(frozen=True)
+class DataReader:
+    fn: Callable[str | bool | int | float | None, ...]
+    cols: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class DataWriter:
+    expr: (
+        Callable[str | bool | int | float | None, ...] | str | bool | int | float | None
+    )
+    read_cols: tuple[str, ...]
+    write_cols: tuple[tuple[str, DataType], ...]
 
 
 class DataFrame(ABC):
-    DataReader = tuple[Callable, *tuple[str, ...]]
-
     @abstractmethod
-    def supports(df: any) -> bool:
+    def supports(df: Any) -> bool:
         pass
 
+    def col_names(self) -> Iterator[str]:
+        return (col for col, _ in self.cols())
+
     @abstractmethod
-    def cols(self) -> tuple[str]:
+    def cols(self) -> tuple[tuple[str, DataType], ...]:
         pass
 
     @abstractmethod
@@ -19,16 +44,17 @@ class DataFrame(ABC):
         pass
 
     @abstractmethod
-    def read_cols(self, cols: Mapping[str, DataReader]):
+    def read_cols(self, readers: Iterable[DataReader]):
         pass
 
-    def read_col(self, reader: DataReader):
-        self.read_cols((reader,))
-
     @abstractmethod
-    def add_cols(self, cols: Mapping[str, any]):
+    def write_cols(self, writers: Iterable[DataWriter]):
         pass
 
     @abstractmethod
     def remove_cols(self, cols: Iterable[str]):
+        pass
+
+    @abstractmethod
+    def cast_cols(self, cols: Mapping[str, DataType]):
         pass
