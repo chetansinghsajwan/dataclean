@@ -12,7 +12,7 @@ def get_cleaner(df: DataFrame, cols: Iterable[str]) -> (BaseCleaner, float):
     selected_cleaner_confidence: float = 0
 
     for cleaner in config.cleaners:
-        confidence = cleaner.get_date_type_confidence(df, cols)
+        confidence = cleaner.get_data_type_confidence(df, cols)
         confidence = min(max(confidence, 0), 1)
 
         if confidence > selected_cleaner_confidence:

@@ -34,5 +34,5 @@ class BaseCleaner(StrictBaseModel, ABC, frozen=True):
         pass
 
     @abstractmethod
-    def get_date_type_confidence(self, df: DataFrame, cols: tuple[str]) -> float:
+    def get_data_type_confidence(self, df: DataFrame, cols: tuple[str]) -> float:
         pass

@@ -8,7 +8,7 @@ from .base_cleaner import BaseCleaner
 
 
 # TODO: Need to add functionality to parse display name
-class EmailCleaner(BaseCleaner):
+class EmailCleaner(BaseCleaner, frozen=True):
     keep_tags: bool = True
     keep_dots: bool = True
     lowercase: bool = True
@@ -77,7 +77,7 @@ class EmailCleaner(BaseCleaner):
         return f"{email.local}@{email.domain}"
 
     @override
-    def get_date_type_confidence(self, df: DataFrame, cols: tuple[str]) -> float:
+    def get_data_type_confidence(self, df: DataFrame, cols: tuple[str]) -> float:
         return 1 if "email" in cols[0].lower() else 0
 
     def _parse_email(self, v: str) -> EmailComponents | None:
