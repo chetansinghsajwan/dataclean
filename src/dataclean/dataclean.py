@@ -1,10 +1,10 @@
 from logging import Logger, getLogger
-from typing import Iterable, Mapping
+from typing import Any, Iterable, Mapping
 
 from dataclean.cleaners.base_cleaner import BaseCleaner
 from dataclean.col_renamer import ColRenamer
 from dataclean.config import config
-from dataclean.engine.dataframe import DataFrame
+from dataclean.engine.dataframe import DataFrame, DataWriter
 
 
 def get_cleaner(df: DataFrame, cols: Iterable[str]) -> (BaseCleaner, float):
@@ -25,7 +25,7 @@ def get_cleaner(df: DataFrame, cols: Iterable[str]) -> (BaseCleaner, float):
     return selected_cleaner, selected_cleaner_confidence
 
 
-def _wrap_df(df: any) -> None:
+def _wrap_df(df: Any) -> DataFrame:
 
     if isinstance(df, DataFrame):
         return df
@@ -46,6 +46,7 @@ def clean(
     ignore_cols: Iterable[str] | None = None,
     use_global_config: bool = True,
     logger: Logger | None = None,
+    inplace: bool | None = None,
     cleaners: dict[str, BaseCleaner] | None = None,
 ) -> DataFrame:
 
@@ -70,11 +71,18 @@ def clean(
     logger.debug(f"{rename_col_map=}")
     logger.debug(f"{col_renamer=}")
     logger.debug(f"{clean_cols=}")
-    logger.debug(f"{ignore_cols=}")
+    logger.debug(f"{ignore_cols=}, {config.ignore_cols=}")
+    logger.debug(f"{inplace=}, {config.inplace=}")
     logger.debug(f"{use_global_config=}")
 
     if ignore_cols is None:
         ignore_cols = list()
+
+    if inplace is None:
+        inplace = config.inplace
+
+    if cleaners is None:
+        cleaners = list()
 
     if use_global_config:
         logger.debug(f"Global config: {config}")
@@ -83,10 +91,10 @@ def clean(
 
     if rename_cols:
         if rename_col_map is None:
-            rename_col_map = col_renamer.rename_cols(df.cols())
+            rename_col_map = col_renamer.rename_cols(df.col_names())
         else:
             cols_to_auto_rename = [
-                col for col in df.cols() if col not in rename_col_map
+                col for col in df.col_names() if col not in rename_col_map
             ]
             auto_rename_col_map = col_renamer.rename_cols(cols_to_auto_rename)
 
@@ -99,11 +107,8 @@ def clean(
         df.rename_cols(rename_col_map)
 
     if clean_cols:
-        if cleaners is None:
-            cleaners = list()
-
-        auto_clean_cols = [col for col in df.cols() if col not in cleaners]
-        col_cleaner_map = dict()
+        auto_clean_cols = [col for col in df.col_names() if col not in cleaners]
+        col_cleaner_map: dict[str, BaseCleaner] = dict()
 
         for col in auto_clean_cols:
             logger.debug(f"Finding cleaner for col '{col}'")
@@ -119,11 +124,31 @@ def clean(
 
             col_cleaner_map[col] = cleaner
 
-        df.add_cols(
-            {
-                f"{col}_cleaned": (cleaner.clean_value, col)
-                for col, cleaner in col_cleaner_map.items()
-            }
-        )
+        writers = list()
+        for col, cleaner in col_cleaner_map.items():
+            schema = cleaner.output_schema()
+
+            if not isinstance(schema, tuple):
+                writers.append(
+                    DataWriter(
+                        expr=cleaner.clean_value,
+                        read_cols=(col,),
+                        write_cols=((f"{col}_cleaned", schema),),
+                    )
+                )
+                continue
+
+            writers.append(
+                DataWriter(
+                    expr=cleaner.clean_value,
+                    read_cols=(col,),
+                    write_cols=tuple(
+                        (f"{col}_{comp}_cleaned", data_type)
+                        for comp, data_type in schema
+                    ),
+                )
+            )
+
+        df.write_cols(writers)
 
     return df

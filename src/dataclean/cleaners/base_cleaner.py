@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from dataclean.engine.dataframe import DataFrame
+from dataclean.engine.dataframe import DataFrame, DataType
 
 
 @dataclass(frozen=True)
@@ -14,7 +14,11 @@ class BaseCleaner(ABC):
         pass
 
     @abstractmethod
-    def clean_value(self, v: str) -> str | None:
+    def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
+        pass
+
+    @abstractmethod
+    def clean_value(self, v: str) -> tuple[str | None, ...]:
         """
         Clean the input value and return the cleaned value.
         If the value cannot be cleaned, return None.
