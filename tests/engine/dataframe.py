@@ -58,7 +58,7 @@ class BaseDataFrameTests:
 
     def test_write_cols_via_multi_arg_unpacking(self, wrapper: DataFrame):
         """
-        Evaluates writing columns using the concrete DataWriter dataclass container contract.
+        Evaluates writing columns using the concrete DataWriter container contract.
         """
 
         def mock_builder(first: str, last: str) -> str:

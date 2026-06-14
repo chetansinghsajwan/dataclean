@@ -124,7 +124,7 @@ test_cases = [
 def test_col_renamer():
 
     for case in test_cases:
-        renamer = ColRenamer(case["case"])
+        renamer = ColRenamer(case=case["case"])
         result = renamer.rename(case["input"])
 
         assert result == case["expected"], (

@@ -1,19 +1,24 @@
+from typing import Self
+from pydantic import model_validator
 from collections.abc import Mapping
 from typing import Any, Iterable, override
 
 import numpy as np
 import pandas as pd
 
+from pydantic import PrivateAttr
+
 from dataclean.engine.dataframe import DataFrame, DataReader, DataType, DataWriter
 
 
 class PandasDataFrame(DataFrame):
     df: pd.DataFrame
-    _cols: tuple[tuple[str, DataType], ...]
+    _cols: tuple[tuple[str, DataType], ...] = PrivateAttr(default_factory=tuple)
 
-    def __init__(self, df: pd.DataFrame):
-        self.df = df
+    @model_validator(mode="after")
+    def _initialize(self) -> Self:
         self._update_cols()
+        return self
 
     @staticmethod
     @override

@@ -1,14 +1,13 @@
 import re
-from dataclasses import dataclass
 from typing import override
 
 from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean.types import StrictBaseModel
 
 from .base_cleaner import BaseCleaner
 
 
 # TODO: Need to add functionality to parse display name
-@dataclass(frozen=True)
 class EmailCleaner(BaseCleaner):
     keep_tags: bool = True
     keep_dots: bool = True
@@ -16,13 +15,10 @@ class EmailCleaner(BaseCleaner):
 
     _EMAIL_REGEX = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
 
-    @dataclass(frozen=True)
-    class EmailComponents:
+    class EmailComponents(StrictBaseModel, frozen=True):
         local: str
         tag: str | None
         domain: str
-
-
 
     @override
     def name(self) -> str:
