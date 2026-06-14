@@ -1,3 +1,5 @@
+from typing import Self
+from pydantic import model_validator
 from collections.abc import Iterable, Mapping
 from typing import Any, override
 
@@ -14,9 +16,10 @@ class PySparkDataFrame(DataFrame):
     df: sp.DataFrame | spc.DataFrame
     _cols: tuple[tuple[str, DataType], ...]
 
-    def __init__(self, df: sp.DataFrame | spc.DataFrame):
-        self.df = df
+    @model_validator(mode="after")
+    def _initialize_internal_cache(self) -> Self:
         self._update_cols()
+        return self
 
     @staticmethod
     @override

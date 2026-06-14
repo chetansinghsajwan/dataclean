@@ -29,4 +29,4 @@ class TestPySparkDataFrame(BaseDataFrameTests):
     @pytest.fixture(autouse=True)
     def wrapper(self, spark: SparkSession) -> PySparkDataFrame:
         sp_df = spark.createDataFrame(pd.DataFrame(RAW_TEST_DATA))
-        return PySparkDataFrame(sp_df)
+        return PySparkDataFrame(df=sp_df)

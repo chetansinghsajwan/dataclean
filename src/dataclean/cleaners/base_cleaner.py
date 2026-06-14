@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 
 from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean.types import StrictBaseModel
 
 
-@dataclass(frozen=True)
-class BaseCleaner(ABC):
+class BaseCleaner(StrictBaseModel, ABC, frozen=True):
     inplace: bool = True
     split_components: bool = False
 
