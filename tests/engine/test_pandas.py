@@ -15,5 +15,5 @@ class TestPandasDataFrame(BaseDataFrameTests):
     @pytest.fixture(autouse=True)
     def wrapper(self) -> Any:
         pd_df = pd.DataFrame(RAW_TEST_DATA)
-        return PandasDataFrame(pd_df)
+        return PandasDataFrame(df=pd_df)
         pass
