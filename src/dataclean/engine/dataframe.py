@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
-from dataclasses import dataclass
 from typing import Any, Callable, Iterator, Literal, Mapping
+
+from dataclean.types import StrictBaseModel
 
 DataType = Literal[
     "str",
@@ -12,22 +13,20 @@ DataType = Literal[
 ]
 
 
-@dataclass(frozen=True)
-class DataReader:
-    fn: Callable[str | bool | int | float | None, ...]
+class DataReader(StrictBaseModel, frozen=True):
+    fn: Callable[[str | bool | int | float | None], ...]
     cols: tuple[str, ...]
 
 
-@dataclass(frozen=True)
-class DataWriter:
+class DataWriter(StrictBaseModel, frozen=True):
     expr: (
-        Callable[str | bool | int | float | None, ...] | str | bool | int | float | None
+        Callable[[str | bool | int | float | None], ...] | str | bool | int | float | None
     )
     read_cols: tuple[str, ...]
     write_cols: tuple[tuple[str, DataType], ...]
 
 
-class DataFrame(ABC):
+class DataFrame(StrictBaseModel, ABC):
     @abstractmethod
     def supports(df: Any) -> bool:
         pass
