@@ -18,6 +18,7 @@
         },
         "ghcr.io/aqua/devcontainer-antigravity-cli/antigravity-cli:1": {}
     },
+    "postCreateCommand": "uv sync",
     "customizations": {
         "vscode": {
             "extensions": [
