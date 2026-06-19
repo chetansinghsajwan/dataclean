@@ -1,15 +1,22 @@
 {
     "name": "dataclean",
-    "dockerFile": "Dockerfile",
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu26.04",
     "containerEnv": {
         "PYTHONPATH": "${containerWorkspaceFolder}/src",
         "UV_PYTHON": "3.12"
     },
     "features": {
+        "ghcr.io/devcontainers/features/git:1": {},
+        "ghcr.io/devcontainers/features/github-cli:": {},
+        "ghcr.io/devcontainer-community/devcontainer-features/astral.sh-uv:1": {
+            "version": "latest",
+            "shellautocompletion": true
+        },
         "ghcr.io/devcontainers/features/java:1": {
-        "version": "lts",
-        "jdkDistro": "open"
-      }
+            "version": "lts",
+            "jdkDistro": "open"
+        },
+        "ghcr.io/aqua/devcontainer-antigravity-cli/antigravity-cli:1": {}
     },
     "customizations": {
         "vscode": {
