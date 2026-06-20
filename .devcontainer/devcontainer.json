@@ -8,6 +8,7 @@
     "features": {
         "ghcr.io/devcontainers/features/git:1": {},
         "ghcr.io/devcontainers/features/github-cli:": {},
+        "ghcr.io/jsburckhardt/devcontainer-features/ruff:1": {},
         "ghcr.io/devcontainer-community/devcontainer-features/astral.sh-uv:1": {
             "version": "latest",
             "shellautocompletion": true
