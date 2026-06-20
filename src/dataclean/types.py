@@ -27,4 +27,9 @@ class StrictBaseModel(BaseModel, ABC):
 
 
 # Create a reusable strict validation decorator shortcut
-strict_validate = validate_call(config=ConfigDict(strict=True))
+strict_validate = validate_call(
+    config=ConfigDict(
+        strict=True,
+        arbitrary_types_allowed=True,
+    )
+)

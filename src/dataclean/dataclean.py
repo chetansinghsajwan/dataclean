@@ -5,6 +5,7 @@ from dataclean.cleaners.base_cleaner import BaseCleaner
 from dataclean.col_renamer import ColRenamer
 from dataclean.config import config
 from dataclean.engine.dataframe import DataFrame, DataWriter
+from dataclean.types import strict_validate
 
 
 def get_cleaner(df: DataFrame, cols: Iterable[str]) -> (BaseCleaner, float):
@@ -32,13 +33,14 @@ def _wrap_df(df: Any) -> DataFrame:
 
     for api in config.dataframe_apis:
         if api.supports(df):
-            return api(df)
+            return api(df=df)
 
     return None
 
 
+@strict_validate
 def clean(
-    df: DataFrame,
+    df: DataFrame | Any,
     rename_cols: bool = True,
     rename_col_map: Mapping[str, str] | None = None,
     col_renamer: ColRenamer | None = ColRenamer(case="snake"),
