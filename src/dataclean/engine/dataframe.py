@@ -20,7 +20,12 @@ class DataReader(StrictBaseModel, frozen=True):
 
 class DataWriter(StrictBaseModel, frozen=True):
     expr: (
-        Callable[[str | bool | int | float | None], ...] | str | bool | int | float | None
+        Callable[..., str]
+        | str
+        | bool
+        | int
+        | float
+        | None
     )
     read_cols: tuple[str, ...]
     write_cols: tuple[tuple[str, DataType], ...]

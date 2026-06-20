@@ -24,6 +24,11 @@
       "version": "1.8.0",
       "resolved": "ghcr.io/devcontainers/features/java@sha256:9663ce0219ff85786e87901ce5f0a59f488edd5f99b46015192cda48468b233a",
       "integrity": "sha256:9663ce0219ff85786e87901ce5f0a59f488edd5f99b46015192cda48468b233a"
+    },
+    "ghcr.io/jsburckhardt/devcontainer-features/ruff:1": {
+      "version": "1.0.0",
+      "resolved": "ghcr.io/jsburckhardt/devcontainer-features/ruff@sha256:ecde5b4c67565ea73aca624e13931c3104e01ca079b37913ba7317e0c7508d2f",
+      "integrity": "sha256:ecde5b4c67565ea73aca624e13931c3104e01ca079b37913ba7317e0c7508d2f"
     }
   }
 }
