@@ -7,7 +7,16 @@
 - **Python Version:** 3.12 managed via `uv`.
 - **Primary Tooling:** Ruff (Linting & Formatting), Pytest (Testing)
 
-## 2. Tooling & Execution Commands
+## 2. Project Design
+
+- **Cleaning Architecture:** Cleaning is handled by cleaners.
+- **The Base Class:** There is a base class for all cleaners called `BaseCleaner`.
+- **Immutability & Compilation:** The cleaner is always frozen and follows the design that configuration is provided during cleaner object creation. All prerequisite calculations and type validation are done exactly once during creation. During runtime (e.g., in `clean_value`), repeated code and condition branching overhead must be avoided as much as possible.
+- **Engine Abstraction:** Data manipulation is handled by data engines.
+- **The DataFrame Interface:** There is a base class for dataframes of engines called `DataFrame`.
+- **Implementation Decoupling:** There are concrete data engine implementations like `PandasDataFrame` and `PysparkDataFrame`. Never depend directly on the underlying implementation; always manipulate data strictly using the `DataFrame` interface.
+
+## 3. Tooling & Execution Commands
 
 Always execute commands exactly as formatted below to prevent lockfile or environment drift:
 
@@ -19,7 +28,7 @@ Always execute commands exactly as formatted below to prevent lockfile or enviro
 - **Execute All Tests:** `uv run pytest`
 - **Execute Single Test File:** `uv run pytest <path_to_test_file>.py -v`
 
-## 3. Strict Guardrails & Code Conventions
+## 4. Strict Guardrails & Code Conventions
 
 ### Typing & Guardrails (Non-Negotiable)
 
