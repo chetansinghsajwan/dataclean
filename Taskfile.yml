@@ -1,0 +1,94 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: '3'
+
+tasks:
+  setup:
+    desc: Setup project dependencies
+    cmds:
+      - uv sync
+
+  test:
+    desc: Run the test suite
+    cmds:
+      - uv run pytest tests/
+
+  test:cleaners:
+    desc: Run tests for the cleaners
+    cmds:
+      - uv run pytest tests/cleaners/
+
+  test:engines:
+    desc: Run tests for the engines
+    cmds:
+      - uv run pytest tests/engine/
+
+  test:phone:
+    desc: Run tests for the phone cleaner
+    cmds:
+      - uv run pytest tests/cleaners/test_phone_cleaner.py
+
+  test:email:
+    desc: Run tests for the email cleaner
+    cmds:
+      - uv run pytest tests/cleaners/test_email_cleaner.py
+
+  test:bool:
+    desc: Run tests for the bool cleaner
+    cmds:
+      - uv run pytest tests/cleaners/test_bool_cleaner.py
+
+  test:gender:
+    desc: Run tests for the gender cleaner
+    cmds:
+      - uv run pytest tests/cleaners/test_gender_cleaner.py
+
+  test:num:
+    desc: Run tests for the num cleaner
+    cmds:
+      - uv run pytest tests/cleaners/test_num_cleaner.py
+
+  test:text:
+    desc: Run tests for the text cleaner
+    cmds:
+      - uv run pytest tests/cleaners/test_text_cleaner.py
+
+  test:datetime:
+    desc: Run tests for the datetime cleaner
+    cmds:
+      - uv run pytest tests/cleaners/test_datetime_cleaner.py
+
+  test:country:
+    desc: Run tests for the country cleaner
+    cmds:
+      - uv run pytest tests/cleaners/test_country_cleaner.py
+
+  test:uuid:
+    desc: Run tests for the uuid cleaner
+    cmds:
+      - uv run pytest tests/cleaners/test_uuid_cleaner.py
+
+  test:pandas:
+    desc: Run tests for the pandas engine
+    cmds:
+      - uv run pytest tests/engine/test_pandas.py
+
+  test:pyspark:
+    desc: Run tests for the pyspark engine
+    cmds:
+      - uv run pytest tests/engine/test_pyspark.py
+
+  lint:
+    desc: Lint the codebase
+    cmds:
+      - uv run ruff check .
+
+  format:
+    desc: Format the codebase
+    cmds:
+      - uv run ruff format .
+
+  clean:
+    desc: Remove cache directories
+    cmds:
+      - find . -type d -name "__pycache__" -exec rm -rf {} +
+      - rm -rf .pytest_cache .ruff_cache
