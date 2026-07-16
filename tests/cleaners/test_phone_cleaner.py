@@ -7,6 +7,7 @@ from dataclean.cleaners.phone_cleaner import PhoneCleaner
 # 1. CORE PROPERTIES & HEURISTICS
 # ==============================================================================
 
+
 def test_phone_cleaner_metadata():
     cleaner = PhoneCleaner()
     assert cleaner.name() == "PhoneCleaner"
@@ -35,6 +36,7 @@ def test_phone_cleaner_confidence(col_name, expected_confidence):
 # 2. RESILIENT EXTRACTION & FORMATTING LOOPS
 # ==============================================================================
 
+
 @pytest.mark.parametrize(
     "input_val, out_fmt, default_regions, expected_output",
     [
@@ -42,21 +44,25 @@ def test_phone_cleaner_confidence(col_name, expected_confidence):
         ("+91 98765 43210", PhoneCleaner.Format.E164, (), "+919876543210"),
         ("+1-415-555-2671", PhoneCleaner.Format.E164, (), "+14155552671"),
         ("+44 20 7123 1234", PhoneCleaner.Format.E164, (), "+442071231234"),
-
         # --- Scientific Notation Recovery (Requires fallback since '+' is dropped) ---
         ("9.876543210E+09", PhoneCleaner.Format.E164, ("IN",), "+919876543210"),
-
         # --- Delimiter & Noise Purging (Requires fallback tuple) ---
         ("011-23456789", PhoneCleaner.Format.E164, ("IN",), "+911123456789"),
-        ("(415) 555-2671", PhoneCleaner.Format.E164, ("US", "IN"), "+14155552671"), # Matches US first in the tuple
-
+        (
+            "(415) 555-2671",
+            PhoneCleaner.Format.E164,
+            ("US", "IN"),
+            "+14155552671",
+        ),  # Matches US first in the tuple
         # --- Regional & International Fallbacks ---
         ("9876543210", PhoneCleaner.Format.INTERNATIONAL, ("IN",), "+91 98765 43210"),
         ("9876543210", PhoneCleaner.Format.NATIONAL, ("IN",), "098765 43210"),
         ("9876543210", PhoneCleaner.Format.RAW_DIGITS, ("IN",), "919876543210"),
     ],
 )
-def test_phone_clean_value_success_matrix(input_val, out_fmt, default_regions, expected_output):
+def test_phone_clean_value_success_matrix(
+    input_val, out_fmt, default_regions, expected_output
+):
     cleaner = PhoneCleaner(out_format=out_fmt, default_regions=default_regions)
     assert cleaner.clean_value(input_val) == expected_output
 
