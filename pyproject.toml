@@ -15,6 +15,7 @@ dependencies = [
     "pyspark>=4.1.2",
     "wordninja>=2.0.0",
     "zstandard>=0.25.0",
+    "phonenumbers>=9.0.34",
 ]
 
 [build-system]
