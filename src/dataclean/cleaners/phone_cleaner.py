@@ -29,7 +29,7 @@ class PhoneCleaner(BaseCleaner, frozen=True):
     def clean_value(self, v: str) -> str | None:
         normalized = v.strip()
 
-        if re.match(r'^\d+(\.\d+)?([eE][+-]?\d+)$', normalized):
+        if re.match(r"^\d+(\.\d+)?([eE][+-]?\d+)$", normalized):
             try:
                 normalized = str(int(float(normalized)))
             except ValueError:
@@ -46,13 +46,21 @@ class PhoneCleaner(BaseCleaner, frozen=True):
                 if phonenumbers.is_valid_number(parsed_num):
                     match self.out_format:
                         case PhoneCleaner.Format.E164:
-                            return phonenumbers.format_number(parsed_num, phonenumbers.PhoneNumberFormat.E164)
+                            return phonenumbers.format_number(
+                                parsed_num, phonenumbers.PhoneNumberFormat.E164
+                            )
                         case PhoneCleaner.Format.INTERNATIONAL:
-                            return phonenumbers.format_number(parsed_num, phonenumbers.PhoneNumberFormat.INTERNATIONAL)
+                            return phonenumbers.format_number(
+                                parsed_num, phonenumbers.PhoneNumberFormat.INTERNATIONAL
+                            )
                         case PhoneCleaner.Format.NATIONAL:
-                            return phonenumbers.format_number(parsed_num, phonenumbers.PhoneNumberFormat.NATIONAL)
+                            return phonenumbers.format_number(
+                                parsed_num, phonenumbers.PhoneNumberFormat.NATIONAL
+                            )
                         case PhoneCleaner.Format.RAW_DIGITS:
-                            e164 = phonenumbers.format_number(parsed_num, phonenumbers.PhoneNumberFormat.E164)
+                            e164 = phonenumbers.format_number(
+                                parsed_num, phonenumbers.PhoneNumberFormat.E164
+                            )
                             return e164.replace("+", "")
 
             except phonenumbers.NumberParseException:
@@ -66,7 +74,10 @@ class PhoneCleaner(BaseCleaner, frozen=True):
             return 0.0
 
         col_name = cols[0].lower()
-        if any(token in col_name for token in ("phone", "tel", "mobile", "fax", "contact_no")):
+        if any(
+            token in col_name
+            for token in ("phone", "tel", "mobile", "fax", "contact_no")
+        ):
             return 1.0
 
         return 0.0
