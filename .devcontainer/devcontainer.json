@@ -13,6 +13,7 @@
             "version": "latest",
             "shellautocompletion": true
         },
+        "ghcr.io/audacioustux/devcontainers/taskfile:1": {},
         "ghcr.io/devcontainers/features/java:1": {
             "version": "lts",
             "jdkDistro": "open"
