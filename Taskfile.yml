@@ -2,10 +2,39 @@
 version: '3'
 
 tasks:
+  setup:hooks:
+    desc: Setup project hooks
+    cmds:
+      - ln -sf ../../.config/git/pre-push.sh .git/hooks/pre-push
+
   setup:
     desc: Setup project dependencies
+    deps:
+      - setup:hooks
     cmds:
       - uv sync
+
+  clean:
+    desc: Remove cache directories
+    cmds:
+      - find . -type d -name "__pycache__" -exec rm -rf {} +
+      - rm -rf .pytest_cache .ruff_cache
+
+  lint:
+    desc: Lint the codebase
+    cmds:
+      - uv run ruff check .
+
+  format:
+    desc: Format the codebase
+    cmds:
+      - uv run ruff format .
+
+  checks:
+    desc: Run all checks
+    cmds:
+      - task: lint
+      - task: format
 
   test:
     desc: Run the test suite
@@ -76,19 +105,3 @@ tasks:
     desc: Run tests for the pyspark engine
     cmds:
       - uv run pytest tests/engine/test_pyspark.py
-
-  lint:
-    desc: Lint the codebase
-    cmds:
-      - uv run ruff check .
-
-  format:
-    desc: Format the codebase
-    cmds:
-      - uv run ruff format .
-
-  clean:
-    desc: Remove cache directories
-    cmds:
-      - find . -type d -name "__pycache__" -exec rm -rf {} +
-      - rm -rf .pytest_cache .ruff_cache
