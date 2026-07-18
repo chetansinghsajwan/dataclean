@@ -1,0 +1,11 @@
+{
+  "languages": {
+    "Python": {
+      "language_servers": [
+        // Enable ty, disable basedpyright
+        "ty",
+        "!basedpyright",
+      ]
+    }
+  }
+}
