@@ -5,7 +5,7 @@
     "ruff@latest",
     "uv@latest",
     "go-task@latest",
-    "zulu17@latest",
+    "jdk17@latest",
     "python@3.12"
   ],
   "env": {
@@ -17,6 +17,7 @@
       "task": "go-task"
     },
     "init_hook": [
+      "unset JAVA_HOME",
       "task setup"
     ]
   }
