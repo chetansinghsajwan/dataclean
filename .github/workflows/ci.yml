@@ -1,0 +1,38 @@
+name: CI Quality Checks
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Run quality checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: Install and Cache Devbox
+        uses: jetpack-io/devbox-action@v0.11.0
+        with:
+          enable-cache: true
+
+      - name: Setup Virtual Environment & Sync Dependencies
+        run: devbox run task setup:ci
+
+      - name: Verify Code Formatting
+        run: devbox run task lint
+
+      - name: Execute Automated Regression Tests
+        run: devbox run task test
