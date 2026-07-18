@@ -173,6 +173,34 @@
         }
       }
     },
+    "jdk17@latest": {
+      "last_modified": "2025-10-22T20:59:19Z",
+      "resolved": "github:NixOS/nixpkgs/01b6809f7f9d1183a2b3e081f0a1e6f8f415cb09#jdk17",
+      "source": "devbox-search",
+      "version": "17.0.12",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/hlm8a8cnp4hm8xkg0a2yy4kv7cq44jii-zulu-ca-jdk-17.0.12",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/hlm8a8cnp4hm8xkg0a2yy4kv7cq44jii-zulu-ca-jdk-17.0.12"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/i4zgq9685y6284hbf5a7ac9ysb88dvlz-zulu-ca-jdk-17.0.12",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/i4zgq9685y6284hbf5a7ac9ysb88dvlz-zulu-ca-jdk-17.0.12"
+        }
+      }
+    },
     "python@3.12": {
       "last_modified": "2026-06-27T07:37:20Z",
       "plugin_version": "0.0.5",
@@ -323,54 +351,6 @@
             }
           ],
           "store_path": "/nix/store/cgvijxnmydknslkl368k4j4j43akvl8b-uv-0.11.25"
-        }
-      }
-    },
-    "zulu17@latest": {
-      "last_modified": "2026-06-27T07:37:20Z",
-      "resolved": "github:NixOS/nixpkgs/3d46470bb3030020f7e1361f33514854f5bfa86d#zulu17",
-      "source": "devbox-search",
-      "version": "17.0.19",
-      "systems": {
-        "aarch64-darwin": {
-          "outputs": [
-            {
-              "name": "out",
-              "path": "/nix/store/3z5qg1vvsl4ckwygr7m7wmld9kfbwnm1-zulu-ca-jdk-17.0.19",
-              "default": true
-            }
-          ],
-          "store_path": "/nix/store/3z5qg1vvsl4ckwygr7m7wmld9kfbwnm1-zulu-ca-jdk-17.0.19"
-        },
-        "aarch64-linux": {
-          "outputs": [
-            {
-              "name": "out",
-              "path": "/nix/store/gb0ycp2ldlg1lh3b1mbi4kjb4spn504j-zulu-ca-jdk-17.0.19",
-              "default": true
-            }
-          ],
-          "store_path": "/nix/store/gb0ycp2ldlg1lh3b1mbi4kjb4spn504j-zulu-ca-jdk-17.0.19"
-        },
-        "x86_64-darwin": {
-          "outputs": [
-            {
-              "name": "out",
-              "path": "/nix/store/aff3h5ydqcs8k9dz6xqsih3wbgs7r1k8-zulu-ca-jdk-17.0.19",
-              "default": true
-            }
-          ],
-          "store_path": "/nix/store/aff3h5ydqcs8k9dz6xqsih3wbgs7r1k8-zulu-ca-jdk-17.0.19"
-        },
-        "x86_64-linux": {
-          "outputs": [
-            {
-              "name": "out",
-              "path": "/nix/store/xykfa9ij408ym5gf16ndhlh7319q9m8i-zulu-ca-jdk-17.0.19",
-              "default": true
-            }
-          ],
-          "store_path": "/nix/store/xykfa9ij408ym5gf16ndhlh7319q9m8i-zulu-ca-jdk-17.0.19"
         }
       }
     }
