@@ -2,7 +2,7 @@
 
 ## 1. Project Context & Environment
 
-- **Environment:** Run all commands inside the configured `.devcontainer`. Do not run commands on the local host.
+- **Environment:** Run all commands inside the configured `devbox shell` (via Devbox). Do not run commands on the local host outside Devbox.
 - **Python Package Manager:** `uv`
 - **Python Version:** 3.12 managed via `uv`.
 - **Primary Tooling:** Ruff (Linting & Formatting), Pytest (Testing)
@@ -20,7 +20,7 @@
 
 Always execute commands exactly as formatted below to prevent lockfile or environment drift:
 
-- **Environment Setup:** `uv sync` (Installs all dependencies and sets up the virtual environment).
+- **Environment Setup:** `devbox run task setup` (Installs all dependencies and sets up the virtual environment via Devbox + uv).
 - **Add Dependency:** `uv add <package_name>`
 - **Add Dev Dependency:** `uv add --dev <package_name>`
 - **Run Linter (Ruff):** `uv run ruff check . --fix`
@@ -44,5 +44,5 @@ Always execute commands exactly as formatted below to prevent lockfile or enviro
 
 ### Local Guardrails
 
-- **File System:** Do not modify the `.devcontainer/` configurations unless explicitly instructed.
+- **File System:** Do not modify the `devbox.json` / `devbox.lock` configurations unless explicitly instructed.
 - **Lockfiles:** Never manually edit `uv.lock`. Always let `uv` handle lockfile updates through standard CLI commands.
