@@ -20,10 +20,35 @@ tasks:
       - uv sync
 
   clean:
-    desc: Remove cache directories
+    desc: Clean the project
     cmds:
+      - task: clean:env
+      - task: clean:build
+      - task: clean:cache
+      - task: clean:docs
+
+  clean:env:
+    desc: Clean the env
+    cmds:
+      - rm -rf .venv
+      - rm -rf .devbox
+
+  clean:build:
+    desc: Clean the build
+    cmds:
+      - rm -rf dist
+
+  clean:cache:
+    desc: Clean the cache
+    cmds:
+      - rm -rf .cache
       - find . -type d -name "__pycache__" -exec rm -rf {} +
       - rm -rf .pytest_cache .ruff_cache
+
+  clean:docs:
+    desc: Clean the docs
+    cmds:
+      - rm -rf site
 
   lint:
     desc: Lint the codebase
@@ -40,6 +65,20 @@ tasks:
     cmds:
       - task: lint
       - task: format
+
+  docs:build:
+    desc: "Build the docs"
+    cmds:
+      - uv run mkdocs build
+    env:
+      MKDOCS_MATERIAL_WARNING: "false"
+
+  docs:serve:
+    desc: "Build and serve the docs on localhost"
+    cmds:
+      - uv run mkdocs serve
+    env:
+      MKDOCS_MATERIAL_WARNING: "false"
 
   test:
     desc: Run the test suite
