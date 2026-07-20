@@ -24,16 +24,17 @@ tasks:
     cmds:
       - uv build --no-create-gitignore --clear --out-dir build/src
 
-  build:docs:
+  deploy:docs:
     desc: "Build the docs"
     cmds:
-      - uv run mkdocs build --site-dir build/docs
+      - git fetch origin gh-pages --depth=1 || true
+      - uv run mike deploy {{.VERSION}} latest --update-aliases --push
 
   clean:
     desc: Clean the project
     cmds:
       - task: clean:env
-      - task: clean:build
+      - task: clean:src
       - task: clean:cache
       - task: clean:docs
 
@@ -43,8 +44,8 @@ tasks:
       - rm -rf .venv
       - rm -rf .devbox
 
-  clean:build:
-    desc: Clean the build
+  clean:src:
+    desc: Clean the source build
     cmds:
       - rm -rf build/src
 
@@ -89,9 +90,7 @@ tasks:
   serve:docs:
     desc: "Build and serve the docs on localhost"
     cmds:
-      - uv run mkdocs serve
-    env:
-      MKDOCS_MATERIAL_WARNING: "false"
+      - uv run mike serve
 
   test:
     desc: Run the test suite

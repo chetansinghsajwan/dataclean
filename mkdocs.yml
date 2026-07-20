@@ -1,11 +1,16 @@
 site_name: "Dataclean"
-site_dir: "site"
+site_dir: "build/docs"
 docs_dir: "docs"
 
 theme:
   name: readthedocs
   highlightjs: true
   fail_on_warning: false
+
+extra:
+  version:
+    provider: mike
+    default: latest
 
 plugins:
   - search
