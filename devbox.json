@@ -6,11 +6,10 @@
     "uv@latest",
     "go-task@latest",
     "jdk17@latest",
-    "python@3.12"
+    "act@latest"
   ],
   "env": {
-    "PYTHONPATH": "$PWD/src",
-    "JAVA_HOME": "$DEVBOX_PACKAGES_DIR/zulu17"
+    "PYTHONPATH": "$PWD/src"
   },
   "shell": {
     "aliases": {
