@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Publish GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: Verify Tag is on main Branch
+        run: |
+          # Fetch main branch to ensure local availability
+          git fetch origin main:main
+
+          # Check if the tag commit is contained within main
+          if ! git merge-base --is-ancestor ${{ github.sha }} main; then
+            echo "Error: Tag ${{ github.ref_name }} must be created from the main branch."
+            exit 1
+          fi
+          echo "Tag verified on main branch."
+
+      - name: Install and Cache Devbox
+        uses: jetify-com/devbox-install-action@v0.14.0
+        with:
+          enable-cache: true
+
+      - name: Build Distribution
+        run: devbox run task build
+
+      - name: Verify Code Formatting
+        run: devbox run task lint
+
+      - name: Execute Automated Regression Tests
+        run: devbox run task test
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          name: ${{ github.ref_name }}

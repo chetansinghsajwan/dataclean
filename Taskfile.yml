@@ -14,6 +14,16 @@ tasks:
     cmds:
       - uv sync
 
+  build:
+    desc: Build everything
+    cmds:
+      - task: build:src
+
+  build:src:
+    desc: Build the source code
+    cmds:
+      - uv build
+
   clean:
     desc: Remove cache directories
     cmds:
@@ -35,6 +45,16 @@ tasks:
     cmds:
       - task: lint
       - task: format
+
+  check:cicd:
+    desc: Run CI/CD checks
+    cmds:
+      - act
+
+  test:cicd:push-release-tag:
+    desc: Run CI/CD checks for pushing
+    cmds:
+      - act push --env GITHUB_REF=refs/tags/v1.0.0
 
   test:
     desc: Run the test suite
