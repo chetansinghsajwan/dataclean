@@ -7,11 +7,6 @@ tasks:
     cmds:
       - ln -sf ../../.config/git/pre-push.sh .git/hooks/pre-push
 
-  setup:ci:
-    desc: Setup project dependencies
-    cmds:
-      - task: setup:hooks
-
   setup:
     desc: Setup project dependencies
     deps:
