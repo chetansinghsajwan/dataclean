@@ -1,4 +1,4 @@
-name: CI Quality Checks
+name: Tests
 
 on:
   push:
@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  validate:
+  tests:
     name: Run quality checks
     runs-on: ubuntu-latest
 
