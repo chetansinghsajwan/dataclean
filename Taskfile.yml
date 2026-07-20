@@ -22,7 +22,12 @@ tasks:
   build:src:
     desc: Build the source code
     cmds:
-      - uv build --no-create-gitignore --clear
+      - uv build --no-create-gitignore --clear --out-dir build/src
+
+  build:docs:
+    desc: "Build the docs"
+    cmds:
+      - uv run mkdocs build --site-dir build/docs
 
   clean:
     desc: Clean the project
@@ -41,19 +46,19 @@ tasks:
   clean:build:
     desc: Clean the build
     cmds:
-      - rm -rf dist
+      - rm -rf build/src
 
   clean:cache:
     desc: Clean the cache
     cmds:
       - rm -rf .cache
-      - find . -type d -name "__pycache__" -exec rm -rf {} +
       - rm -rf .pytest_cache .ruff_cache
+      - find . -type d -name "__pycache__" -exec rm -rf {} +
 
   clean:docs:
     desc: Clean the docs
     cmds:
-      - rm -rf site
+      - rm -rf build/docs
 
   lint:
     desc: Lint the codebase
@@ -65,7 +70,7 @@ tasks:
     cmds:
       - uv run ruff format .
 
-  checks:
+  check:
     desc: Run all checks
     cmds:
       - task: lint
@@ -81,14 +86,7 @@ tasks:
     cmds:
       - act push --env GITHUB_REF=refs/tags/v1.0.0
 
-  docs:build:
-    desc: "Build the docs"
-    cmds:
-      - uv run mkdocs build
-    env:
-      MKDOCS_MATERIAL_WARNING: "false"
-
-  docs:serve:
+  serve:docs:
     desc: "Build and serve the docs on localhost"
     cmds:
       - uv run mkdocs serve
