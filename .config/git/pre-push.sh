@@ -12,7 +12,7 @@ while read -r _ _ remote_ref _; do
         *" $branch "*)
             echo "[Guardrail] Target branch '$branch' is protected."
 
-            devbox run task checks
+            devbox run task check
             exit $?
             ;;
         *)
