@@ -7,17 +7,22 @@ tasks:
     cmds:
       - ln -sf ../../.config/git/pre-push.sh .git/hooks/pre-push
 
-  setup:ci:
-    desc: Setup project dependencies
-    cmds:
-      - task: setup:hooks
-
   setup:
     desc: Setup project dependencies
     deps:
       - setup:hooks
     cmds:
       - uv sync
+
+  build:
+    desc: Build everything
+    cmds:
+      - task: build:src
+
+  build:src:
+    desc: Build the source code
+    cmds:
+      - uv build
 
   clean:
     desc: Remove cache directories
@@ -40,6 +45,16 @@ tasks:
     cmds:
       - task: lint
       - task: format
+
+  check:cicd:
+    desc: Run CI/CD checks
+    cmds:
+      - act
+
+  test:cicd:push-release-tag:
+    desc: Run CI/CD checks for pushing
+    cmds:
+      - act push --env GITHUB_REF=refs/tags/v1.0.0
 
   test:
     desc: Run the test suite

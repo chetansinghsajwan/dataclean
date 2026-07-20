@@ -1,4 +1,4 @@
-name: CI Quality Checks
+name: Tests
 
 on:
   push:
@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  validate:
+  tests:
     name: Run quality checks
     runs-on: ubuntu-latest
 
@@ -27,9 +27,6 @@ jobs:
         uses: jetify-com/devbox-install-action@v0.14.0
         with:
           enable-cache: true
-
-      - name: Setup Virtual Environment & Sync Dependencies
-        run: devbox run task setup:ci
 
       - name: Verify Code Formatting
         run: devbox run task lint
