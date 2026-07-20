@@ -22,7 +22,7 @@ tasks:
   build:src:
     desc: Build the source code
     cmds:
-      - uv build
+      - uv build --no-create-gitignore --clear
 
   clean:
     desc: Remove cache directories
