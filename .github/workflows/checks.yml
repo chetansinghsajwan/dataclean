@@ -28,9 +28,6 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Setup Virtual Environment & Sync Dependencies
-        run: devbox run task setup:ci
-
       - name: Verify Code Formatting
         run: devbox run task lint
 
