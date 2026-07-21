@@ -1,0 +1,29 @@
+site_name: "Dataclean"
+site_dir: "build/docs"
+docs_dir: "docs"
+
+theme:
+  name: readthedocs
+  highlightjs: true
+  fail_on_warning: false
+
+extra:
+  version:
+    provider: mike
+    default: latest
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: true
+            show_root_heading: true
+            show_category_heading: true
+            inherited_members: true
+            docstring_style: google
+
+  - mkdocs-autoapi:
+      autoapi_dir: src
