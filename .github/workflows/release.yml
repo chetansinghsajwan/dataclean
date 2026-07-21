@@ -49,3 +49,6 @@ jobs:
           files: build/src/*
           generate_release_notes: true
           name: ${{ github.ref_name }}
+
+      - name: Create doc release
+        run: devbox run task deploy:docs VERSION=${{ github.ref_name }}
