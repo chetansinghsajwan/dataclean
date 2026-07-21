@@ -22,13 +22,44 @@ tasks:
   build:src:
     desc: Build the source code
     cmds:
-      - uv build
+      - uv build --no-create-gitignore --clear --out-dir build/src
+
+  deploy:docs:
+    desc: "Build the docs"
+    cmds:
+      - git fetch origin gh-pages --depth=1 || true
+      - uv run mike deploy {{.VERSION}} latest --update-aliases --push
 
   clean:
-    desc: Remove cache directories
+    desc: Clean the project
     cmds:
-      - find . -type d -name "__pycache__" -exec rm -rf {} +
+      - task: clean:env
+      - task: clean:src
+      - task: clean:cache
+      - task: clean:docs
+
+  clean:env:
+    desc: Clean the env
+    cmds:
+      - rm -rf .venv
+      - rm -rf .devbox
+
+  clean:src:
+    desc: Clean the source build
+    cmds:
+      - rm -rf build/src
+
+  clean:cache:
+    desc: Clean the cache
+    cmds:
+      - rm -rf .cache
       - rm -rf .pytest_cache .ruff_cache
+      - find . -type d -name "__pycache__" -exec rm -rf {} +
+
+  clean:docs:
+    desc: Clean the docs
+    cmds:
+      - rm -rf build/docs
 
   lint:
     desc: Lint the codebase
@@ -40,7 +71,7 @@ tasks:
     cmds:
       - uv run ruff format .
 
-  checks:
+  check:
     desc: Run all checks
     cmds:
       - task: lint
@@ -55,6 +86,11 @@ tasks:
     desc: Run CI/CD checks for pushing
     cmds:
       - act push --env GITHUB_REF=refs/tags/v1.0.0
+
+  serve:docs:
+    desc: "Build and serve the docs on localhost"
+    cmds:
+      - uv run mike serve
 
   test:
     desc: Run the test suite
