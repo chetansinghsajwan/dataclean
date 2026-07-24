@@ -1,5 +1,6 @@
+from collections.abc import Iterable, Mapping
 from logging import Logger, getLogger
-from typing import Any, Iterable, Mapping
+from typing import Any
 
 from dataclean.cleaners.base_cleaner import BaseCleaner
 from dataclean.col_renamer import ColRenamer
@@ -43,7 +44,7 @@ def clean(
     df: DataFrame | Any,
     rename_cols: bool = True,
     rename_col_map: Mapping[str, str] | None = None,
-    col_renamer: ColRenamer | None = ColRenamer(case="snake"),
+    col_renamer: ColRenamer | None = None,
     clean_cols: bool = True,
     ignore_cols: Iterable[str] | None = None,
     use_global_config: bool = True,
@@ -51,6 +52,8 @@ def clean(
     inplace: bool | None = None,
     cleaners: dict[str, BaseCleaner] | None = None,
 ) -> DataFrame:
+
+    col_renamer = col_renamer or config.col_renamer
 
     if logger is None:
         logger = getLogger(__name__)
@@ -78,13 +81,13 @@ def clean(
     logger.debug(f"{use_global_config=}")
 
     if ignore_cols is None:
-        ignore_cols = list()
+        ignore_cols = []
 
     if inplace is None:
         inplace = config.inplace
 
     if cleaners is None:
-        cleaners = list()
+        cleaners = []
 
     if use_global_config:
         logger.debug(f"Global config: {config}")
@@ -110,7 +113,7 @@ def clean(
 
     if clean_cols:
         auto_clean_cols = [col for col in df.col_names() if col not in cleaners]
-        col_cleaner_map: dict[str, BaseCleaner] = dict()
+        col_cleaner_map: dict[str, BaseCleaner] = {}
 
         for col in auto_clean_cols:
             logger.debug(f"Finding cleaner for col '{col}'")
@@ -126,7 +129,7 @@ def clean(
 
             col_cleaner_map[col] = cleaner
 
-        writers = list()
+        writers = []
         for col, cleaner in col_cleaner_map.items():
             schema = cleaner.output_schema()
 

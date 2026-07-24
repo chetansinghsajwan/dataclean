@@ -1,6 +1,7 @@
 import re
 from enum import StrEnum
 from typing import override
+
 import phonenumbers
 
 from dataclean.cleaners.base_cleaner import BaseCleaner

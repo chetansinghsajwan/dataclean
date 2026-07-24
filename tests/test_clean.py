@@ -10,6 +10,4 @@ def test_clean():
     dataclean.config.cleaners.append(EmailCleaner())
 
     uncleaned_df = pd.read_csv("tests/fixtures/uncleaned.csv")
-    cleaned_df = dataclean.clean(uncleaned_df)
-
-    cleaned_df
+    dataclean.clean(uncleaned_df)
