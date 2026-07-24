@@ -2,17 +2,20 @@
 version: '3'
 
 tasks:
-  setup:hooks:
-    desc: Setup project hooks
-    cmds:
-      - ln -sf ../../.config/git/pre-push.sh .git/hooks/pre-push
+  # =========================================================================
+  # Setup tasks
+  # =========================================================================
 
   setup:
-    desc: Setup project dependencies
-    deps:
-      - setup:hooks
+    desc: Setup project config and dependencies
     cmds:
+      - unset JAVA_HOME
+      - lefthook install
       - uv sync
+
+  # =========================================================================
+  # Build and deploy tasks
+  # =========================================================================
 
   build:
     desc: Build everything
@@ -29,6 +32,15 @@ tasks:
     cmds:
       - git fetch origin gh-pages --depth=1 || true
       - uv run mike deploy {{.VERSION}} latest --update-aliases --push
+
+  serve:docs:
+    desc: "Build and serve the docs on localhost"
+    cmds:
+      - uv run mike serve
+
+  # =========================================================================
+  # Cleaning tasks
+  # =========================================================================
 
   clean:
     desc: Clean the project
@@ -52,45 +64,221 @@ tasks:
   clean:cache:
     desc: Clean the cache
     cmds:
-      - rm -rf .cache
-      - rm -rf .pytest_cache .ruff_cache
+      - rm -rf .cache .pytest_cache .ruff_cache .rumdl_cache
       - find . -type d -name "__pycache__" -exec rm -rf {} +
 
   clean:docs:
     desc: Clean the docs
     cmds:
-      - rm -rf build/docs
+      - rm -rf build/docs site
 
-  lint:
-    desc: Lint the codebase
+  clean:logs:
+    desc: Clean the logs
     cmds:
-      - uv run ruff check .
+      - rm -rf .logs *.log **/*.log
 
-  format:
-    desc: Format the codebase
-    cmds:
-      - uv run ruff format .
+  # =========================================================================
+  # Format, check and fix
+  # =========================================================================
+  fmt:
+    desc: Format all file sets across the project
+    deps:
+      - fmt:toml
+      - fmt:md
+      - fmt:sh
+      - fmt:json
+      - fmt:py
 
   check:
-    desc: Run all checks
-    cmds:
-      - task: lint
-      - task: format
+    desc: Lint all file sets across the project
+    deps:
+      - lint:toml
+      - lint:md
+      - lint:sh
+      - lint:json
+      - lint:py
 
   check:cicd:
     desc: Run CI/CD checks
     cmds:
       - act
 
+  fix:
+    desc: Lint and auto-fix all file sets across the project — safe fixes only
+    deps:
+      - lint-fix:toml
+      - lint-fix:md
+      - lint-fix:sh
+      - lint-fix:json
+      - lint-fix:py
+
+  fix:unsafe:
+    desc: Lint and auto-fix all file sets across the project, including unsafe fixes
+    deps:
+      - lint-fix:toml
+      - lint-fix:md
+      - lint-fix:sh
+      - lint-fix:json
+      - lint-fix:py:unsafe
+
+  # =========================================================================
+  # TOML (taplo)
+  # =========================================================================
+  # taplo has no built-in recursive/gitignore-aware file discovery, so we use
+  # git ls-files by default. Pass explicit paths via -- to target specific
+  # files instead (e.g. from pre-commit) and skip the git discovery step.
+
+  _toml:
+    internal: true
+    silent: true
+    cmds:
+      - |
+        if [ -n "{{.FILES}}" ]; then
+          taplo {{.CMD}} {{.FILES}}
+        else
+          git ls-files -z -o -c --exclude-standard -- '*.toml' | xargs -0 --no-run-if-empty taplo {{.CMD}}
+        fi
+
+  fmt:toml:
+    desc: Format TOML files using taplo (pass paths as args; defaults to all tracked/untracked files)
+    silent: true
+    cmds:
+      - task: _toml
+        vars:
+          CMD: fmt
+          FILES: '{{.CLI_ARGS}}'
+
+  lint:toml:
+    desc: Lint TOML files using taplo (pass paths as args; defaults to all tracked/untracked files)
+    silent: true
+    cmds:
+      - task: _toml
+        vars:
+          CMD: check
+          FILES: '{{.CLI_ARGS}}'
+
+  lint-fix:toml:
+    desc: Lint and auto-fix TOML files using taplo (pass paths as args; defaults to all tracked/untracked files)
+    silent: true
+    cmds:
+      - task: _toml
+        vars:
+          CMD: fmt
+          FILES: '{{.CLI_ARGS}}'
+
+  # =========================================================================
+  # Markdown (rumdl)
+  # =========================================================================
+  fmt:md:
+    desc: Format Markdown files using rumdl (pass paths as args; defaults to all files)
+    silent: true
+    cmds:
+      - rumdl fmt {{.CLI_ARGS | default "."}}
+
+  lint:md:
+    desc: Lint Markdown files using rumdl (pass paths as args; defaults to all files)
+    silent: true
+    cmds:
+      - rumdl check {{.CLI_ARGS | default "."}}
+
+  lint-fix:md:
+    desc: Lint and auto-fix Markdown files using rumdl (pass paths as args; defaults to all files)
+    silent: true
+    cmds:
+      - rumdl check --fix {{.CLI_ARGS | default "."}}
+
+  # =========================================================================
+  # Shell / Bash (shuck)
+  # =========================================================================
+  fmt:sh:
+    desc: Format Shell scripts using shuck (pass paths as args; defaults to all files)
+    silent: true
+    cmds:
+      - shuck format {{.CLI_ARGS | default "."}}
+
+  lint:sh:
+    desc: Lint Shell scripts using shuck (pass paths as args; defaults to all files)
+    silent: true
+    cmds:
+      - shuck check {{.CLI_ARGS | default "."}}
+
+  lint-fix:sh:
+    desc: Lint and auto-fix Shell scripts using shuck (pass paths as args; defaults to all files)
+    silent: true
+    cmds:
+      - shuck check --fix {{.CLI_ARGS | default "."}}
+
+  # =========================================================================
+  # JSON / JSONC (biome)
+  # =========================================================================
+  fmt:json:
+    desc: Format JSON and JSONC files using biome (pass paths as args; defaults to all files)
+    silent: true
+    cmds:
+      - biome format --write {{.CLI_ARGS | default "."}}
+
+  lint:json:
+    desc: Lint JSON and JSONC files using biome (pass paths as args; defaults to all files)
+    silent: true
+    cmds:
+      - biome lint {{.CLI_ARGS | default "."}}
+
+  lint-fix:json:
+    desc: Lint and auto-fix JSON and JSONC files using biome (pass paths as args; defaults to all files)
+    silent: true
+    cmds:
+      - biome check --write {{.CLI_ARGS | default "."}}
+
+  # =========================================================================
+  # Python & Jupyter Notebooks (ruff)
+  # =========================================================================
+  fmt:py:
+    desc: Format .py, .pyi and .ipynb files using ruff (pass paths as args; defaults to all files)
+    silent: true
+    cmds:
+      - ruff format {{.CLI_ARGS | default "."}}
+
+  lint:py:
+    desc: Lint .py, .pyi and .ipynb files using ruff (pass paths as args; defaults to all files)
+    silent: true
+    cmds:
+      - ruff check {{.CLI_ARGS | default "."}}
+
+  lint-fix:py:
+    desc: Lint and auto-fix .py, .pyi and .ipynb files using ruff — safe fixes only (pass paths as args; defaults to all files)
+    silent: true
+    cmds:
+      - ruff check --fix {{.CLI_ARGS | default "."}}
+
+  lint-fix:py:unsafe:
+    desc: Lint and auto-fix .py, .pyi and .ipynb files using ruff, including unsafe fixes (pass paths as args; defaults to all files)
+    silent: true
+    prompt: This applies unsafe fixes that may change behavior — continue?
+    cmds:
+      - ruff check --fix --unsafe-fixes {{.CLI_ARGS | default "."}}
+
+  # =========================================================================
+  # Security
+  # =========================================================================
+  scan:
+    desc: Run vulnerability scanner
+    cmds:
+      - |
+        EXIT_CODE=0
+
+        # Fail with exit code 1 in CI mode
+        [ "$TF_BUILD" = "True" ] && EXIT_CODE=1
+
+        trivy fs --scanners vuln,secret,misconfig,license --severity HIGH,CRITICAL --exit-code $EXIT_CODE .
+
+  # =========================================================================
+  # Tests
+  # =========================================================================
+
   test:cicd:push-release-tag:
     desc: Run CI/CD checks for pushing
     cmds:
       - act push --env GITHUB_REF=refs/tags/v1.0.0
-
-  serve:docs:
-    desc: "Build and serve the docs on localhost"
-    cmds:
-      - uv run mike serve
 
   test:
     desc: Run the test suite

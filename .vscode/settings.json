@@ -3,12 +3,11 @@
         "editor.defaultFormatter": "charliermarsh.ruff",
         "editor.formatOnSave": true,
         "editor.codeActionsOnSave": {
-
             // Auto-sorts & cleans imports on save
             "source.organizeImports": "always",
 
             // Auto-fixes lint violations (like removing unused imports)
-            "source.fixAll": "always"
-        }
-    }
+            "source.fixAll": "always",
+        },
+    },
 }

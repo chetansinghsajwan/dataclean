@@ -1,0 +1,8 @@
+#:schema https://raw.githubusercontent.com/schemastore/schemastore/master/src/schemas/json/rumdl.json
+
+[MD013]
+tables = false
+reflow = true  # required for --fix / fmt to actually wrap lines
+
+[MD041]
+fix = true

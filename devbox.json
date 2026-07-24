@@ -1,23 +1,28 @@
 {
-  "packages": [
-    "git@latest",
-    "gh@latest",
-    "ruff@latest",
-    "uv@latest",
-    "go-task@latest",
-    "jdk17@latest",
-    "act@latest"
-  ],
-  "env": {
-    "PYTHONPATH": "$PWD/src"
-  },
-  "shell": {
-    "aliases": {
-      "task": "go-task"
+    "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.13.0/.schema/devbox.schema.json",
+    "packages": [
+        "act@latest", // github actions local runner
+        "biome@latest", // json linter and formatter
+        "gh@latest",
+        "git@latest",
+        "go-task@latest", // task runner
+        "jdk17@latest",
+        "lefthook@latest", // git hook manager
+        "path:./nix/shuck#shuck", // shell script linter, formatter and lsp
+        "ruff@latest", // python linter and formatter
+        "rumdl@latest", // markdown linter and formatter
+        "taplo@latest", // toml linter, formatter and lsp
+        "trivy@latest", // vulnerability scanner
+        "uv@latest", // python package manager
+        "ty@latest", // python lsp
+    ],
+    "env": {
+        "PYTHONPATH": "$PWD/src",
     },
-    "init_hook": [
-      "unset JAVA_HOME",
-      "task setup"
-    ]
-  }
+    "shell": {
+        "aliases": {
+            "task": "go-task",
+        },
+        "init_hook": ["task setup"],
+    },
 }

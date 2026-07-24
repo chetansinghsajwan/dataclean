@@ -1,11 +1,29 @@
 {
-  "languages": {
-    "Python": {
-      "language_servers": [
-        // Enable ty, disable basedpyright
-        "ty",
-        "!basedpyright",
-      ]
+    "languages": {
+        "Python": {
+            "language_servers": ["ty", "ruff"],
+            "formatter": [{ "language_server": { "name": "ruff" } }],
+            "format_on_save": "on"
+        }
+    },
+    "lsp": {
+        "ty": {
+            "binary": {
+                "path": ".devbox/nix/profile/default/bin/ty",
+                "arguments": ["server"]
+            }
+        },
+        "ruff": {
+            "binary": {
+                "path": ".devbox/nix/profile/default/bin/ruff"
+            }
+        }
+    },
+    "ensure_final_newline_on_save": true,
+    "remove_trailing_whitespace_on_save": true,
+    "tab_size": 4,
+    "code_actions_on_format": {
+        "source.fixAll.ruff": true,
+        "source.organizeImports.ruff": true
     }
-  }
 }
