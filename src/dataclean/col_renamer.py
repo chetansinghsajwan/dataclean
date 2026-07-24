@@ -1,7 +1,9 @@
 from collections.abc import Callable, Iterable
 from typing import Literal
+
 import wordninja
 from pydantic import PrivateAttr, model_validator
+
 from dataclean.types import StrictBaseModel
 
 

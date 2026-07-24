@@ -1,12 +1,9 @@
-from typing import Self
-from pydantic import model_validator
-from collections.abc import Mapping
-from typing import Any, Iterable, override
+from collections.abc import Iterable, Mapping
+from typing import Any, Self, override
 
 import numpy as np
 import pandas as pd
-
-from pydantic import PrivateAttr
+from pydantic import PrivateAttr, model_validator
 
 from dataclean.engine.dataframe import DataFrame, DataReader, DataType, DataWriter
 

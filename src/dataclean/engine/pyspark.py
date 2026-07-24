@@ -1,13 +1,12 @@
-from typing import Self
-from pydantic import model_validator
 from collections.abc import Iterable, Mapping
-from typing import Any, override
+from typing import Any, Self, override
 
 import pandas as pd
 import pyspark.sql as sp
 import pyspark.sql.connect.dataframe as spc
 import pyspark.sql.functions as spf
 import pyspark.sql.types as spt
+from pydantic import model_validator
 
 from dataclean.engine.dataframe import DataFrame, DataReader, DataType, DataWriter
 
@@ -86,9 +85,9 @@ class PySparkDataFrame(DataFrame):
                 @spf.pandas_udf(write_type)
                 def vectorized_writer_wrapper(*args: pd.Series) -> pd.DataFrame:
 
-                    result = list()
+                    result = []
 
-                    for row_inputs in zip(*args):
+                    for row_inputs in zip(*args, strict=False):
                         res = writer.expr(*row_inputs)
                         result.append(res)
 
@@ -117,14 +116,12 @@ class PySparkDataFrame(DataFrame):
             @spf.pandas_udf(write_schema)
             def vectorized_writer_wrapper(*args: pd.Series) -> pd.DataFrame:
 
-                output_records = {
-                    write_col: list() for write_col, _ in writer.write_cols
-                }
+                output_records = {write_col: [] for write_col, _ in writer.write_cols}
 
-                for row_inputs in zip(*args):
+                for row_inputs in zip(*args, strict=False):
                     res = writer.expr(*row_inputs)
 
-                    for (new_col, _), val in zip(writer.write_cols, res):
+                    for (new_col, _), val in zip(writer.write_cols, res, strict=False):
                         output_records[new_col].append(val)
 
                 return pd.DataFrame(output_records)

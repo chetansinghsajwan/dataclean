@@ -12,11 +12,17 @@ class Config:
     def __init__(
         self,
         col_renamer: ColRenamer,
-        ignore_cols: list[str] = [],
-        cleaners: list[str] = [],
-        dataframe_apis: list[DataFrame] = [],
+        ignore_cols: list[str] = None,
+        cleaners: list[str] = None,
+        dataframe_apis: list[DataFrame] = None,
         inplace: bool = True,
     ):
+        if dataframe_apis is None:
+            dataframe_apis = []
+        if cleaners is None:
+            cleaners = []
+        if ignore_cols is None:
+            ignore_cols = []
         self.col_renamer = col_renamer
         self.ignore_cols = ignore_cols
         self.cleaners = cleaners

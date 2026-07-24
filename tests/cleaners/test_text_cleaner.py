@@ -1,7 +1,7 @@
 import math
+from unittest.mock import MagicMock
 
 import pytest
-from unittest.mock import MagicMock
 
 from dataclean.cleaners.text_cleaner import TextCleaner
 

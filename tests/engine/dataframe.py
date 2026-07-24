@@ -126,5 +126,5 @@ class BaseDataFrameTests:
         wrapper.cast_cols({"first_name": "str"})
 
         # Pull type dictionary out of metadata array cache
-        type_map = {name: dt for name, dt in wrapper.cols()}
+        type_map = dict(wrapper.cols())
         assert type_map["first_name"] == "str"
