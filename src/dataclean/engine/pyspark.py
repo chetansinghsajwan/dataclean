@@ -82,20 +82,27 @@ class PySparkDataFrame(DataFrame):
                 write_col, write_type = writer.write_cols[0]
                 write_type = self._to_pyspark_data_type(write_type)
 
-                @spf.pandas_udf(write_type)
-                def vectorized_writer_wrapper(*args: pd.Series) -> pd.DataFrame:
+                def create_single_output_udf(
+                    _writer: DataWriter, _write_type: spt.DataType
+                ):
+                    @spf.pandas_udf(_write_type)
+                    def vectorized_writer_wrapper(*args: pd.Series) -> pd.DataFrame:
 
-                    result = []
+                        result = []
 
-                    for row_inputs in zip(*args, strict=False):
-                        res = writer.expr(*row_inputs)
-                        result.append(res)
+                        for row_inputs in zip(*args, strict=False):
+                            res = _writer.expr(*row_inputs)
+                            result.append(res)
 
-                    return pd.DataFrame(write_type)
+                        return pd.DataFrame(_write_type)
+
+                    return vectorized_writer_wrapper
 
                 self.df = self.df.withColumn(
                     write_col,
-                    vectorized_writer_wrapper(*[spf.col(c) for c in writer.read_cols]),
+                    create_single_output_udf(writer, write_type)(
+                        *[spf.col(c) for c in writer.read_cols]
+                    ),
                 )
 
                 continue
@@ -113,18 +120,27 @@ class PySparkDataFrame(DataFrame):
                 ]
             )
 
-            @spf.pandas_udf(write_schema)
-            def vectorized_writer_wrapper(*args: pd.Series) -> pd.DataFrame:
+            def create_multi_output_udf(
+                _writer: DataWriter, _write_schema: spt.StructType
+            ):
+                @spf.pandas_udf(_write_schema)
+                def vectorized_writer_wrapper(*args: pd.Series) -> pd.DataFrame:
 
-                output_records = {write_col: [] for write_col, _ in writer.write_cols}
+                    output_records = {
+                        write_col: [] for write_col, _ in _writer.write_cols
+                    }
 
-                for row_inputs in zip(*args, strict=False):
-                    res = writer.expr(*row_inputs)
+                    for row_inputs in zip(*args, strict=False):
+                        res = _writer.expr(*row_inputs)
 
-                    for (new_col, _), val in zip(writer.write_cols, res, strict=False):
-                        output_records[new_col].append(val)
+                        for (new_col, _), val in zip(
+                            _writer.write_cols, res, strict=False
+                        ):
+                            output_records[new_col].append(val)
 
-                return pd.DataFrame(output_records)
+                    return pd.DataFrame(output_records)
+
+                return vectorized_writer_wrapper
 
             # Execute the Vectorized UDF on the target columns. This wraps results inside a temporary struct
             temp_struct_col = "_temp_writer_struct"
@@ -132,7 +148,9 @@ class PySparkDataFrame(DataFrame):
 
             self.df = self.df.withColumn(
                 temp_struct_col,
-                vectorized_writer_wrapper(*source_column_references),
+                create_multi_output_udf(writer, write_schema)(
+                    *source_column_references
+                ),
             )
 
             # Flatten/Unpack the temporary struct elements back into separate top-level columns instantly
