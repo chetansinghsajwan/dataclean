@@ -10,17 +10,16 @@ tasks:
     desc: Setup project config and dependencies
     cmds:
       - unset JAVA_HOME
-      - git config --local --unset include.path
-      - git config --local include.path ../.gitconfig
-      - task: setup:hooks
+      - cmd: git config --local --unset include.path
+        if: '[ "$CI" != "true" ]'
+      - cmd: git config --local include.path ../.gitconfig
+        if: '[ "$CI" != "true" ]'
+      - cmd: rm -rf .git/hooks && lefthook install
+        if: '[ "$CI" != "true" ]'
+      - cmd: uv sync
+        if: '[ "$CI" != "true" ]'
+      - cmd: uv sync --frozen
         if: '[ "$CI" = "true" ]'
-      - uv sync
-
-  setup:hooks:
-    desc: Setup git hooks
-    cmds:
-      - rm -rf .git/hooks
-      - lefthook install
 
   # =========================================================================
   # Build and deploy tasks
@@ -139,7 +138,6 @@ tasks:
 
   _toml:
     internal: true
-    silent: true
     cmds:
       - |
         if [ -n "{{.FILES}}" ]; then
@@ -150,7 +148,6 @@ tasks:
 
   fmt:toml:
     desc: Format TOML files using taplo (pass paths as args; defaults to all tracked/untracked files)
-    silent: true
     cmds:
       - task: _toml
         vars:
@@ -159,7 +156,6 @@ tasks:
 
   lint:toml:
     desc: Lint TOML files using taplo (pass paths as args; defaults to all tracked/untracked files)
-    silent: true
     cmds:
       - task: _toml
         vars:
@@ -168,7 +164,6 @@ tasks:
 
   lint-fix:toml:
     desc: Lint and auto-fix TOML files using taplo (pass paths as args; defaults to all tracked/untracked files)
-    silent: true
     cmds:
       - task: _toml
         vars:
@@ -180,19 +175,16 @@ tasks:
   # =========================================================================
   fmt:md:
     desc: Format Markdown files using rumdl (pass paths as args; defaults to all files)
-    silent: true
     cmds:
       - rumdl fmt {{.CLI_ARGS | default "."}}
 
   lint:md:
     desc: Lint Markdown files using rumdl (pass paths as args; defaults to all files)
-    silent: true
     cmds:
       - rumdl check {{.CLI_ARGS | default "."}}
 
   lint-fix:md:
     desc: Lint and auto-fix Markdown files using rumdl (pass paths as args; defaults to all files)
-    silent: true
     cmds:
       - rumdl check --fix {{.CLI_ARGS | default "."}}
 
@@ -201,19 +193,16 @@ tasks:
   # =========================================================================
   fmt:sh:
     desc: Format Shell scripts using shuck (pass paths as args; defaults to all files)
-    silent: true
     cmds:
       - shuck format {{.CLI_ARGS | default "."}}
 
   lint:sh:
     desc: Lint Shell scripts using shuck (pass paths as args; defaults to all files)
-    silent: true
     cmds:
       - shuck check {{.CLI_ARGS | default "."}}
 
   lint-fix:sh:
     desc: Lint and auto-fix Shell scripts using shuck (pass paths as args; defaults to all files)
-    silent: true
     cmds:
       - shuck check --fix {{.CLI_ARGS | default "."}}
 
@@ -222,19 +211,16 @@ tasks:
   # =========================================================================
   fmt:json:
     desc: Format JSON and JSONC files using biome (pass paths as args; defaults to all files)
-    silent: true
     cmds:
       - biome format --write {{.CLI_ARGS | default "."}}
 
   lint:json:
     desc: Lint JSON and JSONC files using biome (pass paths as args; defaults to all files)
-    silent: true
     cmds:
       - biome lint {{.CLI_ARGS | default "."}}
 
   lint-fix:json:
     desc: Lint and auto-fix JSON and JSONC files using biome (pass paths as args; defaults to all files)
-    silent: true
     cmds:
       - biome check --write {{.CLI_ARGS | default "."}}
 
@@ -243,25 +229,21 @@ tasks:
   # =========================================================================
   fmt:py:
     desc: Format .py, .pyi and .ipynb files using ruff (pass paths as args; defaults to all files)
-    silent: true
     cmds:
       - ruff format {{.CLI_ARGS | default "."}}
 
   lint:py:
     desc: Lint .py, .pyi and .ipynb files using ruff (pass paths as args; defaults to all files)
-    silent: true
     cmds:
       - ruff check {{.CLI_ARGS | default "."}}
 
   lint-fix:py:
     desc: Lint and auto-fix .py, .pyi and .ipynb files using ruff — safe fixes only (pass paths as args; defaults to all files)
-    silent: true
     cmds:
       - ruff check --fix {{.CLI_ARGS | default "."}}
 
   lint-fix:py:unsafe:
     desc: Lint and auto-fix .py, .pyi and .ipynb files using ruff, including unsafe fixes (pass paths as args; defaults to all files)
-    silent: true
     prompt: This applies unsafe fixes that may change behavior — continue?
     cmds:
       - ruff check --fix --unsafe-fixes {{.CLI_ARGS | default "."}}
@@ -272,20 +254,17 @@ tasks:
 
   fmt:nix:
     desc: Format .nix files using nixfmt (pass paths as args; defaults to all files)
-    silent: true
     cmds:
       - nixfmt {{.CLI_ARGS | default "."}}
 
   lint:nix:
     desc: Lint .nix files using statix and deadnix (pass paths as args; defaults to all files)
-    silent: true
     cmds:
       - statix check {{.CLI_ARGS | default "."}}
       - deadnix {{.CLI_ARGS | default "."}}
 
   lint-fix:nix:
     desc: Lint and auto-fix .nix files using statix and deadnix (pass paths as args; defaults to all files)
-    silent: true
     cmds:
       - statix fix {{.CLI_ARGS | default "."}}
       - deadnix --edit {{.CLI_ARGS | default "."}}
@@ -295,7 +274,6 @@ tasks:
   # =========================================================================
   check:gha:
     desc: Check GitHub Actions workflows for security issues using zizmor (pass paths as args; defaults to .github/workflows/)
-    silent: true
     cmds:
       - zizmor {{.CLI_ARGS | default ".github/workflows/"}}
 
@@ -320,7 +298,18 @@ tasks:
   test:cicd:
     desc: Run CI/CD checks
     cmds:
-      - act
+      - task: test:cicd:release
+      - task: test:cicd:tests
+
+  test:cicd:release:
+    desc: Run CI/CD checks for release
+    cmds:
+      - act --workflows ./.github/workflows/release.yml
+
+  test:cicd:tests:
+    desc: Run CI/CD checks for tests
+    cmds:
+      - act --workflows ./.github/workflows/tests.yml
 
   test:cicd:push-release-tag:
     desc: Run CI/CD checks for pushing
