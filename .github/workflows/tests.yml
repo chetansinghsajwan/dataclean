@@ -28,10 +28,10 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Verify Code Formatting
-        run: devbox run task lint
+      - name: Run quality checks
+        run: devbox run task check
 
-      - name: Execute Automated Regression Tests
+      - name: Run tests
         run: devbox run task test
 
       - name: Scan for vulnerabilities
