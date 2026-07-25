@@ -14,7 +14,11 @@
         "taplo@latest", // toml linter, formatter and lsp
         "trivy@latest", // vulnerability scanner
         "uv@latest", // python package manager
-        "ty@latest", // python lsp
+        "ty@latest",
+        "nixfmt-rfc-style@latest",
+        "statix@latest",
+        "deadnix@latest",
+        "nil@latest", // python lsp
     ],
     "env": {
         "PYTHONPATH": "$PWD/src",

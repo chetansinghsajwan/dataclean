@@ -35,6 +35,12 @@ pre-commit:
       stage_fixed: true
       fail_text: "Formatting failed — run 'task fmt:sh' locally to see the full error"
 
+    fmt-nix:
+      glob: "*.nix"
+      run: task fmt:nix -- {staged_files}
+      stage_fixed: true
+      fail_text: "Formatting failed — run 'task fmt:nix' locally to see the full error"
+
 pre-push:
   commands:
     lint:
