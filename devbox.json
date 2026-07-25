@@ -14,11 +14,12 @@
         "taplo@latest", // toml linter, formatter and lsp
         "trivy@latest", // vulnerability scanner
         "uv@latest", // python package manager
-        "ty@latest",
+        "ty@latest", // python lsp
         "nixfmt-rfc-style@latest",
-        "statix@latest",
-        "deadnix@latest",
-        "nil@latest", // python lsp
+        "statix@latest", // nix linter
+        "deadnix@latest", // nix dead code analyzer
+        "nil@latest", // nix lsp
+        "zizmor@latest", // github actions checker
     ],
     "env": {
         "PYTHONPATH": "$PWD/src",

@@ -102,11 +102,7 @@ tasks:
       - lint:json
       - lint:py
       - lint:nix
-
-  check:cicd:
-    desc: Run CI/CD checks
-    cmds:
-      - act
+      - check:gha
 
   fix:
     desc: Lint and auto-fix all file sets across the project — safe fixes only
@@ -289,6 +285,15 @@ tasks:
       - deadnix --edit {{.CLI_ARGS | default "."}}
 
   # =========================================================================
+  # Github Actions (zizmor)
+  # =========================================================================
+  check:gha:
+    desc: Check GitHub Actions workflows for security issues using zizmor (pass paths as args; defaults to .github/workflows/)
+    silent: true
+    cmds:
+      - zizmor {{.CLI_ARGS | default ".github/workflows/"}}
+
+  # =========================================================================
   # Security
   # =========================================================================
   scan:
@@ -305,6 +310,11 @@ tasks:
   # =========================================================================
   # Tests
   # =========================================================================
+
+  test:cicd:
+    desc: Run CI/CD checks
+    cmds:
+      - act
 
   test:cicd:push-release-tag:
     desc: Run CI/CD checks for pushing
