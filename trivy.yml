@@ -1,0 +1,32 @@
+# Limits output to relevant security issues
+severity:
+  - HIGH
+  - CRITICAL
+
+# Select active scanners
+scanner:
+  - misconfig    # Scans GitHub Actions yml, Terraform, Dockerfiles for misconfigurations
+  - secret       # Scans for exposed API keys and passwords
+  - vuln         # Scans lockfiles and dependencies for known vulnerabilities
+
+# Misconfiguration scanner settings
+misconfiguration:
+  # Enable scanning of hidden directories like .github/
+  include-non-failures: false
+  scanners:
+    - azure-arm
+    - cloudformation
+    - dockerfile
+    - helm
+    - kubernetes
+    - terraform
+    - yaml
+
+# Secret scanning settings
+secret:
+  config: trivy-secret.yaml
+
+# Output options
+format: table
+exit-code: 1       # Fails CI/CD pipelines (returns code 1) when HIGH or CRITICAL issues are found
+clear-cache: false

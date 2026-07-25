@@ -4,7 +4,8 @@
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
   outputs =
-    { nixpkgs }:
+    # deadnix: skip
+    { self, nixpkgs }:
     let
       supportedSystems = [
         "x86_64-linux"
