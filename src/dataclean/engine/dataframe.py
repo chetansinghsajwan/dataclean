@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
-from typing import Any, Callable, Iterator, Literal, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping
+from typing import Any, Literal
 
 from dataclean.types import StrictBaseModel
 
