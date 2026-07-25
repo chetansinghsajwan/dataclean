@@ -1,0 +1,3 @@
+[mergetool "nixfmt"]
+	cmd = nixfmt --mergetool \"$BASE\" \"$LOCAL\" \"$REMOTE\" \"$MERGED\"
+	trustExitCode = true
