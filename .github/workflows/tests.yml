@@ -33,3 +33,6 @@ jobs:
 
       - name: Execute Automated Regression Tests
         run: devbox run task test
+
+      - name: Scan for vulnerabilities
+        run: devbox run task scan
