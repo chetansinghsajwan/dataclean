@@ -15,7 +15,9 @@ jobs:
 
     steps:
       - name: Checkout Code Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Verify Tag is on main Branch
         run: |
@@ -24,13 +26,13 @@ jobs:
 
           # Check if the tag commit is contained within main
           if ! git merge-base --is-ancestor ${{ github.sha }} main; then
-            echo "Error: Tag ${{ github.ref_name }} must be created from the main branch."
+            echo "Error: Tag ${GITHUB_REF_NAME} must be created from the main branch."
             exit 1
           fi
           echo "Tag verified on main branch."
 
       - name: Install and Cache Devbox
-        uses: jetify-com/devbox-install-action@v0.14.0
+        uses: jetify-com/devbox-install-action@a0d2d53632934ae004f878c840055956d9f741b0 # v0.14.0
         with:
           enable-cache: true
 
@@ -47,11 +49,9 @@ jobs:
         run: devbox run task scan
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: build/src/*
-          generate_release_notes: true
-          name: ${{ github.ref_name }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" build/src/* --generate-notes --title "${GITHUB_REF_NAME}"
 
       - name: Create doc release
-        run: devbox run task deploy:docs VERSION=${{ github.ref_name }}
+        run: devbox run task deploy:docs VERSION=${GITHUB_REF_NAME}
