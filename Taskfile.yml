@@ -10,6 +10,7 @@ tasks:
     desc: Setup project config and dependencies
     cmds:
       - unset JAVA_HOME
+      - rm -rf .git/hooks
       - lefthook install
       - uv sync
 
@@ -88,6 +89,7 @@ tasks:
       - fmt:sh
       - fmt:json
       - fmt:py
+      - fmt:nix
 
   check:
     desc: Lint all file sets across the project
@@ -97,6 +99,7 @@ tasks:
       - lint:sh
       - lint:json
       - lint:py
+      - lint:nix
 
   check:cicd:
     desc: Run CI/CD checks
@@ -111,6 +114,7 @@ tasks:
       - lint-fix:sh
       - lint-fix:json
       - lint-fix:py
+      - lint-fix:nix
 
   fix:unsafe:
     desc: Lint and auto-fix all file sets across the project, including unsafe fixes
@@ -120,6 +124,7 @@ tasks:
       - lint-fix:sh
       - lint-fix:json
       - lint-fix:py:unsafe
+      - lint-fix:nix
 
   # =========================================================================
   # TOML (taplo)
@@ -256,6 +261,30 @@ tasks:
     prompt: This applies unsafe fixes that may change behavior — continue?
     cmds:
       - ruff check --fix --unsafe-fixes {{.CLI_ARGS | default "."}}
+
+  # =========================================================================
+  # Nix (nixfmt, statix, deadnix)
+  # =========================================================================
+
+  fmt:nix:
+    desc: Format .nix files using nixfmt (pass paths as args; defaults to all files)
+    silent: true
+    cmds:
+      - nixfmt {{.CLI_ARGS | default "."}}
+
+  lint:nix:
+    desc: Lint .nix files using statix and deadnix (pass paths as args; defaults to all files)
+    silent: true
+    cmds:
+      - statix check {{.CLI_ARGS | default "."}}
+      - deadnix {{.CLI_ARGS | default "."}}
+
+  lint-fix:nix:
+    desc: Lint and auto-fix .nix files using statix and deadnix (pass paths as args; defaults to all files)
+    silent: true
+    cmds:
+      - statix fix {{.CLI_ARGS | default "."}}
+      - deadnix --edit {{.CLI_ARGS | default "."}}
 
   # =========================================================================
   # Security

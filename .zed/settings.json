@@ -4,6 +4,19 @@
             "language_servers": ["ty", "ruff"],
             "formatter": [{ "language_server": { "name": "ruff" } }],
             "format_on_save": "on"
+        },
+        "Nix": {
+            "tab_size": 2,
+            "language_servers": ["nil"],
+            "formatter": {
+                "external": {
+                    "command": "nixfmt",
+                    "arguments": []
+                }
+            }
+        },
+        "YAML": {
+            "tab_size": 2
         }
     },
     "lsp": {
@@ -16,6 +29,15 @@
         "ruff": {
             "binary": {
                 "path": ".devbox/nix/profile/default/bin/ruff"
+            }
+        },
+        "nil": {
+            "settings": {
+                "nil": {
+                    "formatting": {
+                        "command": ["nixfmt"]
+                    }
+                }
             }
         }
     },
