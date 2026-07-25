@@ -10,11 +10,17 @@ tasks:
     desc: Setup project config and dependencies
     cmds:
       - unset JAVA_HOME
-      - rm -rf .git/hooks
-      - lefthook install
       - git config --local --unset include.path
       - git config --local include.path ../.gitconfig
+      - task: setup:hooks
+        if: '[ "$CI" = "true" ]'
       - uv sync
+
+  setup:hooks:
+    desc: Setup git hooks
+    cmds:
+      - rm -rf .git/hooks
+      - lefthook install
 
   # =========================================================================
   # Build and deploy tasks
