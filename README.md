@@ -9,8 +9,6 @@
 
 - The BusinessCleaner (Corporate Entity Normalizer)
 - The ScaleCleaner / CategoricalNormalizer
-- The BooleanCleaner
-- The NumericCleaner (Integer & Float Standardizer)
 - The UrlCleaner / DomainNormalizer
 - The AddressLineCleaner (Level 2 Deep Clean)
 - The CurrencyCleaner
