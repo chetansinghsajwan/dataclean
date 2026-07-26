@@ -178,6 +178,9 @@ tasks:
     cmds:
       - rumdl fmt {{.CLI_ARGS | default "."}}
 
+      # Format python blocks in md code
+      - ruff format {{.CLI_ARGS | default "."}} --preview --exclude *.py,*.pyi,*ipynb
+
   lint:md:
     desc: Lint Markdown files using rumdl (pass paths as args; defaults to all files)
     cmds:
