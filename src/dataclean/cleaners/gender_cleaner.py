@@ -1,7 +1,7 @@
 from enum import StrEnum
 from typing import override
 
-from dataclean.cleaners.base_cleaner import BaseCleaner
+from dataclean.cleaners.base_cleaner import BaseCleaner, CellValue, CleanContext
 from dataclean.engine.dataframe import DataFrame, DataType
 
 
@@ -37,7 +37,9 @@ class GenderCleaner(BaseCleaner, frozen=True):
         return "str"
 
     @override
-    def clean_value(self, v: str) -> str | None:
+    def clean_value(
+        self, v: str, context: CleanContext | None = None
+    ) -> CellValue | None:
 
         match_details = self._MAPPING.get(v.lower())
 

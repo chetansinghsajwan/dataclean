@@ -1,7 +1,7 @@
 from enum import StrEnum
 from typing import Any, override
 
-from dataclean.cleaners.base_cleaner import BaseCleaner
+from dataclean.cleaners.base_cleaner import BaseCleaner, CellValue, CleanContext
 from dataclean.engine.dataframe import DataFrame, DataType
 
 
@@ -42,7 +42,9 @@ class BoolCleaner(BaseCleaner, frozen=True):
         return "bool" if self.out_format == BoolCleaner.Format.TRUEFALSE else "str"
 
     @override
-    def clean_value(self, v: str) -> Any | None:
+    def clean_value(
+        self, v: str, context: CleanContext | None = None
+    ) -> CellValue | Any | None:
         normalized = v.lower()
 
         if normalized in self._TRUTHY_MAPPING:

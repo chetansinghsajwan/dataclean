@@ -12,18 +12,25 @@ class StrictBaseModel(BaseModel, ABC):
         arbitrary_types_allowed=True,
     )
 
-    def __init_subclass__(cls, frozen: bool = False, **kwargs: Any) -> None:
+    def __init_subclass__(cls, frozen: bool | None = None, **kwargs: Any) -> None:
         """
-        Intercepts subclass creation and dynamically mutates its model_config.
+        Intercepts subclass creation and merges frozen state into model_config.
+        Inherits parent's frozen value if not explicitly overridden.
         """
         super().__init_subclass__(**kwargs)
 
-        cls.model_config = ConfigDict(
-            strict=True,
-            extra="forbid",
-            frozen=frozen,
-            arbitrary_types_allowed=True,
-        )
+        if frozen is None:
+            # Inherit whatever the nearest parent already resolved to
+            frozen = cls.model_config.get("frozen", False)
+
+        # Merge instead of overwrite, so subclass-defined model_config keys survive
+        cls.model_config = {
+            **cls.model_config,
+            "strict": True,
+            "extra": "forbid",
+            "frozen": frozen,
+            "arbitrary_types_allowed": True,
+        }
 
 
 # Create a reusable strict validation decorator shortcut

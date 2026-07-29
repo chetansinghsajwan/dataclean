@@ -54,23 +54,19 @@ def clean(
 ) -> DataFrame:
 
     col_renamer = col_renamer or config.col_renamer
-
     if logger is None:
         logger = getLogger(__name__)
-
     wrapped_df = _wrap_df(df)
     if wrapped_df is None:
         e = TypeError(
             f"Dataframe of type '{type(df)}' is not supported. Register your dataframe."
         )
         logger.error(e)
-
         raise e
 
     df = wrapped_df
 
     logger.debug("Cleaning data...")
-
     logger.debug(f"df: {df.cols()}")
     logger.debug(f"{rename_cols=}")
     logger.debug(f"{rename_col_map=}")
@@ -91,7 +87,6 @@ def clean(
 
     if use_global_config:
         logger.debug(f"Global config: {config}")
-
         ignore_cols = list(set(ignore_cols + config.ignore_cols))
 
     if rename_cols:
@@ -102,9 +97,7 @@ def clean(
                 col for col in df.col_names() if col not in rename_col_map
             ]
             auto_rename_col_map = col_renamer.rename_cols(cols_to_auto_rename)
-
             logger.debug(f"Rename map from the column renamer: {auto_rename_col_map}")
-
             rename_col_map = auto_rename_col_map | rename_col_map
 
         logger.info(f"Renaming columns using map: {rename_col_map}")

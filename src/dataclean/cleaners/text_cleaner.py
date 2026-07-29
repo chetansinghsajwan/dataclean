@@ -4,7 +4,7 @@ from typing import Any, ClassVar, Self, override
 
 from pydantic import PrivateAttr, model_validator
 
-from dataclean.cleaners.base_cleaner import BaseCleaner
+from dataclean.cleaners.base_cleaner import BaseCleaner, CellValue, CleanContext
 from dataclean.engine.dataframe import DataFrame, DataType
 
 
@@ -72,7 +72,9 @@ class TextCleaner(BaseCleaner, frozen=True):
         return "str"
 
     @override
-    def clean_value(self, v: Any) -> str | None:
+    def clean_value(
+        self, v: Any, context: CleanContext | None = None
+    ) -> CellValue | None:
         if not isinstance(v, str):
             return None
 

@@ -5,7 +5,7 @@ from typing import ClassVar, Self, override
 import pycountry
 from pydantic import PrivateAttr, model_validator
 
-from dataclean.cleaners.base_cleaner import BaseCleaner
+from dataclean.cleaners.base_cleaner import BaseCleaner, CellValue, CleanContext
 from dataclean.engine.dataframe import DataFrame, DataType
 from dataclean.types import StrictBaseModel, strict_validate
 
@@ -54,12 +54,18 @@ class CountryCleaner(BaseCleaner, frozen=True):
         return "CountryCleaner"
 
     @override
+    def provided_roles(self) -> tuple[str, ...]:
+        return ("country",)
+
+    @override
     def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
         return "str"
 
     @override
     @strict_validate
-    def clean_value(self, v: str) -> str | None:
+    def clean_value(
+        self, v: str, context: CleanContext | None = None
+    ) -> CellValue | None:
         country_match = self._find_country(v)
         return self._get_output(country_match) if country_match else None
 

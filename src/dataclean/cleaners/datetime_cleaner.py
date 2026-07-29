@@ -2,7 +2,7 @@ from datetime import date, datetime, time
 from enum import StrEnum
 from typing import override
 
-from dataclean.cleaners.base_cleaner import BaseCleaner
+from dataclean.cleaners.base_cleaner import BaseCleaner, CellValue, CleanContext
 from dataclean.engine.dataframe import DataFrame, DataType
 
 
@@ -35,7 +35,9 @@ class DateTimeCleaner(BaseCleaner, frozen=True):
         return "str"
 
     @override
-    def clean_value(self, v: str) -> str | None:
+    def clean_value(
+        self, v: str, context: CleanContext | None = None
+    ) -> CellValue | None:
         # Implementation contract guarantee: v is a non-empty, stripped string
         parsed_obj: date | time | datetime | None = None
 
