@@ -1,5 +1,7 @@
 """Tests for the unified v1 cleaner pipeline."""
 
+from typing import cast
+
 import pandas as pd
 import pytest
 
@@ -8,6 +10,7 @@ from dataclean.cleaners.cleaner import Cleaner, ColumnRole
 from dataclean.cleaners.country_cleaner import CountryCleaner
 from dataclean.cleaners.phone_cleaner import PhoneCleaner
 from dataclean.col_renamer import ColRenamer
+from dataclean.engine.dataframe import DataType
 from dataclean.engine.pandas import PandasDataFrame
 from dataclean.pipeline import Assignment, Pipeline
 from dataclean.pipeline.cleaner_resolver import Resolver
@@ -26,15 +29,15 @@ def test_cleaner_name_includes_configured_tags() -> None:
 
 
 def test_explicit_roles_must_match_clean_row_signature() -> None:
-    class InvalidCleaner(Cleaner, frozen=True):
-        def output_schema(self) -> str:
-            return "str"
+    class InvalidCleaner(Cleaner):
+        def output_schema(self) -> DataType:
+            return DataType.STR
 
         def input_roles(self) -> tuple[ColumnRole, ...]:
             return (ColumnRole(key="wrong"),)
 
-        def clean_row(self, value: str) -> str:
-            return value
+        def clean_row(self, v: str) -> str:  # type: ignore
+            return v
 
     with pytest.raises(TypeError, match="same keys and order"):
         InvalidCleaner()
@@ -84,9 +87,13 @@ def test_pipeline_passes_context_as_positional_argument() -> None:
     df = PandasDataFrame(
         df=pd.DataFrame({"client_country": ["IN"], "client_phone": ["9876543210"]})
     )
+
     cleaned = pipeline.fit_transform(df)
-    assert cleaned.df["client_country"].tolist() == ["India"]
-    assert cleaned.df["client_phone"].tolist() == ["+919876543210"]
+
+    cleaned_pd_df = cast(PandasDataFrame, cleaned)
+
+    assert cleaned_pd_df.df["client_country"].tolist() == ["India"]
+    assert cleaned_pd_df.df["client_phone"].tolist() == ["+919876543210"]
 
 
 def test_pipeline_wraps_pandas_dataframe() -> None:

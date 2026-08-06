@@ -1,13 +1,14 @@
 import re
 import uuid
+from collections.abc import Iterable
 from enum import StrEnum
 from typing import override
 
-from dataclean.cleaners.cleaner import CellValue, Cleaner
+from dataclean.cleaners.cleaner import Cleaner
 from dataclean.engine.dataframe import DataFrame, DataType
 
 
-class UuidCleaner(Cleaner, frozen=True):
+class UuidCleaner(Cleaner):
     class Format(StrEnum):
         STANDARD = "standard"  # Hyphenated: "123e4567-e89b-12d3-a456-426614174000"
         COMPACT = "compact"  # Raw hex: "123e4567e89b12d3a456426614174000"
@@ -20,13 +21,11 @@ class UuidCleaner(Cleaner, frozen=True):
 
     @override
     def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        return "str"
+        return DataType.STR
 
     @override
-    def clean_row(self, value: CellValue | None) -> CellValue | None:
-        if not isinstance(value, str):
-            return None
-        v = value
+    def clean_row(self, v: str) -> str | None:  # type: ignore
+
         # Base class contract guarantees v arrives stripped and non-empty
         normalized = v.lower().strip("'\"{}()[]")
 
@@ -65,38 +64,18 @@ class UuidCleaner(Cleaner, frozen=True):
         return None
 
     @override
-    def get_data_type_confidence(self, df: DataFrame, cols: tuple[str, ...]) -> float:
-        if not cols:
+    def get_data_type_confidence(self, df: DataFrame, cols: Iterable[str]) -> float:
+        cols_tuple = tuple(cols)
+        if not cols_tuple:
             return 0.0
 
-        col_name = cols[0].lower()
+        col_name = cols_tuple[0]
+        col_name_lower = col_name.lower()
         # Heuristic 1: Explicit structural column name targeting
         if any(
-            token in col_name for token in ("uuid", "guid", "pk_id", "session_token")
+            token in col_name_lower
+            for token in ("uuid", "guid", "pk_id", "session_token")
         ):
             return 1.0
-
-        # Heuristic 2: Sample value structural layout validation
-        # Fetches a small sample array from the dataframe to spot-check the text structure
-        sample_values = (
-            df.select(cols[0]).limit(5).to_pandas()[cols[0]].dropna().astype(str)
-        )
-        if sample_values.empty:
-            return 0.0
-
-        # Run a highly accurate regex check matching standard or compact layout patterns
-        uuid_pattern = re.compile(
-            r"^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$",
-            re.IGNORECASE,
-        )
-        match_count = sum(
-            1
-            for val in sample_values
-            if uuid_pattern.match(str(val).strip("'\"{}()[] ").replace("urn:uuid:", ""))
-        )
-
-        # If at least half of the non-null samples match the layout, flag high structural confidence
-        if match_count / len(sample_values) >= 0.5:
-            return 0.9
 
         return 0.0

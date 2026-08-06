@@ -1,17 +1,17 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from enum import Enum
 from typing import ClassVar, Self, override
 
 import pycountry
 from pydantic import PrivateAttr, model_validator
 
-from dataclean.cleaners.cleaner import CellValue, Cleaner
+from dataclean.cleaners.cleaner import Cleaner
 from dataclean.engine.dataframe import DataFrame, DataType
 from dataclean.types import StrictBaseModel, strict_validate
 
 
-class CountryCleaner(Cleaner, frozen=True):
-    class Details(StrictBaseModel, frozen=True):
+class CountryCleaner(Cleaner):
+    class Details(StrictBaseModel):
         name: str
         alpha2: str
         alpha3: str
@@ -41,7 +41,11 @@ class CountryCleaner(Cleaner, frozen=True):
 
     @model_validator(mode="after")
     def _initialize(self) -> Self:
-        self._find_country_pipeline = self._create_find_country_pipeline(self.in_format)
+        object.__setattr__(
+            self,
+            "_find_country_pipeline",
+            self._create_find_country_pipeline(self.in_format),
+        )
 
         return self
 
@@ -55,20 +59,18 @@ class CountryCleaner(Cleaner, frozen=True):
 
     @override
     def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        return "str"
+        return DataType.STR
 
     @override
     @strict_validate
-    def clean_row(self, value: CellValue | None) -> CellValue | None:
-        if not isinstance(value, str):
-            return None
-        v = value
+    def clean_row(self, v: str) -> str | None:  # type: ignore
+
         country_match = self._find_country(v)
         return self._get_output(country_match) if country_match else None
 
     @override
-    def get_data_type_confidence(self, df: DataFrame, cols: tuple[str, ...]) -> float:
-        return 1.0 if "country" in cols[0].lower() else 0.0
+    def get_data_type_confidence(self, df: DataFrame, cols: Iterable[str]) -> float:
+        return 1.0 if "country" in tuple(cols)[0].lower() else 0.0
 
     # ---------------------------------------------------------------------------
     # PRIVATE FUNCTIONS

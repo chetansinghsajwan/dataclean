@@ -1,19 +1,22 @@
-from collections.abc import Iterable, Mapping
-from typing import Any, Self, override
+from collections.abc import Callable, Iterable, Mapping
+from typing import Any, Self, cast, override
 
 import pandas as pd
 import pyspark.sql as sp
 import pyspark.sql.connect.dataframe as spc
 import pyspark.sql.functions as spf
 import pyspark.sql.types as spt
-from pydantic import model_validator
+from pydantic import PrivateAttr, model_validator
 
+from dataclean.config import register_dataframe_api
 from dataclean.engine.dataframe import DataFrame, DataReader, DataType, DataWriter
 
+SparkDataFrame = sp.DataFrame | spc.DataFrame
 
-class PySparkDataFrame(DataFrame):
-    df: sp.DataFrame | spc.DataFrame
-    _cols: tuple[tuple[str, DataType], ...]
+
+class PySparkDataFrame(DataFrame, frozen=False):
+    df: SparkDataFrame
+    _cols: tuple[tuple[str, DataType], ...] = PrivateAttr(default_factory=tuple)
 
     @model_validator(mode="after")
     def _initialize_internal_cache(self) -> Self:
@@ -23,7 +26,7 @@ class PySparkDataFrame(DataFrame):
     @staticmethod
     @override
     def supports(df: Any) -> bool:
-        return isinstance(df, (sp.DataFrame, spc.DataFrame))
+        return isinstance(df, SparkDataFrame)
 
     @override
     def cols(self) -> tuple[tuple[str, DataType], ...]:
@@ -31,7 +34,8 @@ class PySparkDataFrame(DataFrame):
 
     @override
     def rename_cols(self, rename_map: Mapping[str, str]):
-        self.df = self.df.withColumnsRenamed(rename_map)
+        # pyspark expects a concrete dict for withColumnsRenamed
+        self.df = self.df.withColumnsRenamed(dict(rename_map))
         self._update_cols()
 
     @override
@@ -85,16 +89,17 @@ class PySparkDataFrame(DataFrame):
                 def create_single_output_udf(
                     _writer: DataWriter, _write_type: spt.DataType
                 ):
-                    @spf.pandas_udf(_write_type)
-                    def vectorized_writer_wrapper(*args: pd.Series) -> pd.DataFrame:
+                    @spf.pandas_udf(_write_type)  # type: ignore
+                    def vectorized_writer_wrapper(*args: pd.Series) -> pd.Series:
 
                         result = []
 
                         for row_inputs in zip(*args, strict=False):
-                            res = _writer.expr(*row_inputs)
+                            expr_fn = cast(Callable[..., object], _writer.expr)
+                            res = expr_fn(*row_inputs)
                             result.append(res)
 
-                        return pd.DataFrame(_write_type)
+                        return pd.Series(result)
 
                     return vectorized_writer_wrapper
 
@@ -123,7 +128,7 @@ class PySparkDataFrame(DataFrame):
             def create_multi_output_udf(
                 _writer: DataWriter, _write_schema: spt.StructType
             ):
-                @spf.pandas_udf(_write_schema)
+                @spf.pandas_udf(_write_schema)  # type: ignore
                 def vectorized_writer_wrapper(*args: pd.Series) -> pd.DataFrame:
 
                     output_records = {
@@ -131,10 +136,12 @@ class PySparkDataFrame(DataFrame):
                     }
 
                     for row_inputs in zip(*args, strict=False):
-                        res = _writer.expr(*row_inputs)
+                        expr_fn = cast(Callable[..., object], _writer.expr)
+                        res = expr_fn(*row_inputs)
+                        res_iter = cast(Iterable[object], res)
 
                         for (new_col, _), val in zip(
-                            _writer.write_cols, res, strict=False
+                            _writer.write_cols, res_iter, strict=False
                         ):
                             output_records[new_col].append(val)
 
@@ -212,18 +219,21 @@ class PySparkDataFrame(DataFrame):
     @staticmethod
     def _from_pyspark_data_type(data_type: spt.DataType) -> DataType:
         if data_type == spt.StringType():
-            return "str"
+            return DataType.STR
 
         if data_type == spt.BooleanType():
-            return "bool"
+            return DataType.BOOL
 
         if data_type == spt.IntegerType():
-            return "int"
+            return DataType.INT
 
         if data_type == spt.FloatType():
-            return "float"
+            return DataType.FLOAT
 
         if data_type == spt.DoubleType():
-            return "double"
+            return DataType.DOUBLE
 
-        return "str"
+        return DataType.STR
+
+
+register_dataframe_api(PySparkDataFrame)

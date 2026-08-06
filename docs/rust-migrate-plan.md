@@ -126,6 +126,7 @@ cleaned_df = pipeline.fit_transform(df)
 
 ```python
 import dataclean
+
 dataclean.clean("prod.raw.some_table", dest="prod.prep.*")
 # -> auto-detects platform, reads "some_table",
 #    runs Pipeline(auto_detect=True), writes "prod.prep.some_table"
@@ -138,7 +139,7 @@ dataclean.clean("prod.raw.some_table", dest="prod.prep.*")
 class Catalog(ABC):
     @staticmethod
     @abstractmethod
-    def detect() -> bool: ...     # checks env vars / active session
+    def detect() -> bool: ...  # checks env vars / active session
     @abstractmethod
     def read_table(self, ref: str) -> DataFrame: ...
     @abstractmethod
