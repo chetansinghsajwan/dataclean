@@ -21,10 +21,6 @@ class EmailCleaner(Cleaner, frozen=True):
         domain: str
 
     @override
-    def name(self) -> str:
-        return "EmailCleaner"
-
-    @override
     def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
         if self.split_components:
             return (("local", "str"), ("tag", "str"), ("domain", "str"))

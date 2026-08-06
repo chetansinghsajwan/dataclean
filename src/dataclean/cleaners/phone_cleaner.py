@@ -19,10 +19,6 @@ class PhoneCleaner(Cleaner, frozen=True):
     default_regions: tuple[str, ...] = ()
 
     @override
-    def name(self) -> str:
-        return "PhoneCleaner"
-
-    @override
     def provided_roles(self) -> tuple[str, ...]:
         return ("phone",)
 

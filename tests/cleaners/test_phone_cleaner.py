@@ -11,7 +11,7 @@ from dataclean.cleaners.phone_cleaner import PhoneCleaner
 
 def test_phone_cleaner_metadata():
     cleaner = PhoneCleaner()
-    assert cleaner.name() == "PhoneCleaner"
+    assert cleaner.name == "PhoneCleaner"
     assert cleaner.output_schema() == "str"
     # Verify the new default configuration is an empty tuple
     assert cleaner.default_regions == ()

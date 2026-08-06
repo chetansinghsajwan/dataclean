@@ -50,10 +50,6 @@ class CountryCleaner(Cleaner, frozen=True):
     # ---------------------------------------------------------------------------
 
     @override
-    def name(self) -> str:
-        return "CountryCleaner"
-
-    @override
     def provided_roles(self) -> tuple[str, ...]:
         return ("country",)
 

@@ -9,7 +9,7 @@ from dataclean.cleaners.numeric_cleaner import NumericCleaner
 
 def test_numeric_cleaner_metadata():
     cleaner_float = NumericCleaner(out_format=NumericCleaner.Format.FLOAT)
-    assert cleaner_float.name() == "NumericCleaner"
+    assert cleaner_float.name == "NumericCleaner"
     assert cleaner_float.output_schema() == "float"
 
 

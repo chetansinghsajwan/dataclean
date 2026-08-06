@@ -124,7 +124,7 @@ class Resolver:
             if role.key == PRIMARY:
                 return cleaner.get_data_type_confidence(df, (column,))
         except (AttributeError, TypeError, ValueError) as error:
-            logger.debug("Error scoring %s on %s: %s", cleaner.name(), column, error)
+            logger.debug("Error scoring %s on %s: %s", cleaner.name, column, error)
             return 0.0
         hints = role.name_hints or (role.key,)
         return 0.8 if any(hint.lower() in column.lower() for hint in hints) else 0.0

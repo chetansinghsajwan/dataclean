@@ -15,10 +15,6 @@ class AddressCleaner(Cleaner, frozen=True):
     """
 
     @override
-    def name(self) -> str:
-        return "AddressCleaner"
-
-    @override
     def provided_roles(self) -> tuple[str, ...]:
         return ("address", "country", "state", "postcode")
 

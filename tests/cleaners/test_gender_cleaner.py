@@ -11,7 +11,7 @@ from dataclean.cleaners.gender_cleaner import GenderCleaner
 
 def test_gender_cleaner_metadata():
     cleaner = GenderCleaner()
-    assert cleaner.name() == "GenderCleaner"
+    assert cleaner.name == "GenderCleaner"
     assert cleaner.output_schema() == "str"
 
 

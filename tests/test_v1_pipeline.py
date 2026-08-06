@@ -20,11 +20,13 @@ def test_cleaner_infers_primary_role() -> None:
     assert cleaner.resolved_input_roles == (ColumnRole(key="value"),)
 
 
+def test_cleaner_name_includes_configured_tags() -> None:
+    cleaner = CountryCleaner(tags=("billing", "source-a"))
+    assert cleaner.name == "CountryCleaner(billing, source-a)"
+
+
 def test_explicit_roles_must_match_clean_row_signature() -> None:
     class InvalidCleaner(Cleaner, frozen=True):
-        def name(self) -> str:
-            return "InvalidCleaner"
-
         def output_schema(self) -> str:
             return "str"
 
@@ -51,10 +53,10 @@ def test_resolver_handles_primary_and_group_cleaners() -> None:
     resolver = Resolver((AddressCleaner(), CountryCleaner(), PhoneCleaner()))
     assignments = resolver.resolve(df, set(df.col_names()))
     assert any(
-        assignment.cleaner.name() == "AddressCleaner" for assignment in assignments
+        assignment.cleaner.name == "AddressCleaner" for assignment in assignments
     )
     assert any(
-        assignment.cleaner.name() == "PhoneCleaner"
+        assignment.cleaner.name == "PhoneCleaner"
         and assignment.role_columns["value"] == "client_phone"
         for assignment in assignments
     )

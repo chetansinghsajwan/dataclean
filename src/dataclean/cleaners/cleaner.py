@@ -25,13 +25,23 @@ class ColumnRole(StrictBaseModel, frozen=True):  # ty: ignore[invalid-frozen-dat
 class Cleaner(StrictBaseModel, ABC, frozen=True):  # ty: ignore[invalid-frozen-dataclass-subclass]
     """Immutable, unified contract for single-column and multi-column cleaners."""
 
+    tags: tuple[str, ...] = ()
     inplace: bool = True
     split_components: bool = False
     _input_roles: tuple[ColumnRole, ...] = PrivateAttr()
+    _name: str = PrivateAttr()
+
+    @model_validator(mode="after")
+    def _set_name(self) -> Self:
+
+        base = type(self).__name__
+        self._name = f"{base}({', '.join(self.tags)})" if self.tags else base
+        return self
 
     @model_validator(mode="after")
     def _infer_roles(self) -> Self:
         """Resolve and validate input roles once, at construction time."""
+
         declared_roles = self.input_roles()
         parameters = tuple(inspect.signature(self.clean_row).parameters.values())
         if any(parameter.kind is parameter.VAR_POSITIONAL for parameter in parameters):
@@ -56,9 +66,10 @@ class Cleaner(StrictBaseModel, ABC, frozen=True):  # ty: ignore[invalid-frozen-d
         self._input_roles = roles
         return self
 
-    @abstractmethod
+    @property
     def name(self) -> str:
         """Return the cleaner name."""
+        return self._name
 
     @abstractmethod
     def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
