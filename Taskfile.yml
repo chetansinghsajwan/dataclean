@@ -1,6 +1,10 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: '3'
 
+output:
+  group:
+    error_only: true
+
 tasks:
   # =========================================================================
   # Setup tasks
@@ -90,85 +94,64 @@ tasks:
   # =========================================================================
   fmt:
     desc: Format all file sets across the project
-    deps:
-      - fmt:toml
-      - fmt:md
-      - fmt:sh
-      - fmt:json
-      - fmt:py
-      - fmt:nix
+    cmds:
+      - task: fmt:toml
+      - task: fmt:md
+      - task: fmt:sh
+      - task: fmt:json
+      - task: fmt:py
+      - task: fmt:nix
 
   check:
     desc: Lint all file sets across the project
-    deps:
-      - lint:toml
-      - lint:md
-      - lint:sh
-      - lint:json
-      - lint:py
-      - lint:nix
-      - check:gha
+    cmds:
+      - task: check:toml
+      - task: check:md
+      - task: check:sh
+      - task: check:json
+      - task: check:py
+      - task: check:nix
+      - task: check:gha
 
   fix:
     desc: Lint and auto-fix all file sets across the project — safe fixes only
-    deps:
-      - lint-fix:toml
-      - lint-fix:md
-      - lint-fix:sh
-      - lint-fix:json
-      - lint-fix:py
-      - lint-fix:nix
+    cmds:
+      - task: fix:toml
+      - task: fix:md
+      - task: fix:sh
+      - task: fix:json
+      - task: fix:py
+      - task: fix:nix
 
   fix:unsafe:
     desc: Lint and auto-fix all file sets across the project, including unsafe fixes
-    deps:
-      - lint-fix:toml
-      - lint-fix:md
-      - lint-fix:sh
-      - lint-fix:json
-      - lint-fix:py:unsafe
-      - lint-fix:nix
+    cmds:
+      - task: fix:toml
+      - task: fix:md
+      - task: fix:sh
+      - task: fix:json
+      - task: fix:py:unsafe
+      - task: fix:nix
 
   # =========================================================================
   # TOML (taplo)
   # =========================================================================
-  # taplo has no built-in recursive/gitignore-aware file discovery, so we use
-  # git ls-files by default. Pass explicit paths via -- to target specific
-  # files instead (e.g. from pre-commit) and skip the git discovery step.
-
-  _toml:
-    internal: true
-    cmds:
-      - |
-        if [ -n "{{.FILES}}" ]; then
-          taplo {{.CMD}} {{.FILES}}
-        else
-          git ls-files -z -o -c --exclude-standard -- '*.toml' | xargs -0 --no-run-if-empty taplo {{.CMD}}
-        fi
 
   fmt:toml:
     desc: Format TOML files using taplo (pass paths as args; defaults to all tracked/untracked files)
     cmds:
-      - task: _toml
-        vars:
-          CMD: fmt
-          FILES: '{{.CLI_ARGS}}'
+        - taplo fmt
 
-  lint:toml:
+  check:toml:
     desc: Lint TOML files using taplo (pass paths as args; defaults to all tracked/untracked files)
     cmds:
-      - task: _toml
-        vars:
-          CMD: check
-          FILES: '{{.CLI_ARGS}}'
+        - taplo check
 
-  lint-fix:toml:
-    desc: Lint and auto-fix TOML files using taplo (pass paths as args; defaults to all tracked/untracked files)
+  fix:toml:
+    desc: Lint and auto-fix TOML files using taplo (pass paths as args; defaults to all tracked/untracked
+        files)
     cmds:
-      - task: _toml
-        vars:
-          CMD: fmt
-          FILES: '{{.CLI_ARGS}}'
+        - taplo fmt
 
   # =========================================================================
   # Markdown (rumdl)
@@ -181,12 +164,12 @@ tasks:
       # Format python blocks in md code
       - ruff format {{.CLI_ARGS | default "."}} --preview --exclude *.py,*.pyi,*ipynb
 
-  lint:md:
+  check:md:
     desc: Lint Markdown files using rumdl (pass paths as args; defaults to all files)
     cmds:
       - rumdl check {{.CLI_ARGS | default "."}}
 
-  lint-fix:md:
+  fix:md:
     desc: Lint and auto-fix Markdown files using rumdl (pass paths as args; defaults to all files)
     cmds:
       - rumdl check --fix {{.CLI_ARGS | default "."}}
@@ -199,12 +182,12 @@ tasks:
     cmds:
       - shuck format {{.CLI_ARGS | default "."}}
 
-  lint:sh:
+  check:sh:
     desc: Lint Shell scripts using shuck (pass paths as args; defaults to all files)
     cmds:
       - shuck check {{.CLI_ARGS | default "."}}
 
-  lint-fix:sh:
+  fix:sh:
     desc: Lint and auto-fix Shell scripts using shuck (pass paths as args; defaults to all files)
     cmds:
       - shuck check --fix {{.CLI_ARGS | default "."}}
@@ -217,12 +200,12 @@ tasks:
     cmds:
       - biome format --write {{.CLI_ARGS | default "."}}
 
-  lint:json:
+  check:json:
     desc: Lint JSON and JSONC files using biome (pass paths as args; defaults to all files)
     cmds:
       - biome lint {{.CLI_ARGS | default "."}}
 
-  lint-fix:json:
+  fix:json:
     desc: Lint and auto-fix JSON and JSONC files using biome (pass paths as args; defaults to all files)
     cmds:
       - biome check --write {{.CLI_ARGS | default "."}}
@@ -235,17 +218,17 @@ tasks:
     cmds:
       - ruff format {{.CLI_ARGS | default "."}}
 
-  lint:py:
+  check:py:
     desc: Lint .py, .pyi and .ipynb files using ruff (pass paths as args; defaults to all files)
     cmds:
       - ruff check {{.CLI_ARGS | default "."}}
 
-  lint-fix:py:
+  fix:py:
     desc: Lint and auto-fix .py, .pyi and .ipynb files using ruff — safe fixes only (pass paths as args; defaults to all files)
     cmds:
       - ruff check --fix {{.CLI_ARGS | default "."}}
 
-  lint-fix:py:unsafe:
+  fix:py:unsafe:
     desc: Lint and auto-fix .py, .pyi and .ipynb files using ruff, including unsafe fixes (pass paths as args; defaults to all files)
     prompt: This applies unsafe fixes that may change behavior — continue?
     cmds:
@@ -260,13 +243,13 @@ tasks:
     cmds:
       - nixfmt {{.CLI_ARGS | default "."}}
 
-  lint:nix:
+  check:nix:
     desc: Lint .nix files using statix and deadnix (pass paths as args; defaults to all files)
     cmds:
       - statix check {{.CLI_ARGS | default "."}}
       - deadnix {{.CLI_ARGS | default "."}}
 
-  lint-fix:nix:
+  fix:nix:
     desc: Lint and auto-fix .nix files using statix and deadnix (pass paths as args; defaults to all files)
     cmds:
       - statix fix {{.CLI_ARGS | default "."}}
