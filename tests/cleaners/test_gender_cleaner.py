@@ -28,7 +28,7 @@ def test_gender_cleaner_metadata():
 def test_gender_cleaner_confidence_heuristics(col_name, expected_confidence):
     cleaner = GenderCleaner()
     mock_df = MagicMock()
-    assert cleaner.get_data_type_confidence(mock_df, (col_name,)) == expected_confidence
+    assert cleaner.match_score(mock_df, (col_name,)) == expected_confidence
 
 
 # ==============================================================================

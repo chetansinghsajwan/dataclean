@@ -84,7 +84,7 @@ class EmailCleaner(Cleaner):
         return f"{email.local}@{email.domain}"
 
     @override
-    def get_data_type_confidence(self, df: DataFrame, cols: Iterable[str]) -> float:
+    def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
         cols_tuple = tuple(cols)
         if not cols_tuple:
             return 0.0

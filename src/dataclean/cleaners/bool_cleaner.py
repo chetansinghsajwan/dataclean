@@ -56,7 +56,7 @@ class BoolCleaner(Cleaner):
         return None
 
     @override
-    def get_data_type_confidence(self, df: DataFrame, cols: Iterable[str]) -> float:
+    def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
 
         col_name = tuple(cols)[0].lower()
 

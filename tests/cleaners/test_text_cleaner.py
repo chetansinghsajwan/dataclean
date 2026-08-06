@@ -28,7 +28,7 @@ def test_text_cleaner_metadata():
 def test_text_cleaner_confidence(col_name, expected_confidence):
     cleaner = TextCleaner()
     mock_df = MagicMock()
-    assert cleaner.get_data_type_confidence(mock_df, (col_name,)) == expected_confidence
+    assert cleaner.match_score(mock_df, (col_name,)) == expected_confidence
 
 
 # ==============================================================================

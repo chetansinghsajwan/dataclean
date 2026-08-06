@@ -69,7 +69,7 @@ class CountryCleaner(Cleaner):
         return self._get_output(country_match) if country_match else None
 
     @override
-    def get_data_type_confidence(self, df: DataFrame, cols: Iterable[str]) -> float:
+    def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
         return 1.0 if "country" in tuple(cols)[0].lower() else 0.0
 
     # ---------------------------------------------------------------------------

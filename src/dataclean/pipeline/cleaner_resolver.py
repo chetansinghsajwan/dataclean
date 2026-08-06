@@ -120,9 +120,9 @@ class Resolver:
     ) -> float:
         try:
             if role.detector is not None:
-                return role.detector.get_data_type_confidence(df, (column,))
+                return role.detector.match_score(df, (column,))
             if role.key == PRIMARY:
-                return cleaner.get_data_type_confidence(df, (column,))
+                return cleaner.match_score(df, (column,))
         except (AttributeError, TypeError, ValueError) as error:
             logger.debug("Error scoring %s on %s: %s", cleaner.name, column, error)
             return 0.0

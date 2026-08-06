@@ -25,10 +25,10 @@ def test_cleaner_metadata():
         ("id", 0.0),
     ],
 )
-def test_get_data_type_confidence(col_name, expected_confidence):
+def test_match_score(col_name, expected_confidence):
     cleaner = CountryCleaner()
     mock_df = MagicMock()
-    assert cleaner.get_data_type_confidence(mock_df, (col_name,)) == expected_confidence
+    assert cleaner.match_score(mock_df, (col_name,)) == expected_confidence
 
 
 # ==============================================================================
