@@ -1,51 +1,94 @@
 {
+    // Basic settings
+    "tab_size": 4,
+    "hard_tabs": false,
+    "format_on_save": "on",
+    "preferred_line_length": 100,
+
     "languages": {
         "Python": {
             "language_servers": ["ty", "ruff"],
-            "formatter": [{ "language_server": { "name": "ruff" } }],
-            "format_on_save": "on"
-        },
-        "Nix": {
-            "tab_size": 2,
-            "language_servers": ["nil"],
             "formatter": {
                 "external": {
-                    "command": "nixfmt",
-                    "arguments": []
+                    "command": "task",
+                    "arguments": ["fmt:py:stdio"]
+                }
+            }
+        },
+        "Shell Script": {
+            "language_servers": ["shuck"],
+            "formatter": {
+                "external": {
+                    "command": "task",
+                    "arguments": ["fmt:sh:stdio"]
                 }
             }
         },
         "YAML": {
-            "tab_size": 2
-        }
-    },
-    "lsp": {
-        "ty": {
-            "binary": {
-                "path": ".devbox/nix/profile/default/bin/ty",
-                "arguments": ["server"]
+            "language_servers": ["yaml-language-server"],
+            "formatter": {
+                "external": {
+                    "command": "task",
+                    "arguments": ["fmt:yaml:stdio"]
+                }
             }
         },
-        "ruff": {
-            "binary": {
-                "path": ".devbox/nix/profile/default/bin/ruff"
+        "TOML": {
+            "language_servers": ["taplo"],
+            "formatter": {
+                "external": {
+                    "command": "task",
+                    "arguments": ["fmt:toml:stdio"]
+                }
             }
         },
-        "nil": {
-            "settings": {
-                "nil": {
-                    "formatting": {
-                        "command": ["nixfmt"]
-                    }
+        "JSON": {
+            "language_servers": ["biome", "!json-language-server"],
+            "formatter": {
+                "external": {
+                    "command": "task",
+                    "arguments": ["fmt:json:stdio"]
+                }
+            }
+        },
+        "JSONC": {
+            "language_servers": ["biome", "!json-language-server"],
+            "formatter": {
+                "external": {
+                    "command": "task",
+                    "arguments": ["fmt:json:stdio"]
+                }
+            }
+        },
+        "Markdown": {
+            "formatter": {
+                "external": {
+                    "command": "task",
+                    "arguments": ["fmt:md:stdio"]
+                }
+            }
+        },
+        "Nix": {
+            "formatter": {
+                "external": {
+                    "command": "task",
+                    "arguments": ["fmt:nix:stdio"]
                 }
             }
         }
     },
-    "ensure_final_newline_on_save": true,
-    "remove_trailing_whitespace_on_save": true,
-    "tab_size": 4,
-    "code_actions_on_format": {
-        "source.fixAll.ruff": true,
-        "source.organizeImports.ruff": true
+    "lsp": {
+        "shuck": {
+            "binary": {
+                "path": "shuck",
+                "arguments": ["server"]
+            }
+        },
+        "taplo": {
+            "binary": {
+                "path": "taplo",
+                "arguments": ["lsp", "stdio"]
+            }
+        }
     }
 }

@@ -1,13 +1,46 @@
 {
-    "[python]": {
-        "editor.defaultFormatter": "charliermarsh.ruff",
-        "editor.formatOnSave": true,
-        "editor.codeActionsOnSave": {
-            // Auto-sorts & cleans imports on save
-            "source.organizeImports": "always",
+    "editor.tabSize": 4,
+    "editor.formatOnSave": true,
+    "editor.rulers": [100],
 
-            // Auto-fixes lint violations (like removing unused imports)
-            "source.fixAll": "always",
+    "customLocalFormatters.formatters": [
+        { "command": "task fmt:python:stdio", "languages": ["python"] },
+        { "command": "task fmt:toml:stdio", "languages": ["toml"] },
+        { "command": "task fmt:json:stdio", "languages": ["json", "jsonc"] },
+        {
+            "command": "task fmt:shellscript:stdio",
+            "languages": ["shellscript"],
         },
+        { "command": "task fmt:markdown:stdio", "languages": ["markdown"] },
+        { "command": "task fmt:yaml:stdio", "languages": ["yaml"] },
+        { "command": "task fmt:nix:stdio", "languages": ["nix"] },
+    ],
+
+    "[python]": {
+        "editor.defaultFormatter": "jkillian.custom-local-formatters",
+    },
+    "[sql]": {
+        "editor.defaultFormatter": "jkillian.custom-local-formatters",
+    },
+    "[toml]": {
+        "editor.defaultFormatter": "jkillian.custom-local-formatters",
+    },
+    "[json]": {
+        "editor.defaultFormatter": "jkillian.custom-local-formatters",
+    },
+    "[jsonc]": {
+        "editor.defaultFormatter": "jkillian.custom-local-formatters",
+    },
+    "[shellscript]": {
+        "editor.defaultFormatter": "jkillian.custom-local-formatters",
+    },
+    "[markdown]": {
+        "editor.defaultFormatter": "jkillian.custom-local-formatters",
+    },
+    "[yaml]": {
+        "editor.defaultFormatter": "jkillian.custom-local-formatters",
+    },
+    "[nix]": {
+        "editor.defaultFormatter": "jkillian.custom-local-formatters",
     },
 }
