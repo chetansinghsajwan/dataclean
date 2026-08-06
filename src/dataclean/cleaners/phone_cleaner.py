@@ -1,14 +1,15 @@
 import re
+from collections.abc import Iterable
 from enum import StrEnum
 from typing import override
 
 import phonenumbers
 
-from dataclean.cleaners.cleaner import CellValue, Cleaner
+from dataclean.cleaners.cleaner import Cleaner
 from dataclean.engine.dataframe import DataFrame, DataType
 
 
-class PhoneCleaner(Cleaner, frozen=True):
+class PhoneCleaner(Cleaner):
     class Format(StrEnum):
         E164 = "e164"
         INTERNATIONAL = "international"
@@ -24,15 +25,14 @@ class PhoneCleaner(Cleaner, frozen=True):
 
     @override
     def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        return "str"
+        return DataType.STR
 
     @override
-    def clean_row(
-        self, value: CellValue | None, country: CellValue | None = None
-    ) -> CellValue | None:
-        if not isinstance(value, str):
+    def clean_row(self, v: str | None, country: str | None = None) -> str | None:  # type: ignore
+
+        if v is None:
             return None
-        v = value
+
         normalized = v.strip()
 
         if re.match(r"^\d+(\.\d+)?([eE][+-]?\d+)$", normalized):
@@ -75,11 +75,12 @@ class PhoneCleaner(Cleaner, frozen=True):
         return None
 
     @override
-    def get_data_type_confidence(self, df: DataFrame, cols: tuple[str, ...]) -> float:
-        if not cols:
+    def get_data_type_confidence(self, df: DataFrame, cols: Iterable[str]) -> float:
+        cols_tuple = tuple(cols)
+        if not cols_tuple:
             return 0.0
 
-        col_name = cols[0].lower()
+        col_name = cols_tuple[0].lower()
         if any(
             token in col_name
             for token in ("phone", "tel", "mobile", "fax", "contact_no")

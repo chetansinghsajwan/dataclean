@@ -2,11 +2,11 @@
 
 from typing import override
 
-from dataclean.cleaners.cleaner import CellValue, Cleaner, ColumnRole
+from dataclean.cleaners.cleaner import Cleaner, ColumnRole
 from dataclean.engine.dataframe import DataType
 
 
-class AddressCleaner(Cleaner, frozen=True):
+class AddressCleaner(Cleaner):
     """
     Cleans address data from multiple columns.
 
@@ -21,12 +21,12 @@ class AddressCleaner(Cleaner, frozen=True):
     @override
     def output_schema(self) -> tuple[tuple[str, DataType], ...]:
         return (
-            ("country", "str"),
-            ("state", "str"),
-            ("postcode", "str"),
-            ("address_line", "str"),
-            ("street", "str"),
-            ("house_no", "str"),
+            ("country", DataType.STR),
+            ("state", DataType.STR),
+            ("postcode", DataType.STR),
+            ("address_line", DataType.STR),
+            ("street", DataType.STR),
+            ("house_no", DataType.STR),
         )
 
     @override
@@ -57,12 +57,12 @@ class AddressCleaner(Cleaner, frozen=True):
     @override
     def clean_row(
         self,
-        county: CellValue | None = None,
-        country: CellValue | None = None,
-        address_line1: CellValue | None = None,
-        address_line2: CellValue | None = None,
-        address_line3: CellValue | None = None,
-    ) -> tuple[CellValue | None, ...] | None:
+        county: str | None = None,
+        country: str | None = None,
+        address_line1: str | None = None,
+        address_line2: str | None = None,
+        address_line3: str | None = None,
+    ) -> tuple[str | None, ...] | None:  # type: ignore
         """
         Clean a row of address components.
 
@@ -82,31 +82,31 @@ class AddressCleaner(Cleaner, frozen=True):
 
     # Private helper methods
 
-    def _clean_country(self, value: CellValue | None) -> CellValue | None:
+    def _clean_country(self, value: str | None) -> str | None:
         """Clean country field."""
         if not value:
             return None
         return str(value).strip().title()
 
-    def _clean_county(self, value: CellValue | None) -> CellValue | None:
+    def _clean_county(self, value: str | None) -> str | None:
         """Clean state/county field."""
         if not value:
             return None
         return str(value).strip().title()
 
-    def _clean_address_line(self, value: CellValue | None) -> CellValue | None:
+    def _clean_address_line(self, value: str | None) -> str | None:
         """Clean main address line."""
         if not value:
             return None
         return str(value).strip()
 
-    def _clean_city(self, value: CellValue | None) -> CellValue | None:
+    def _clean_city(self, value: str | None) -> str | None:
         """Clean city field."""
         if not value:
             return None
         return str(value).strip().title()
 
-    def _clean_postcode(self, value: CellValue | None) -> CellValue | None:
+    def _clean_postcode(self, value: str | None) -> str | None:
         """Clean postcode/zip field."""
         if not value:
             return None
@@ -116,8 +116,8 @@ class AddressCleaner(Cleaner, frozen=True):
         return cleaned if cleaned else None
 
     def _extract_street_and_number(
-        self, address_line: CellValue | None
-    ) -> tuple[CellValue | None, CellValue | None]:
+        self, address_line: str | None
+    ) -> tuple[str | None, str | None]:
         """Extract street name and house number from address line."""
         if not address_line:
             return None, None

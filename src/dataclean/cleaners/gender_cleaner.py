@@ -1,11 +1,12 @@
+from collections.abc import Iterable
 from enum import StrEnum
 from typing import override
 
-from dataclean.cleaners.cleaner import CellValue, Cleaner
+from dataclean.cleaners.cleaner import Cleaner
 from dataclean.engine.dataframe import DataFrame, DataType
 
 
-class GenderCleaner(Cleaner, frozen=True):
+class GenderCleaner(Cleaner):
     class Format(StrEnum):
         FULL = "full"  # "Male" / "Female" / "Other"
         CHAR = "char"  # "M" / "F" / "O"
@@ -30,13 +31,10 @@ class GenderCleaner(Cleaner, frozen=True):
 
     @override
     def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        return "str"
+        return DataType.STR
 
     @override
-    def clean_row(self, value: CellValue | None) -> CellValue | None:
-        if not isinstance(value, str):
-            return None
-        v = value
+    def clean_row(self, v: str) -> str | None:  # type: ignore
 
         match_details = self._MAPPING.get(v.lower())
 
@@ -46,11 +44,12 @@ class GenderCleaner(Cleaner, frozen=True):
         return match_details[self.out_format]
 
     @override
-    def get_data_type_confidence(self, df: DataFrame, cols: tuple[str, ...]) -> float:
-        if not cols:
+    def get_data_type_confidence(self, df: DataFrame, cols: Iterable[str]) -> float:
+        cols_tuple = tuple(cols)
+        if not cols_tuple:
             return 0.0
 
-        col_name = cols[0].lower()
+        col_name = cols_tuple[0].lower()
         if "gender" in col_name or "sex" in col_name:
             return 1.0
 

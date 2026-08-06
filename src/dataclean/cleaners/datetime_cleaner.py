@@ -1,12 +1,13 @@
+from collections.abc import Iterable
 from datetime import date, datetime, time
 from enum import StrEnum
 from typing import override
 
-from dataclean.cleaners.cleaner import CellValue, Cleaner
+from dataclean.cleaners.cleaner import Cleaner
 from dataclean.engine.dataframe import DataFrame, DataType
 
 
-class DateTimeCleaner(Cleaner, frozen=True):
+class DateTimeCleaner(Cleaner):
     class Format(StrEnum):
         ISO_DATETIME = "iso_datetime"  # 2026-06-19T22:45:00
         ISO_DATE = "iso_date"  # 2026-06-19
@@ -28,13 +29,11 @@ class DateTimeCleaner(Cleaner, frozen=True):
 
     @override
     def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        return "str"
+        return DataType.STR
 
     @override
-    def clean_row(self, value: CellValue | None) -> CellValue | None:
-        if not isinstance(value, str):
-            return None
-        v = value
+    def clean_row(self, v: str) -> str | None:  # type: ignore
+
         # Implementation contract guarantee: v is a non-empty, stripped string
         parsed_obj: date | time | datetime | None = None
 
@@ -76,11 +75,12 @@ class DateTimeCleaner(Cleaner, frozen=True):
         return None
 
     @override
-    def get_data_type_confidence(self, df: DataFrame, cols: tuple[str, ...]) -> float:
-        if not cols:
+    def get_data_type_confidence(self, df: DataFrame, cols: Iterable[str]) -> float:
+        cols_tuple = tuple(cols)
+        if not cols_tuple:
             return 0.0
 
-        col_name = cols[0].lower()
+        col_name = cols_tuple[0].lower()
         if (
             any(token in col_name for token in ("date", "time", "timestamp"))
             or col_name.lower().endswith("_at")

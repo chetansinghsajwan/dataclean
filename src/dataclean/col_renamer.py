@@ -1,5 +1,5 @@
 from collections.abc import Callable, Iterable
-from typing import Literal
+from typing import ClassVar, Literal
 
 import wordninja
 from pydantic import PrivateAttr, model_validator
@@ -7,8 +7,8 @@ from pydantic import PrivateAttr, model_validator
 from dataclean.types import StrictBaseModel
 
 
-class ColRenamer(StrictBaseModel, frozen=True):
-    type CaseTypes = Literal[
+class ColRenamer(StrictBaseModel):
+    CaseTypes: ClassVar = Literal[
         "snake",
         "upper_snake",
         "upper",
@@ -22,11 +22,11 @@ class ColRenamer(StrictBaseModel, frozen=True):
 
     case: CaseTypes = "lower"
 
-    _renamer: Callable[[tuple[str, ...]], str] = PrivateAttr(default=None)
+    _renamer: Callable[[tuple[str, ...]], str] = PrivateAttr()
 
     @model_validator(mode="after")
     def _set_renamer_engine(self) -> "ColRenamer":
-        self._renamer = self._get_renamer(self.case)
+        object.__setattr__(self, "_renamer", self._get_renamer(self.case))
         return self
 
     def rename_cols(self, cols: Iterable[str]) -> dict[str, str]:

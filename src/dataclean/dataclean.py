@@ -14,7 +14,8 @@ def get_cleaner(df: DataFrame, cols: Iterable[str]) -> tuple[Cleaner | None, flo
     selected_cleaner_confidence: float = 0
 
     for cleaner in config.cleaners:
-        confidence = cleaner.get_data_type_confidence(df, cols)
+        # Ensure we pass a tuple to older cleaners expecting tuple semantics
+        confidence = cleaner.get_data_type_confidence(df, tuple(cols))
         confidence = min(max(confidence, 0), 1)
 
         if confidence > selected_cleaner_confidence:
@@ -27,13 +28,14 @@ def get_cleaner(df: DataFrame, cols: Iterable[str]) -> tuple[Cleaner | None, flo
     return selected_cleaner, selected_cleaner_confidence
 
 
-def _wrap_df(df: Any) -> DataFrame:
+def _wrap_df(df: Any) -> DataFrame | None:
 
     if isinstance(df, DataFrame):
         return df
 
     for api in config.dataframe_apis:
         if api.supports(df):
+            # API classes are expected to be callables that construct a wrapper when given df=df
             return api(df=df)
 
     return None
@@ -50,7 +52,7 @@ def clean(
     use_global_config: bool = True,
     logger: Logger | None = None,
     inplace: bool | None = None,
-    cleaners: dict[str, Cleaner] | None = None,
+    cleaners: Iterable[str] | None = None,
 ) -> DataFrame:
 
     col_renamer = col_renamer or config.col_renamer
@@ -83,22 +85,24 @@ def clean(
         inplace = config.inplace
 
     if cleaners is None:
-        cleaners = []
+        cleaners = []  # expected to be an iterable of column names to skip
 
     if use_global_config:
         logger.debug(f"Global config: {config}")
-        ignore_cols = list(set(ignore_cols + config.ignore_cols))
+        # Normalize both iterables to tuples before concatenation to satisfy type checker
+        ignore_cols = list(set(tuple(ignore_cols) + tuple(config.ignore_cols)))
 
     if rename_cols:
         if rename_col_map is None:
-            rename_col_map = col_renamer.rename_cols(df.col_names())
+            rename_col_map = col_renamer.rename_cols(list(df.col_names()))
         else:
             cols_to_auto_rename = [
                 col for col in df.col_names() if col not in rename_col_map
             ]
             auto_rename_col_map = col_renamer.rename_cols(cols_to_auto_rename)
             logger.debug(f"Rename map from the column renamer: {auto_rename_col_map}")
-            rename_col_map = auto_rename_col_map | rename_col_map
+            # Normalize mapping types to dict before merging
+            rename_col_map = dict(auto_rename_col_map) | dict(rename_col_map)
 
         logger.info(f"Renaming columns using map: {rename_col_map}")
 

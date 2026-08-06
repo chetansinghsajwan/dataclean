@@ -10,7 +10,7 @@ tasks:
         desc: Setup project config and dependencies
         cmds:
             - unset JAVA_HOME
-            - cmd: git config --local --unset include.path
+            - cmd: git config --local --unset include.path || [ $? -eq 5 ]
               if: "[ \"$CI\" != \"true\" ]"
             - cmd: git config --local include.path ../.gitconfig
               if: "[ \"$CI\" != \"true\" ]"
@@ -91,47 +91,47 @@ tasks:
     fmt:
         desc: Format all file sets across the project
         cmds:
-            - task: fmt:toml
-            - task: fmt:yaml
-            - task: fmt:md
-            - task: fmt:sh
-            - task: fmt:json
             - task: fmt:py
+            - task: fmt:sh
             - task: fmt:nix
+            - task: fmt:json
+            - task: fmt:yaml
+            - task: fmt:toml
+            - task: fmt:md
 
     check:
         desc: Lint all file sets across the project
         cmds:
-            - task: check:toml
-            - task: check:yaml
-            - task: check:md
-            - task: check:sh
-            - task: check:json
             - task: check:py
+            - task: check:sh
             - task: check:nix
+            - task: check:json
+            - task: check:yaml
+            - task: check:toml
+            - task: check:md
             - task: check:gha
 
     fix:
         desc: Lint and auto-fix all file sets across the project — safe fixes only
         cmds:
-            - task: fix:toml
-            - task: fix:yaml
-            - task: fix:md
-            - task: fix:sh
-            - task: fix:json
             - task: fix:py
+            - task: fix:sh
             - task: fix:nix
+            - task: fix:json
+            - task: fix:yaml
+            - task: fix:toml
+            - task: fix:md
 
     fix:unsafe:
         desc: Lint and auto-fix all file sets across the project, including unsafe fixes
         cmds:
-            - task: fix:toml
-            - task: fix:yaml
-            - task: fix:md
-            - task: fix:sh
-            - task: fix:json
             - task: fix:py:unsafe
+            - task: fix:sh
             - task: fix:nix
+            - task: fix:json
+            - task: fix:yaml
+            - task: fix:toml
+            - task: fix:md
 
     # =========================================================================
     # YAML (yamlfmt)
@@ -188,10 +188,10 @@ tasks:
     fmt:md:
         desc: Format Markdown files using rumdl (pass paths as args; defaults to all files)
         cmds:
-            - rumdl fmt {{.CLI_ARGS | default "."}}
-
             # Format python blocks in md code
-            - ruff format {{.CLI_ARGS | default "."}} --preview --exclude *.py,*.pyi,*ipynb
+            - ruff format {{.CLI_ARGS | default "**/*.md"}} --preview --exclude *.py,*.pyi,*ipynb
+
+            - rumdl fmt {{.CLI_ARGS | default "."}}
 
     fmt:md:stdio:
         desc: Format Markdown files using rumdl from stdio
@@ -272,12 +272,14 @@ tasks:
         desc: Lint .py, .pyi and .ipynb files using ruff (pass paths as args; defaults to all files)
         cmds:
             - ruff check {{.CLI_ARGS | default "."}}
+            - ty check {{.CLI_ARGS | default "."}}
 
     fix:py:
         desc: Lint and auto-fix .py, .pyi and .ipynb files using ruff — safe fixes only (pass paths as
             args; defaults to all files)
         cmds:
             - ruff check --fix {{.CLI_ARGS | default "."}}
+            - ty check --fix {{.CLI_ARGS | default "."}}
 
     fix:py:unsafe:
         desc: Lint and auto-fix .py, .pyi and .ipynb files using ruff, including unsafe fixes (pass paths

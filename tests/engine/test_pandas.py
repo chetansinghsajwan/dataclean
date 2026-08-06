@@ -16,4 +16,3 @@ class TestPandasDataFrame(BaseDataFrameTests):
     def wrapper(self) -> Any:
         pd_df = pd.DataFrame(RAW_TEST_DATA)
         return PandasDataFrame(df=pd_df)
-        pass

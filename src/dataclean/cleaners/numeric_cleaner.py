@@ -1,13 +1,14 @@
 import re
+from collections.abc import Iterable
 from decimal import ROUND_HALF_UP, Decimal
 from enum import StrEnum
 from typing import override
 
-from dataclean.cleaners.cleaner import CellValue, Cleaner
+from dataclean.cleaners.cleaner import Cleaner
 from dataclean.engine.dataframe import DataFrame, DataReader, DataType
 
 
-class NumericCleaner(Cleaner, frozen=True):
+class NumericCleaner(Cleaner):
     class Format(StrEnum):
         INT = "int"  # Casts the cleaned value to a strict Python integer
         FLOAT = "float"  # Casts the cleaned value to a standard Python float
@@ -21,13 +22,15 @@ class NumericCleaner(Cleaner, frozen=True):
 
     @override
     def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        return "int" if self.out_format == NumericCleaner.Format.INT else "float"
+        return (
+            DataType.INT
+            if self.out_format == NumericCleaner.Format.INT
+            else DataType.FLOAT
+        )
 
     @override
-    def clean_row(self, value: CellValue | None) -> CellValue | None:
-        if not isinstance(value, str):
-            return None
-        v = value
+    def clean_row(self, v: str) -> str | None:  # type: ignore
+
         # Base implementation pipeline guarantees that v arrives non-empty and stripped
         normalized = v.lower()
         multiplier = 1.0
@@ -70,20 +73,22 @@ class NumericCleaner(Cleaner, frozen=True):
 
         match self.out_format:
             case NumericCleaner.Format.INT:
-                # Truncates any fractional remnants automatically
-                return int(float_val)
+                # Truncates any fractional remnants automatically and return as string
+                return str(int(float_val))
             case NumericCleaner.Format.FLOAT:
-                return float_val
+                # Return normalized float string representation
+                return str(float_val)
 
         return None
 
     @override
-    def get_data_type_confidence(self, df: DataFrame, cols: tuple[str, ...]) -> float:
-        if not cols:
+    def get_data_type_confidence(self, df: DataFrame, cols: Iterable[str]) -> float:
+        cols_tuple = tuple(cols)
+        if not cols_tuple:
             return 0.0
 
         confidence = 0.0
-        col_name = cols[0].lower()
+        col_name = cols_tuple[0].lower()
 
         # 1. Structural Column Name Heuristic (Base 30% Weight)
         if any(
@@ -114,7 +119,7 @@ class NumericCleaner(Cleaner, frozen=True):
         sampler = NumericSampler(self, limit=100)
 
         # Inject our stateful tracker directly into the engine's read configuration
-        reader = DataReader(fn=sampler, cols=(cols[0],))
+        reader = DataReader(fn=sampler, cols=(cols_tuple[0],))
         df.read_cols([reader])
 
         # Calculate the success ratio and apply it to the remaining confidence margin

@@ -1,10 +1,14 @@
 """Main pipeline orchestrator for unified cleaners."""
 
 from collections.abc import Mapping, Sequence
+from typing import Any
 
 from dataclean.cleaners.cleaner import Cleaner
 from dataclean.col_renamer import ColRenamer
+from dataclean.config import config
 from dataclean.engine.dataframe import DataFrame, DataWriter
+from dataclean.engine.pandas import PandasDataFrame
+from dataclean.engine.pyspark import PySparkDataFrame
 from dataclean.pipeline.assignments import Assignment
 from dataclean.pipeline.cleaner_resolver import Resolver
 from dataclean.pipeline.dependency_resolver import DependencyResolver
@@ -31,7 +35,7 @@ class Pipeline:
 
     def fit_transform(self, df: DataFrame | object) -> DataFrame:
         """Clean a DataFrame through the engine abstraction."""
-        df = self._wrap_dataframe(df)
+        df = self._wrap_df(df)
         assignments = self._resolver.resolve(
             df,
             set(df.col_names()),
@@ -47,16 +51,23 @@ class Pipeline:
             df.write_cols(writers)
         return df
 
-    def _wrap_dataframe(self, df: DataFrame | object) -> DataFrame:
+    def _wrap_df(self, df: Any) -> DataFrame:
+
         if isinstance(df, DataFrame):
             return df
-        from dataclean.engine.pandas import PandasDataFrame
-        from dataclean.engine.pyspark import PySparkDataFrame
 
+        for api in config.dataframe_apis:
+            if api.supports(df):
+                # API classes are expected to be callables that construct a wrapper when given df=df
+                return api(df=df)
+
+        # Fallback to built-in adapters so callers don't need to register them manually
+        # (convenience for common engines like pandas/pyspark).
         if PandasDataFrame.supports(df):
             return PandasDataFrame(df=df)
         if PySparkDataFrame.supports(df):
             return PySparkDataFrame(df=df)
+
         raise TypeError(f"Unsupported dataframe type: {type(df)}")
 
     def _writer_for(self, assignment: Assignment) -> DataWriter:
