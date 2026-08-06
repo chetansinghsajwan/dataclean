@@ -170,6 +170,11 @@ tasks:
         cmds:
             - taplo fmt
 
+    fmt:toml:stdio:
+        desc: Format TOML files using taplo from stdio
+        cmds:
+            - taplo fmt -
+
     check:toml:
         desc: Lint TOML files using taplo (pass paths as args; defaults to all tracked/untracked files)
         cmds:
@@ -192,6 +197,11 @@ tasks:
             # Format python blocks in md code
             - ruff format {{.CLI_ARGS | default "."}} --preview --exclude *.py,*.pyi,*ipynb
 
+    fmt:md:stdio:
+        desc: Format Markdown files using rumdl from stdio
+        cmds:
+            - rumdl fmt --stdin
+
     check:md:
         desc: Lint Markdown files using rumdl (pass paths as args; defaults to all files)
         cmds:
@@ -209,6 +219,11 @@ tasks:
         desc: Format Shell scripts using shuck (pass paths as args; defaults to all files)
         cmds:
             - shuck format {{.CLI_ARGS | default "."}}
+
+    fmt:sh:stdio:
+        desc: Format Shell scripts using shuck from stdio
+        cmds:
+            - shuck format -
 
     check:sh:
         desc: Lint Shell scripts using shuck (pass paths as args; defaults to all files)
@@ -228,6 +243,11 @@ tasks:
         cmds:
             - biome format --write {{.CLI_ARGS | default "."}}
 
+    fmt:json:stdio:
+        desc: Format JSON and JSONC files using biome from stdio
+        cmds:
+            - biome format --stdin-file-path a.jsonc
+
     check:json:
         desc: Lint JSON and JSONC files using biome (pass paths as args; defaults to all files)
         cmds:
@@ -240,12 +260,17 @@ tasks:
             - biome check --write {{.CLI_ARGS | default "."}}
 
     # =========================================================================
-    # Python & Jupyter Notebooks (ruff)
+    # Python (ruff)
     # =========================================================================
     fmt:py:
         desc: Format .py, .pyi and .ipynb files using ruff (pass paths as args; defaults to all files)
         cmds:
             - ruff format {{.CLI_ARGS | default "."}}
+
+    fmt:py:stdio:
+        desc: Format .py, .pyi and .ipynb files using ruff from stdio
+        cmds:
+            - ruff format -
 
     check:py:
         desc: Lint .py, .pyi and .ipynb files using ruff (pass paths as args; defaults to all files)
@@ -273,6 +298,11 @@ tasks:
         desc: Format .nix files using nixfmt (pass paths as args; defaults to all files)
         cmds:
             - nixfmt {{.CLI_ARGS | default "."}}
+
+    fmt:nix:stdio:
+        desc: Format .nix files using nixfmt from stdio
+        cmds:
+            - nixfmt -
 
     check:nix:
         desc: Lint .nix files using statix and deadnix (pass paths as args; defaults to all files)
