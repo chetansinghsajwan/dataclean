@@ -1,22 +1,24 @@
 # Dataclean Design V1 (Single Cleaner Design)
 
-Scope: v1.0 ships as pure Python. Rust core migration begins after 1.0 — see `DESIGN_PLAN.md`.
-This document supersedes the earlier `Cleaner`/`BaseCleaner`/`GroupCleaner` 3-class split
-described in `V1_PYTHON_DESIGN.md` — all cleaners are now a single unified class.
+Scope: v1.0 ships as pure Python. Rust core migration begins after 1.0 — see
+`DESIGN_PLAN.md`. This document supersedes the earlier
+`Cleaner`/`BaseCleaner`/`GroupCleaner` 3-class split described in
+`V1_PYTHON_DESIGN.md` — all cleaners are now a single unified class.
 
 ## 1. Goals
 
 - User-friendly, unambiguous, beginner-friendly API
 - Object-oriented, no duplicated logic
 - Cleaners are immutable, constructed once, precompute at construction
-- Automatic column → cleaner assignment with graceful degradation, never silent wrong guesses
+- Automatic column → cleaner assignment with graceful degradation, never silent
+  wrong guesses
 - No per-row allocation overhead (dict-building, etc.)
 
 ## 2. Single Unified `Cleaner` Class
 
-A "simple" cleaner is just a `Cleaner` whose `input_roles()` returns one role.
-A "group" cleaner (e.g. `AddressCleaner`) is one whose `input_roles()` returns many.
-Same contract, same execution method — no separate hierarchy.
+A "simple" cleaner is just a `Cleaner` whose `input_roles()` returns one role. A
+"group" cleaner (e.g. `AddressCleaner`) is one whose `input_roles()` returns
+many. Same contract, same execution method — no separate hierarchy.
 
 ```python
 PRIMARY = "value"   # sentinel role key for the common single-column case
@@ -65,8 +67,9 @@ class Cleaner(StrictBaseModel, ABC, frozen=True):
         return 0.0
 ```
 
-**Immutability rule (unchanged):** all precomputation happens in `model_validator(mode="after")`.
-`clean_row` does zero setup work, only executes.
+**Immutability rule (unchanged):** all precomputation happens in
+`model_validator(mode="after")`. `clean_row` does zero setup work, only
+executes.
 
 ## 3. `ColumnRole` — shared descriptor for all input kinds
 
@@ -78,8 +81,8 @@ class ColumnRole(StrictBaseModel, frozen=True):
     name_hints: tuple[str, ...] = ()      # fallback keyword match
 ```
 
-Same class powers the PRIMARY anchor column, optional context columns, and group-cleaner
-input columns -- one mechanism, not three.
+Same class powers the PRIMARY anchor column, optional context columns, and
+group-cleaner input columns -- one mechanism, not three.
 
 ## 4. Author Experience
 
@@ -139,8 +142,9 @@ class AddressCleaner(Cleaner, frozen=True):
         ...
 ```
 
-Validated once at construction: explicit `input_roles()` param count/order must match `clean_row`'s
-signature -- mismatch fails loud immediately, not at runtime.
+Validated once at construction: explicit `input_roles()` param count/order must
+match `clean_row`'s signature -- mismatch fails loud immediately, not at
+runtime.
 
 ## 5. Resolution Pipeline
 
@@ -177,20 +181,23 @@ class EntityExtractor:
 
 ## 7. Same-Role Multiplicity -- Two Distinct Situations
 
-**A. Multiple PRIMARY columns matching the same cleaner type (`phone`, `tel`, `fax` all match `PhoneCleaner`):**
-Not a conflict. PRIMARY resolution runs independently per column (Phase 0-1) -- each of
-`phone`, `tel`, `fax` gets its own `ColumnAssignment` and its own output column
-(`phone_cleaned`, `tel_cleaned`, `fax_cleaned`). No merging.
+**A. Multiple PRIMARY columns matching the same cleaner type (`phone`, `tel`,
+`fax` all match `PhoneCleaner`):** Not a conflict. PRIMARY resolution runs
+independently per column (Phase 0-1) -- each of `phone`, `tel`, `fax` gets its
+own `ColumnAssignment` and its own output column (`phone_cleaned`,
+`tel_cleaned`, `fax_cleaned`). No merging.
 
-**B. Multiple *producers* of the same role, requested as context by another cleaner:**
+**B. Multiple *producers* of the same role, requested as context by another
+cleaner:**
 
 | Case | Column names share role token? | Resolvable? |
 |---|---|---|
 | `client_phone` / `manager_phone` producing role `phone` | Yes -- token `phone` present, entity = `client`/`manager` | Entity matching resolves it |
 | `phone` / `tel` / `fax` all producing role `phone` | No -- `tel`/`fax` don't contain the word `phone` | No naming signal -- unresolved by default |
 
-Design decision: aliases without namespace hints are **intentionally unresolvable** --
-not a gap to patch with smarter heuristics later.
+Design decision: aliases without namespace hints are
+**intentionally unresolvable** -- not a gap to patch with smarter heuristics
+later.
 
 | Rule | Behavior |
 |---|---|
@@ -212,8 +219,9 @@ class ExecutionPlan:
     waves: tuple[tuple[Assignment, ...], ...]
 ```
 
-Note: `ColumnAssignment`/`GroupAssignment` split from the earlier design collapses into one
-`Assignment` type -- PRIMARY-only cleaners just have `role_columns = {PRIMARY: col}`.
+Note: `ColumnAssignment`/`GroupAssignment` split from the earlier design
+collapses into one `Assignment` type -- PRIMARY-only cleaners just have
+`role_columns = {PRIMARY: col}`.
 
 ## 9. Pipeline API
 
@@ -268,12 +276,14 @@ dataclean.clean("prod.raw.some_table", dest="prod.prep.*")
 
 ## 13. Work Items for v1.0
 
-- [ ] Unified `Cleaner` ABC (replaces `Cleaner`/`BaseCleaner`/`GroupCleaner` split)
+- [ ] Unified `Cleaner` ABC (replaces `Cleaner`/`BaseCleaner`/`GroupCleaner`
+      split)
 - [ ] `ColumnRole`, `Assignment`, `ExecutionPlan` data classes
 - [ ] Signature-based role inference (`_infer_roles` validator)
 - [ ] `EntityExtractor` (reusing `ColRenamer._get_words`)
 - [ ] `Resolver` (merged group+single claiming, most-constrained-first)
-- [ ] `DependencyResolver` with entity disambiguation + unresolved-alias handling
+- [ ] `DependencyResolver` with entity disambiguation + unresolved-alias
+      handling
 - [ ] Topological sort into `ExecutionPlan.waves`, cycle detection
 - [ ] `Pipeline` class (`fit_transform`, `column_cleaners`, `context_overrides`)
 - [ ] `Catalog` ABC + platform auto-detection registry

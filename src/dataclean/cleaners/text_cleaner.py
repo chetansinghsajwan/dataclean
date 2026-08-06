@@ -1,14 +1,14 @@
 import re
 from collections.abc import Callable
-from typing import Any, ClassVar, Self, override
+from typing import ClassVar, Self, override
 
 from pydantic import PrivateAttr, model_validator
 
-from dataclean.cleaners.base_cleaner import BaseCleaner, CellValue, CleanContext
+from dataclean.cleaners.cleaner import CellValue, Cleaner
 from dataclean.engine.dataframe import DataFrame, DataType
 
 
-class TextCleaner(BaseCleaner, frozen=True):
+class TextCleaner(Cleaner, frozen=True):
     lowercase: bool = True
     remove_html: bool = True
     remove_urls: bool = True
@@ -72,11 +72,10 @@ class TextCleaner(BaseCleaner, frozen=True):
         return "str"
 
     @override
-    def clean_value(
-        self, v: Any, context: CleanContext | None = None
-    ) -> CellValue | None:
-        if not isinstance(v, str):
+    def clean_row(self, value: CellValue | None) -> CellValue | None:
+        if not isinstance(value, str):
             return None
+        v = value
 
         normalized = v
 

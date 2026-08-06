@@ -3,15 +3,14 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 
-from dataclean.cleaners.base_cleaner import BaseCleaner
-from dataclean.cleaners.group_cleaner import GroupCleaner
+from dataclean.cleaners.cleaner import Cleaner
 
 
 class Catalog(ABC):
     """Abstract base for platform-specific cleaner registries."""
 
     @abstractmethod
-    def get_cleaners(self) -> Sequence[BaseCleaner | GroupCleaner]:
+    def get_cleaners(self) -> Sequence[Cleaner]:
         """Return all available cleaners for this platform."""
         pass
 
@@ -19,7 +18,7 @@ class Catalog(ABC):
 class DefaultCatalog(Catalog):
     """Default catalog with all built-in cleaners."""
 
-    def get_cleaners(self) -> Sequence[BaseCleaner | GroupCleaner]:
+    def get_cleaners(self) -> Sequence[Cleaner]:
         """Return all built-in cleaners."""
         from dataclean.cleaners.address_cleaner import AddressCleaner
         from dataclean.cleaners.bool_cleaner import BoolCleaner

@@ -1,10 +1,10 @@
 # Migration: V1 Python Design -> Dataclean Design V1 (Single Cleaner)
 
 Purpose: step-by-step diff/migration guide from `V1_PYTHON_DESIGN.md` (original
-`Cleaner`/`BaseCleaner`/`GroupCleaner` 3-class hierarchy) to `DATACLEAN_DESIGN_V1.md`
-(unified single `Cleaner` class). Use this if implementation of the original design
-has already started and needs to be refactored, or as a reference for why the change
-was made.
+`Cleaner`/`BaseCleaner`/`GroupCleaner` 3-class hierarchy) to
+`DATACLEAN_DESIGN_V1.md` (unified single `Cleaner` class). Use this if
+implementation of the original design has already started and needs to be
+refactored, or as a reference for why the change was made.
 
 ## 1. Why the change
 
@@ -19,22 +19,26 @@ was made.
 ## 2. Class hierarchy diff
 
 **Before:**
-```
+
+```text
 Cleaner (ABC, frozen)
 ├── BaseCleaner       # clean_value(value, context)
 └── GroupCleaner       # clean_row(values: Mapping)
 ```
 
 **After:**
-```
+
+```text
 Cleaner (ABC, frozen)   # only class -- clean_row(*args), input_roles() length = 1 or many
 ```
 
 Action items:
+
 - [ ] Delete `BaseCleaner` and `GroupCleaner` classes entirely
-- [ ] All existing cleaner subclasses (`EmailCleaner`, `PhoneCleaner`, `TextCleaner`,
-      `NumericCleaner`, `BoolCleaner`, `GenderCleaner`, `DateTimeCleaner`, `CountryCleaner`,
-      `UuidCleaner`) now inherit directly from `Cleaner`
+- [ ] All existing cleaner subclasses (`EmailCleaner`, `PhoneCleaner`,
+      `TextCleaner`, `NumericCleaner`, `BoolCleaner`, `GenderCleaner`,
+      `DateTimeCleaner`, `CountryCleaner`, `UuidCleaner`) now inherit directly
+      from `Cleaner`
 
 ## 3. Method signature diff
 
@@ -51,6 +55,7 @@ Action items:
 ## 4. Example: `PhoneCleaner` before/after
 
 **Before:**
+
 ```python
 class PhoneCleaner(BaseCleaner, frozen=True):
     def context_requests(self) -> tuple[ContextRequest, ...]:
@@ -62,6 +67,7 @@ class PhoneCleaner(BaseCleaner, frozen=True):
 ```
 
 **After:**
+
 ```python
 class PhoneCleaner(Cleaner, frozen=True):
     def clean_row(self, value: str, country: str | None = None) -> str | None:
@@ -77,6 +83,7 @@ No `input_roles()` override needed -- deleted entirely for this cleaner.
 ## 5. Example: `AddressCleaner` before/after
 
 **Before:**
+
 ```python
 class AddressCleaner(GroupCleaner, frozen=True):
     def input_roles(self) -> tuple[ColumnRole, ...]:
@@ -89,6 +96,7 @@ class AddressCleaner(GroupCleaner, frozen=True):
 ```
 
 **After:**
+
 ```python
 class AddressCleaner(Cleaner, frozen=True):
     def input_roles(self) -> tuple[ColumnRole, ...]:
@@ -99,7 +107,8 @@ class AddressCleaner(Cleaner, frozen=True):
         ...
 ```
 
-`input_roles()` body requires **no changes** -- only the base class and `clean_row` signature change.
+`input_roles()` body requires **no changes** -- only the base class and
+`clean_row` signature change.
 
 ## 6. Value objects diff
 
@@ -123,17 +132,23 @@ class AddressCleaner(Cleaner, frozen=True):
 
 ## 8. Checklist — implementation not yet started
 
-If you haven't written any code against the original design yet, skip the diff-reading above
-and just implement directly from `DATACLEAN_DESIGN_V1.md` Section 13's work-item list --
-this migration doc is only needed if refactoring existing code.
+If you haven't written any code against the original design yet, skip the
+diff-reading above and just implement directly from `DATACLEAN_DESIGN_V1.md`
+Section 13's work-item list -- this migration doc is only needed if refactoring
+existing code.
 
 ## 9. Checklist — implementation already in progress
 
-- [ ] Delete `BaseCleaner`, `GroupCleaner`, `ContextRequest`, `CleanContext`, `GroupAssignment`
+- [ ] Delete `BaseCleaner`, `GroupCleaner`, `ContextRequest`, `CleanContext`,
+      `GroupAssignment`
 - [ ] Add unified `Cleaner` with `_infer_roles` validator (signature inspection)
-- [ ] Convert every cleaner's `clean_value`/`clean_row` to the new positional `clean_row`
+- [ ] Convert every cleaner's `clean_value`/`clean_row` to the new positional
+      `clean_row`
 - [ ] Merge `GroupCleanerResolver` + `CleanerResolver` into single `Resolver`
 - [ ] Rename `ColumnAssignment` -> `Assignment`, update all references
-- [ ] Update `Pipeline._apply` to pass positional args instead of building `CleanContext`
-- [ ] Add explicit unresolved-alias handling in `DependencyResolver` (Section 7B logic)
-- [ ] Re-run/update unit tests for any cleaner whose `clean_value` signature changed
+- [ ] Update `Pipeline._apply` to pass positional args instead of building
+      `CleanContext`
+- [ ] Add explicit unresolved-alias handling in `DependencyResolver` (Section 7B
+      logic)
+- [ ] Re-run/update unit tests for any cleaner whose `clean_value` signature
+      changed

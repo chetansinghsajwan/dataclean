@@ -1,13 +1,13 @@
 import re
 from decimal import ROUND_HALF_UP, Decimal
 from enum import StrEnum
-from typing import Any, override
+from typing import override
 
-from dataclean.cleaners.base_cleaner import BaseCleaner, CellValue, CleanContext
+from dataclean.cleaners.cleaner import CellValue, Cleaner
 from dataclean.engine.dataframe import DataFrame, DataReader, DataType
 
 
-class NumericCleaner(BaseCleaner, frozen=True):
+class NumericCleaner(Cleaner, frozen=True):
     class Format(StrEnum):
         INT = "int"  # Casts the cleaned value to a strict Python integer
         FLOAT = "float"  # Casts the cleaned value to a standard Python float
@@ -28,9 +28,10 @@ class NumericCleaner(BaseCleaner, frozen=True):
         return "int" if self.out_format == NumericCleaner.Format.INT else "float"
 
     @override
-    def clean_value(
-        self, v: str, context: CleanContext | None = None
-    ) -> CellValue | Any | None:
+    def clean_row(self, value: CellValue | None) -> CellValue | None:
+        if not isinstance(value, str):
+            return None
+        v = value
         # Base implementation pipeline guarantees that v arrives non-empty and stripped
         normalized = v.lower()
         multiplier = 1.0
@@ -111,7 +112,7 @@ class NumericCleaner(BaseCleaner, frozen=True):
 
                 self.total += 1
                 # Cast the incoming raw database value to a string and attempt a clean
-                if self.cleaner.clean_value(str(val)) is not None:
+                if self.cleaner.clean_row(str(val)) is not None:
                     self.valid += 1
 
         sampler = NumericSampler(self, limit=100)

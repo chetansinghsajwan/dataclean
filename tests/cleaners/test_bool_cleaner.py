@@ -64,11 +64,11 @@ def test_boolean_cleaner_confidence(col_name, expected_confidence):
 )
 def test_boolean_clean_value_translations(input_val, out_fmt, expected_output):
     cleaner = BoolCleaner(out_format=out_fmt)
-    assert cleaner.clean_value(input_val) == expected_output
+    assert cleaner.clean_row(input_val) == expected_output
 
 
 def test_boolean_clean_value_returns_none_on_miss():
     cleaner = BoolCleaner()
     # Unrecognized or out-of-bounds string options safely fall through to None [cite: 1416]
-    assert cleaner.clean_value("not_a_boolean_flag") is None
-    assert cleaner.clean_value("pending") is None
+    assert cleaner.clean_row("not_a_boolean_flag") is None
+    assert cleaner.clean_row("pending") is None

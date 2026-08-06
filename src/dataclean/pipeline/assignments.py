@@ -1,30 +1,21 @@
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from dataclean.cleaners.base_cleaner import BaseCleaner
-from dataclean.cleaners.group_cleaner import GroupCleaner
-
-
-@dataclass(frozen=True)
-class ColumnAssignment:
-    """Assignment of a BaseCleaner to a specific column."""
-
-    column: str
-    cleaner: BaseCleaner
-    confidence: float
+from dataclean.cleaners.cleaner import Cleaner
 
 
 @dataclass(frozen=True)
-class GroupAssignment:
-    """Assignment of a GroupCleaner to multiple columns via roles."""
+class Assignment:
+    """A cleaner assigned to raw input columns and resolved context outputs."""
 
-    cleaner: GroupCleaner
-    role_columns: Mapping[str, str]  # role.key -> actual raw column name
+    cleaner: Cleaner
+    role_columns: Mapping[str, str]
     confidence: float
+    context_columns: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
 class ExecutionPlan:
-    """Topologically sorted execution plan with waves."""
+    """Topologically sorted execution plan with independent execution waves."""
 
-    waves: tuple[tuple[ColumnAssignment | GroupAssignment, ...], ...]
+    waves: tuple[tuple[Assignment, ...], ...]

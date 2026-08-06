@@ -1,11 +1,11 @@
 from enum import StrEnum
 from typing import override
 
-from dataclean.cleaners.base_cleaner import BaseCleaner, CellValue, CleanContext
+from dataclean.cleaners.cleaner import CellValue, Cleaner
 from dataclean.engine.dataframe import DataFrame, DataType
 
 
-class GenderCleaner(BaseCleaner, frozen=True):
+class GenderCleaner(Cleaner, frozen=True):
     class Format(StrEnum):
         FULL = "full"  # "Male" / "Female" / "Other"
         CHAR = "char"  # "M" / "F" / "O"
@@ -37,9 +37,10 @@ class GenderCleaner(BaseCleaner, frozen=True):
         return "str"
 
     @override
-    def clean_value(
-        self, v: str, context: CleanContext | None = None
-    ) -> CellValue | None:
+    def clean_row(self, value: CellValue | None) -> CellValue | None:
+        if not isinstance(value, str):
+            return None
+        v = value
 
         match_details = self._MAPPING.get(v.lower())
 

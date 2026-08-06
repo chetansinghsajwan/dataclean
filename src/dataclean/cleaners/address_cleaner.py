@@ -1,14 +1,12 @@
 """Address cleaner for handling multi-column address data."""
 
-from collections.abc import Mapping
 from typing import override
 
-from dataclean.cleaners.base_cleaner import CellValue
-from dataclean.cleaners.group_cleaner import ColumnRole, GroupCleaner
+from dataclean.cleaners.cleaner import CellValue, Cleaner, ColumnRole
 from dataclean.engine.dataframe import DataType
 
 
-class AddressCleaner(GroupCleaner, frozen=True):
+class AddressCleaner(Cleaner, frozen=True):
     """
     Cleans address data from multiple columns.
 
@@ -46,7 +44,6 @@ class AddressCleaner(GroupCleaner, frozen=True):
             ),
             ColumnRole(
                 key="address_line1",
-                required=False,
                 name_hints=("address_line1", "address_line", "street"),
             ),
             ColumnRole(
@@ -63,7 +60,12 @@ class AddressCleaner(GroupCleaner, frozen=True):
 
     @override
     def clean_row(
-        self, values: Mapping[str, CellValue | None]
+        self,
+        county: CellValue | None = None,
+        country: CellValue | None = None,
+        address_line1: CellValue | None = None,
+        address_line2: CellValue | None = None,
+        address_line3: CellValue | None = None,
     ) -> tuple[CellValue | None, ...] | None:
         """
         Clean a row of address components.
@@ -72,24 +74,15 @@ class AddressCleaner(GroupCleaner, frozen=True):
         Returns: (country, state, postcode, address_line, street, house_no)
         """
         # Extract and clean individual components
-        country = self._clean_country(values.get("country"))
-        county = self._clean_county(values.get("county"))
-        address_line = self._clean_address_line(values.get("address_line1"))
-        postcode = self._clean_postcode(values.get("address_line3"))
+        country = self._clean_country(country)
+        county = self._clean_county(county)
+        address_line = self._clean_address_line(address_line1)
+        postcode = self._clean_postcode(address_line3)
 
         # Try to extract street and house number from address line
         street, house_no = self._extract_street_and_number(address_line)
 
         return (country, county, postcode, address_line, street, house_no)
-
-    @override
-    def group_confidence(self, role_scores: Mapping[str, float]) -> float:
-        """Compute confidence that all matched roles belong to an address."""
-        if not role_scores:
-            return 0.0
-
-        # Average confidence of matched roles
-        return sum(role_scores.values()) / len(role_scores)
 
     # Private helper methods
 

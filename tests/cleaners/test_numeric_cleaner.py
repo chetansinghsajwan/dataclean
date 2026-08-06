@@ -36,7 +36,7 @@ def test_numeric_cleaner_metadata():
 )
 def test_numeric_clean_value_standard(input_val, out_fmt, expected_output):
     cleaner = NumericCleaner(out_format=out_fmt)
-    assert cleaner.clean_value(input_val) == expected_output
+    assert cleaner.clean_row(input_val) == expected_output
 
 
 # ==============================================================================
@@ -57,7 +57,7 @@ def test_numeric_clean_value_precision(input_val, precision, expected_output):
     cleaner = NumericCleaner(
         out_format=NumericCleaner.Format.FLOAT, precision=precision
     )
-    assert cleaner.clean_value(input_val) == expected_output
+    assert cleaner.clean_row(input_val) == expected_output
 
 
 @pytest.mark.parametrize(
@@ -75,11 +75,11 @@ def test_numeric_clean_value_suffixes(input_val, expected_output):
     cleaner = NumericCleaner(
         out_format=NumericCleaner.Format.FLOAT, parse_suffixes=True
     )
-    assert cleaner.clean_value(input_val) == expected_output
+    assert cleaner.clean_row(input_val) == expected_output
 
 
 def test_numeric_clean_value_returns_none_on_miss():
     cleaner = NumericCleaner()
     # Unparseable text sequences safely drop out as None without breaking pipeline ops
-    assert cleaner.clean_value("not_a_number") is None
-    assert cleaner.clean_value("Unknown") is None
+    assert cleaner.clean_row("not_a_number") is None
+    assert cleaner.clean_row("Unknown") is None
