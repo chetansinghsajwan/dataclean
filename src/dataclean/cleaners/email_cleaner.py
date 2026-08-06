@@ -1,5 +1,5 @@
 import re
-from typing import override
+from typing import Literal, override
 
 from dataclean.engine.dataframe import DataFrame, DataType
 from dataclean.types import StrictBaseModel
@@ -12,6 +12,7 @@ class EmailCleaner(Cleaner, frozen=True):
     keep_tags: bool = True
     keep_dots: bool = True
     lowercase: bool = True
+    output_format: Literal["full", "components"] = "full"
 
     _EMAIL_REGEX = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
 
@@ -22,7 +23,7 @@ class EmailCleaner(Cleaner, frozen=True):
 
     @override
     def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        if self.split_components:
+        if self.output_format == "components":
             return (("local", "str"), ("tag", "str"), ("domain", "str"))
 
         return "str"
@@ -68,7 +69,7 @@ class EmailCleaner(Cleaner, frozen=True):
                 domain=email.domain.lower(),
             )
 
-        if self.split_components:
+        if self.output_format == "components":
             return (email.local, email.tag, email.domain)
 
         if email.tag is not None:
