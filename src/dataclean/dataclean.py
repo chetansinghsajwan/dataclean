@@ -15,8 +15,8 @@ def get_cleaner(df: DataFrame, cols: Iterable[str]) -> tuple[Cleaner | None, flo
 
     for cleaner in config.cleaners:
         # Ensure we pass a tuple to older cleaners expecting tuple semantics
-        confidence = cleaner.get_data_type_confidence(df, tuple(cols))
-        confidence = min(max(confidence, 0), 1)
+        confidence = cleaner.match_score(df, tuple(cols))
+        confidence = min(max(confidence, 0.0), 1.0)
 
         if confidence > selected_cleaner_confidence:
             selected_cleaner = cleaner

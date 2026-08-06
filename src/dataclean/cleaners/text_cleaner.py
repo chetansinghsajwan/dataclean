@@ -77,7 +77,7 @@ class TextCleaner(Cleaner):
         return v if v else None
 
     @override
-    def get_data_type_confidence(self, df: DataFrame, cols: Iterable[str]) -> float:
+    def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
         if not tuple(cols):
             return 0.0
         cols_tuple = tuple(cols)
