@@ -1,33 +1,34 @@
 {
-    "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.13.0/.schema/devbox.schema.json",
-    "packages": [
-        "act@latest", // github actions local runner
-        "biome@latest", // json linter and formatter
-        "gh@latest",
-        "git@latest",
-        "go-task@latest", // task runner
-        "jdk17@latest",
-        "lefthook@latest", // git hook manager
-        "path:./nix/shuck#shuck", // shell script linter, formatter and lsp
-        "ruff@latest", // python linter and formatter
-        "rumdl@latest", // markdown linter and formatter
-        "taplo@latest", // toml linter, formatter and lsp
-        "trivy@latest", // vulnerability scanner
-        "uv@latest", // python package manager
-        "ty@latest", // python lsp
-        "nixfmt-rfc-style@latest",
-        "statix@latest", // nix linter
-        "deadnix@latest", // nix dead code analyzer
-        "nil@latest", // nix lsp
-        "zizmor@latest", // github actions checker
-    ],
-    "env": {
-        "PYTHONPATH": "$PWD/src",
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.13.0/.schema/devbox.schema.json",
+  "packages": [
+    "act@latest", // github actions local runner
+    "biome@latest", // json linter and formatter
+    "gh@latest",
+    "git@latest",
+    "go-task@latest", // task runner
+    "jdk17@latest",
+    "lefthook@latest", // git hook manager
+    "path:./nix/shuck#shuck", // shell script linter, formatter and lsp
+    "ruff@latest", // python linter and formatter
+    "rumdl@latest", // markdown linter and formatter
+    "taplo@latest", // toml linter, formatter and lsp
+    "trivy@latest", // vulnerability scanner
+    "uv@latest", // python package manager
+    "ty@latest", // python lsp
+    "nixfmt-rfc-style@latest",
+    "statix@latest", // nix linter
+    "deadnix@latest", // nix dead code analyzer
+    "nil@latest", // nix lsp
+    "zizmor@latest",
+    "yamlfmt@latest", // github actions checker
+  ],
+  "env": {
+    "PYTHONPATH": "$PWD/src",
+  },
+  "shell": {
+    "aliases": {
+      "task": "go-task",
     },
-    "shell": {
-        "aliases": {
-            "task": "go-task",
-        },
-        "init_hook": ["task setup"],
-    },
+    "init_hook": ["task setup"],
+  },
 }
