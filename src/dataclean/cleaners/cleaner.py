@@ -117,6 +117,6 @@ class Cleaner(StrictBaseModel, ABC):
         """Semantic role(s) this cleaner's output represents."""
         return ()
 
-    def get_data_type_confidence(self, df: DataFrame, cols: tuple[str, ...]) -> float:
-        """Score confidence that this cleaner matches the given columns."""
-        return 0
+    def match_score(self, df: DataFrame, cols: tuple[str, ...]) -> float:
+        """Score confidence (0.0-1.0) that this cleaner matches the given columns."""
+        return 0.0
