@@ -11,7 +11,7 @@ from dataclean.cleaners.datetime_cleaner import DateTimeCleaner
 
 def test_datetime_cleaner_metadata():
     cleaner = DateTimeCleaner()
-    assert cleaner.name() == "DateTimeCleaner"
+    assert cleaner.name == "DateTimeCleaner"
     assert cleaner.output_schema() == "str"
 
 

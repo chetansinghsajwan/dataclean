@@ -117,7 +117,7 @@ def clean(
                 continue
 
             logger.debug(
-                f"Found cleaner '{cleaner.name()}' for '{col}' with confidence '{cleaner_confidence}'"
+                f"Found cleaner '{cleaner.name}' for '{col}' with confidence '{cleaner_confidence}'"
             )
 
             col_cleaner_map[col] = cleaner

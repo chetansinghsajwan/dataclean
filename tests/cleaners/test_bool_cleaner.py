@@ -11,7 +11,7 @@ from dataclean.cleaners.bool_cleaner import BoolCleaner
 
 def test_boolean_cleaner_metadata():
     cleaner = BoolCleaner(out_format=BoolCleaner.Format.TRUEFALSE)
-    assert cleaner.name() == "BoolCleaner"
+    assert cleaner.name == "BoolCleaner"
     assert cleaner.output_schema() == "bool"
 
     str_cleaner = BoolCleaner(out_format=BoolCleaner.Format.YESNO)

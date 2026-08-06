@@ -19,10 +19,6 @@ class UuidCleaner(Cleaner, frozen=True):
     allowed_versions: set[int] | None = None
 
     @override
-    def name(self) -> str:
-        return "UuidCleaner"
-
-    @override
     def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
         return "str"
 

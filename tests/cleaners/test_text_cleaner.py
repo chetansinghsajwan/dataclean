@@ -12,7 +12,7 @@ from dataclean.cleaners.text_cleaner import TextCleaner
 
 def test_text_cleaner_metadata():
     cleaner = TextCleaner()
-    assert cleaner.name() == "TextCleaner"
+    assert cleaner.name == "TextCleaner"
     assert cleaner.output_schema() == "str"
 
 

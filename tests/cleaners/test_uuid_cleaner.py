@@ -9,7 +9,7 @@ from dataclean.cleaners.uuid_cleaner import UuidCleaner
 
 def test_uuid_cleaner_metadata():
     cleaner = UuidCleaner()
-    assert cleaner.name() == "UuidCleaner"
+    assert cleaner.name == "UuidCleaner"
     assert cleaner.output_schema() == "str"
 
 

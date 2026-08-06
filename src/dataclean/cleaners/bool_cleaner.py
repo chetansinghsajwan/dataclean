@@ -33,10 +33,6 @@ class BoolCleaner(Cleaner, frozen=True):
     }
 
     @override
-    def name(self) -> str:
-        return "BoolCleaner"
-
-    @override
     def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
         # Maps dynamically to 'bool' if native, or 'str' if converting to formatted flags
         return "bool" if self.out_format == BoolCleaner.Format.TRUEFALSE else "str"

@@ -29,10 +29,6 @@ class GenderCleaner(Cleaner, frozen=True):
     }
 
     @override
-    def name(self) -> str:
-        return "GenderCleaner"
-
-    @override
     def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
         return "str"
 

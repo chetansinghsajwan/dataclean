@@ -64,10 +64,6 @@ class TextCleaner(Cleaner, frozen=True):
         return self
 
     @override
-    def name(self) -> str:
-        return "TextCleaner"
-
-    @override
     def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
         return "str"
 
