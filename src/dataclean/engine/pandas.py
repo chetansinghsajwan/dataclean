@@ -5,10 +5,11 @@ import numpy as np
 import pandas as pd
 from pydantic import PrivateAttr, model_validator
 
+from dataclean.config import register_dataframe_api
 from dataclean.engine.dataframe import DataFrame, DataReader, DataType, DataWriter
 
 
-class PandasDataFrame(DataFrame):
+class PandasDataFrame(DataFrame, frozen=False):
     df: pd.DataFrame
     _cols: tuple[tuple[str, DataType], ...] = PrivateAttr(default_factory=tuple)
 
@@ -123,11 +124,11 @@ class PandasDataFrame(DataFrame):
         """
 
         mapping: dict[DataType, Any] = {
-            "str": object,
-            "bool": bool,
-            "int": np.int64,
-            "float": np.float64,
-            "double": np.float64,
+            DataType.STR: object,
+            DataType.BOOL: bool,
+            DataType.INT: np.int64,
+            DataType.FLOAT: np.float64,
+            DataType.DOUBLE: np.float64,
         }
         return mapping[dt]
 
@@ -138,9 +139,12 @@ class PandasDataFrame(DataFrame):
 
         dtype_str = str(dtype)
         if "int" in dtype_str:
-            return "int"
+            return DataType.INT
         elif "float" in dtype_str or "double" in dtype_str:
-            return "float"
+            return DataType.FLOAT
         elif "bool" in dtype_str:
-            return "bool"
-        return "str"
+            return DataType.BOOL
+        return DataType.STR
+
+
+register_dataframe_api(PandasDataFrame)

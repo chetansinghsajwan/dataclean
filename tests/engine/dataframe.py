@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from dataclean.engine.dataframe import DataFrame, DataReader, DataWriter
+from dataclean.engine.dataframe import DataFrame, DataReader, DataType, DataWriter
 
 RAW_TEST_DATA = {
     "first_name": [" rahul ", " PRIYA "],
@@ -68,7 +68,7 @@ class BaseDataFrameTests:
         writer_config = DataWriter(
             expr=mock_builder,
             read_cols=("first_name", "last_name"),
-            write_cols=(("full_name", "str"),),
+            write_cols=(("full_name", DataType.STR),),
         )
 
         wrapper.write_cols([writer_config])
@@ -123,8 +123,8 @@ class BaseDataFrameTests:
         """
 
         # Force a type cast conversion on a column
-        wrapper.cast_cols({"first_name": "str"})
+        wrapper.cast_cols({"first_name": DataType.STR})
 
         # Pull type dictionary out of metadata array cache
         type_map = dict(wrapper.cols())
-        assert type_map["first_name"] == "str"
+        assert type_map["first_name"] == DataType.STR

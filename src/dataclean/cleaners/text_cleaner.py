@@ -1,14 +1,14 @@
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import ClassVar, Self, override
 
 from pydantic import PrivateAttr, model_validator
 
-from dataclean.cleaners.cleaner import CellValue, Cleaner
+from dataclean.cleaners.cleaner import Cleaner
 from dataclean.engine.dataframe import DataFrame, DataType
 
 
-class TextCleaner(Cleaner, frozen=True):
+class TextCleaner(Cleaner):
     lowercase: bool = True
     remove_html: bool = True
     remove_urls: bool = True
@@ -60,33 +60,29 @@ class TextCleaner(Cleaner, frozen=True):
         if self.lowercase:
             steps.append(lambda x: x.lower())
 
-        self._pipeline = tuple(steps)
+        object.__setattr__(self, "_pipeline", tuple(steps))
         return self
 
     @override
     def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        return "str"
+        return DataType.STR
 
     @override
-    def clean_row(self, value: CellValue | None) -> CellValue | None:
-        if not isinstance(value, str):
-            return None
-        v = value
-
-        normalized = v
+    def clean_row(self, v: str) -> str | None:  # type: ignore
 
         # 🚀 Linear Pipeline Execution
         for step in self._pipeline:
-            normalized = step(normalized)
+            v = step(v)
 
-        return normalized if normalized else None
+        return v if v else None
 
     @override
-    def get_data_type_confidence(self, df: DataFrame, cols: tuple[str, ...]) -> float:
-        if not cols:
+    def get_data_type_confidence(self, df: DataFrame, cols: Iterable[str]) -> float:
+        if not tuple(cols):
             return 0.0
+        cols_tuple = tuple(cols)
         if any(
-            token in cols[0].lower()
+            token in cols_tuple[0].lower()
             for token in (
                 "text",
                 "description",

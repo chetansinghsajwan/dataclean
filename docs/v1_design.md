@@ -21,7 +21,8 @@ A "simple" cleaner is just a `Cleaner` whose `input_roles()` returns one role. A
 many. Same contract, same execution method — no separate hierarchy.
 
 ```python
-PRIMARY = "value"   # sentinel role key for the common single-column case
+PRIMARY = "value"  # sentinel role key for the common single-column case
+
 
 class Cleaner(StrictBaseModel, ABC, frozen=True):
     inplace: bool = True
@@ -39,7 +40,9 @@ class Cleaner(StrictBaseModel, ABC, frozen=True):
         else:
             sig_params = inspect.signature(self.clean_row).parameters
             self._input_roles = tuple(
-                ColumnRole(key=name, required=(param.default is inspect.Parameter.empty))
+                ColumnRole(
+                    key=name, required=(param.default is inspect.Parameter.empty)
+                )
                 for name, param in sig_params.items()
             )
         return self
@@ -57,11 +60,13 @@ class Cleaner(StrictBaseModel, ABC, frozen=True):
         No dict, no per-row unpacking overhead -- plain function call.
         """
 
+    # override only when detector/name_hints needed beyond signature inference
     def input_roles(self) -> tuple[ColumnRole, ...]:
-        return ()   # override only when detector/name_hints needed beyond signature inference
+        return ()
 
+    # override when this cleaner's output should be usable as another's context
     def provided_roles(self) -> tuple[str, ...]:
-        return ()   # override when this cleaner's output should be usable as another's context
+        return ()
 
     def get_data_type_confidence(self, df: DataFrame, cols: tuple[str, ...]) -> float:
         return 0.0
@@ -77,8 +82,8 @@ executes.
 class ColumnRole(StrictBaseModel, frozen=True):
     key: str
     required: bool = True
-    detector: "Cleaner | None" = None     # reuse an existing cleaner's confidence scoring
-    name_hints: tuple[str, ...] = ()      # fallback keyword match
+    detector: "Cleaner | None" = None  # reuse an existing cleaner's confidence scoring
+    name_hints: tuple[str, ...] = ()  # fallback keyword match
 ```
 
 Same class powers the PRIMARY anchor column, optional context columns, and
@@ -125,9 +130,17 @@ class AddressCleaner(Cleaner, frozen=True):
         return (
             ColumnRole(key="country", required=False, detector=CountryCleaner()),
             ColumnRole(key="state", required=False, name_hints=("state", "county")),
-            ColumnRole(key="address_line_1", required=True, name_hints=("address_line1", "address1")),
-            ColumnRole(key="address_line_2", required=False, name_hints=("address_line2",)),
-            ColumnRole(key="address_line_3", required=False, name_hints=("address_line3",)),
+            ColumnRole(
+                key="address_line_1",
+                required=True,
+                name_hints=("address_line1", "address1"),
+            ),
+            ColumnRole(
+                key="address_line_2", required=False, name_hints=("address_line2",)
+            ),
+            ColumnRole(
+                key="address_line_3", required=False, name_hints=("address_line3",)
+            ),
             ColumnRole(key="postcode", required=False, detector=PostCodeCleaner()),
         )
 
@@ -137,7 +150,9 @@ class AddressCleaner(Cleaner, frozen=True):
     def output_schema(self):
         return tuple((r, "str") for r in self.provided_roles())
 
-    def clean_row(self, country, state, address_line_1, address_line_2, address_line_3, postcode):
+    def clean_row(
+        self, country, state, address_line_1, address_line_2, address_line_3, postcode
+    ):
         # positional, ordered exactly per input_roles()
         ...
 ```
@@ -164,7 +179,9 @@ Solves: `client_phone`/`client_country` vs `manager_phone`/`manager_country`.
 ```python
 class EntityExtractor:
     def __init__(self, words_fn: Callable[[str], tuple[str, ...]]):
-        self._words = words_fn   # injected: reuses ColRenamer._get_words, no duplicate tokenizer
+        self._words = (
+            words_fn  # injected: reuses ColRenamer._get_words, no duplicate tokenizer
+        )
 
     def extract(self, column: str, role: str) -> tuple[str, ...]:
         role_tokens = set(self._words(role))
@@ -211,8 +228,9 @@ later.
 @dataclass(frozen=True)
 class Assignment:
     cleaner: Cleaner
-    role_columns: Mapping[str, str]     # role.key -> actual raw column name
+    role_columns: Mapping[str, str]  # role.key -> actual raw column name
     confidence: float
+
 
 @dataclass(frozen=True)
 class ExecutionPlan:
@@ -230,7 +248,7 @@ class Pipeline:
     def __init__(
         self,
         cleaners: Sequence[Cleaner] = (),
-        column_cleaners: Mapping[str, Cleaner] | None = None,   # explicit overrides
+        column_cleaners: Mapping[str, Cleaner] | None = None,  # explicit overrides
         context_overrides: Mapping[str, Mapping[str, str]] | None = None,
         auto_detect: bool = True,
     ): ...

@@ -8,7 +8,7 @@ class StrictBaseModel(BaseModel, ABC):
     model_config = ConfigDict(
         strict=True,
         extra="forbid",
-        frozen=False,
+        frozen=True,
         arbitrary_types_allowed=True,
     )
 
