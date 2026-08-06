@@ -5,12 +5,12 @@ from typing import ClassVar, Self, override
 import pycountry
 from pydantic import PrivateAttr, model_validator
 
-from dataclean.cleaners.base_cleaner import BaseCleaner, CellValue, CleanContext
+from dataclean.cleaners.cleaner import CellValue, Cleaner
 from dataclean.engine.dataframe import DataFrame, DataType
 from dataclean.types import StrictBaseModel, strict_validate
 
 
-class CountryCleaner(BaseCleaner, frozen=True):
+class CountryCleaner(Cleaner, frozen=True):
     class Details(StrictBaseModel, frozen=True):
         name: str
         alpha2: str
@@ -63,9 +63,10 @@ class CountryCleaner(BaseCleaner, frozen=True):
 
     @override
     @strict_validate
-    def clean_value(
-        self, v: str, context: CleanContext | None = None
-    ) -> CellValue | None:
+    def clean_row(self, value: CellValue | None) -> CellValue | None:
+        if not isinstance(value, str):
+            return None
+        v = value
         country_match = self._find_country(v)
         return self._get_output(country_match) if country_match else None
 

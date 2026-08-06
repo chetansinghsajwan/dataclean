@@ -13,12 +13,6 @@ class PipelineConfigError(DatacleanError):
     pass
 
 
-class GroupCleanerResolutionError(PipelineConfigError):
-    """Raised when group cleaner resolution fails."""
-
-    pass
-
-
 class DependencyResolutionError(PipelineConfigError):
     """Raised when dependency resolution fails (cycles, missing roles, ambiguity)."""
 
