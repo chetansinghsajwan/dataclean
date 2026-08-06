@@ -27,10 +27,6 @@ class DateTimeCleaner(Cleaner, frozen=True):
     )
 
     @override
-    def name(self) -> str:
-        return "DateTimeCleaner"
-
-    @override
     def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
         return "str"
 

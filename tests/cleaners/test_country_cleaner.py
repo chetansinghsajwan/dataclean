@@ -11,7 +11,7 @@ from dataclean.cleaners.country_cleaner import CountryCleaner
 
 def test_cleaner_metadata():
     cleaner = CountryCleaner()
-    assert cleaner.name() == "CountryCleaner"
+    assert cleaner.name == "CountryCleaner"
     assert cleaner.output_schema() == "str"
 
 

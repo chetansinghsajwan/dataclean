@@ -20,10 +20,6 @@ class NumericCleaner(Cleaner, frozen=True):
     _SUFFIX_MAP = {"k": 1e3, "m": 1e6, "b": 1e9, "t": 1e12}
 
     @override
-    def name(self) -> str:
-        return "NumericCleaner"
-
-    @override
     def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
         return "int" if self.out_format == NumericCleaner.Format.INT else "float"
 
