@@ -27,7 +27,6 @@ class Cleaner(StrictBaseModel, ABC, frozen=True):  # ty: ignore[invalid-frozen-d
 
     tags: tuple[str, ...] = ()
     inplace: bool = True
-    split_components: bool = False
     _input_roles: tuple[ColumnRole, ...] = PrivateAttr()
     _name: str = PrivateAttr()
 
