@@ -4,16 +4,11 @@ from typing import override
 
 import phonenumbers
 
-from dataclean.cleaners.base_cleaner import (
-    BaseCleaner,
-    CellValue,
-    CleanContext,
-    ContextRequest,
-)
+from dataclean.cleaners.cleaner import CellValue, Cleaner
 from dataclean.engine.dataframe import DataFrame, DataType
 
 
-class PhoneCleaner(BaseCleaner, frozen=True):
+class PhoneCleaner(Cleaner, frozen=True):
     class Format(StrEnum):
         E164 = "e164"
         INTERNATIONAL = "international"
@@ -32,17 +27,16 @@ class PhoneCleaner(BaseCleaner, frozen=True):
         return ("phone",)
 
     @override
-    def context_requests(self) -> tuple[ContextRequest, ...]:
-        return (ContextRequest(role="country", required=False),)
-
-    @override
     def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
         return "str"
 
     @override
-    def clean_value(
-        self, v: str, context: CleanContext | None = None
+    def clean_row(
+        self, value: CellValue | None, country: CellValue | None = None
     ) -> CellValue | None:
+        if not isinstance(value, str):
+            return None
+        v = value
         normalized = v.strip()
 
         if re.match(r"^\d+(\.\d+)?([eE][+-]?\d+)$", normalized):

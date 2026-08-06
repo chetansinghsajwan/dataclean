@@ -78,7 +78,7 @@ def test_email_cleaner():
             keep_dots=test_case["keep_dots"],
         )
 
-        cleaned_email = cleaner.clean_value(test_case["input"])
+        cleaned_email = cleaner.clean_row(test_case["input"])
         assert cleaned_email == test_case["expected"], (
             f"Expected '{test_case['expected']}' but got '{cleaned_email}' for input '{test_case['input']}'"
         )

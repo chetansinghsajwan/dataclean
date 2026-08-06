@@ -2,11 +2,11 @@ from datetime import date, datetime, time
 from enum import StrEnum
 from typing import override
 
-from dataclean.cleaners.base_cleaner import BaseCleaner, CellValue, CleanContext
+from dataclean.cleaners.cleaner import CellValue, Cleaner
 from dataclean.engine.dataframe import DataFrame, DataType
 
 
-class DateTimeCleaner(BaseCleaner, frozen=True):
+class DateTimeCleaner(Cleaner, frozen=True):
     class Format(StrEnum):
         ISO_DATETIME = "iso_datetime"  # 2026-06-19T22:45:00
         ISO_DATE = "iso_date"  # 2026-06-19
@@ -35,9 +35,10 @@ class DateTimeCleaner(BaseCleaner, frozen=True):
         return "str"
 
     @override
-    def clean_value(
-        self, v: str, context: CleanContext | None = None
-    ) -> CellValue | None:
+    def clean_row(self, value: CellValue | None) -> CellValue | None:
+        if not isinstance(value, str):
+            return None
+        v = value
         # Implementation contract guarantee: v is a non-empty, stripped string
         parsed_obj: date | time | datetime | None = None
 

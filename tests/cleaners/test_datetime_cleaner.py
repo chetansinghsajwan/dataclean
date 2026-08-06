@@ -59,7 +59,7 @@ def test_datetime_cleaner_confidence(col_name, expected_confidence):
 )
 def test_datetime_clean_value_success(input_val, out_fmt, expected_output):
     cleaner = DateTimeCleaner(out_format=out_fmt)
-    assert cleaner.clean_value(input_val) == expected_output
+    assert cleaner.clean_row(input_val) == expected_output
 
 
 @pytest.mark.parametrize(
@@ -72,11 +72,11 @@ def test_datetime_clean_value_success(input_val, out_fmt, expected_output):
 )
 def test_datetime_clean_value_invalid_coercions(input_val, out_fmt):
     cleaner = DateTimeCleaner(out_format=out_fmt)
-    assert cleaner.clean_value(input_val) is None
+    assert cleaner.clean_row(input_val) is None
 
 
 def test_datetime_clean_value_returns_none_on_bad_string():
     cleaner = DateTimeCleaner()
     # Unparseable temporal string tokens fall out safely as None
-    assert cleaner.clean_value("not-a-date") is None
-    assert cleaner.clean_value("2026/13/45") is None
+    assert cleaner.clean_row("not-a-date") is None
+    assert cleaner.clean_row("2026/13/45") is None

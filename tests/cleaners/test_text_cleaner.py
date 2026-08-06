@@ -70,7 +70,7 @@ def test_text_cleaner_confidence(col_name, expected_confidence):
 def test_text_clean_value_toggles(input_val, kwargs, expected_output):
     # Initialize the cleaner with the specific test overrides, relying on default frozen rules otherwise
     cleaner = TextCleaner(**kwargs)
-    assert cleaner.clean_value(input_val) == expected_output
+    assert cleaner.clean_row(input_val) == expected_output
 
 
 # ==============================================================================
@@ -94,7 +94,7 @@ def test_text_clean_combined_pipeline():
 
     # The pipeline should systematically strip out HTML, emails, URLs, digits, punctuation, and newlines in sequence
     expected = "contact or visit invoice is attached thank you"
-    assert cleaner.clean_value(messy_string) == expected
+    assert cleaner.clean_row(messy_string) == expected
 
 
 # ==============================================================================
@@ -106,16 +106,16 @@ def test_text_clean_value_invalid_returns_none():
     cleaner = TextCleaner()
 
     # 1. Non-string database structures drop out safely without crashing the pipeline
-    assert cleaner.clean_value(None) is None
-    assert cleaner.clean_value(math.nan) is None
-    assert cleaner.clean_value(12345) is None
+    assert cleaner.clean_row(None) is None
+    assert cleaner.clean_row(math.nan) is None
+    assert cleaner.clean_row(12345) is None
 
 
 def test_text_clean_value_empty_after_cleaning_returns_none():
     cleaner = TextCleaner(remove_html=True, remove_digits=True, remove_punctuation=True)
 
     # 2. Strings that are entirely reduced to nothing by the pipeline should resolve to None
-    assert cleaner.clean_value("<p></p>") is None
-    assert cleaner.clean_value("12345") is None
-    assert cleaner.clean_value("!!! ???") is None
-    assert cleaner.clean_value("   \n \t  ") is None
+    assert cleaner.clean_row("<p></p>") is None
+    assert cleaner.clean_row("12345") is None
+    assert cleaner.clean_row("!!! ???") is None
+    assert cleaner.clean_row("   \n \t  ") is None

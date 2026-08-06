@@ -83,9 +83,9 @@ def test_custom_tuple_format_pipeline_deduplication():
         ("in", CountryCleaner.Format.ALPHA2, CountryCleaner.Format.NAME, "India"),
     ],
 )
-def test_clean_value_success(input_value, in_fmt, out_fmt, expected_output):
+def test_clean_row_success(input_value, in_fmt, out_fmt, expected_output):
     cleaner = CountryCleaner(in_format=in_fmt, out_format=out_fmt)
-    assert cleaner.clean_value(input_value) == expected_output
+    assert cleaner.clean_row(input_value) == expected_output
 
 
 @pytest.mark.parametrize(
@@ -102,6 +102,6 @@ def test_clean_value_success(input_value, in_fmt, out_fmt, expected_output):
         # ("IN", CountryCleaner.Format.NAME),  # "IN" is an ALPHA2, but only NAME allowed
     ],
 )
-def test_clean_value_returns_none_on_miss(input_value, in_fmt):
+def test_clean_row_returns_none_on_miss(input_value, in_fmt):
     cleaner = CountryCleaner(in_format=in_fmt)
-    assert cleaner.clean_value(input_value) is None
+    assert cleaner.clean_row(input_value) is None

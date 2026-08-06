@@ -2,15 +2,15 @@ from collections.abc import Iterable, Mapping
 from logging import Logger, getLogger
 from typing import Any
 
-from dataclean.cleaners.base_cleaner import BaseCleaner
+from dataclean.cleaners.cleaner import Cleaner
 from dataclean.col_renamer import ColRenamer
 from dataclean.config import config
 from dataclean.engine.dataframe import DataFrame, DataWriter
 from dataclean.types import strict_validate
 
 
-def get_cleaner(df: DataFrame, cols: Iterable[str]) -> (BaseCleaner, float):
-    selected_cleaner: BaseCleaner = None
+def get_cleaner(df: DataFrame, cols: Iterable[str]) -> tuple[Cleaner | None, float]:
+    selected_cleaner: Cleaner | None = None
     selected_cleaner_confidence: float = 0
 
     for cleaner in config.cleaners:
@@ -50,7 +50,7 @@ def clean(
     use_global_config: bool = True,
     logger: Logger | None = None,
     inplace: bool | None = None,
-    cleaners: dict[str, BaseCleaner] | None = None,
+    cleaners: dict[str, Cleaner] | None = None,
 ) -> DataFrame:
 
     col_renamer = col_renamer or config.col_renamer
@@ -106,7 +106,7 @@ def clean(
 
     if clean_cols:
         auto_clean_cols = [col for col in df.col_names() if col not in cleaners]
-        col_cleaner_map: dict[str, BaseCleaner] = {}
+        col_cleaner_map: dict[str, Cleaner] = {}
 
         for col in auto_clean_cols:
             logger.debug(f"Finding cleaner for col '{col}'")
@@ -129,7 +129,7 @@ def clean(
             if not isinstance(schema, tuple):
                 writers.append(
                     DataWriter(
-                        expr=cleaner.clean_value,
+                        expr=cleaner.clean_row,
                         read_cols=(col,),
                         write_cols=((f"{col}_cleaned", schema),),
                     )
@@ -138,7 +138,7 @@ def clean(
 
             writers.append(
                 DataWriter(
-                    expr=cleaner.clean_value,
+                    expr=cleaner.clean_row,
                     read_cols=(col,),
                     write_cols=tuple(
                         (f"{col}_{comp}_cleaned", data_type)

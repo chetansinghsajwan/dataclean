@@ -1,11 +1,11 @@
 from enum import StrEnum
-from typing import Any, override
+from typing import override
 
-from dataclean.cleaners.base_cleaner import BaseCleaner, CellValue, CleanContext
+from dataclean.cleaners.cleaner import CellValue, Cleaner
 from dataclean.engine.dataframe import DataFrame, DataType
 
 
-class BoolCleaner(BaseCleaner, frozen=True):
+class BoolCleaner(Cleaner, frozen=True):
     class Format(StrEnum):
         TRUEFALSE = "truefalse"  # Returns Python boolean primitives: True / False
         BINARY = "binary"  # Returns structured string flags: "1" / "0"
@@ -14,7 +14,7 @@ class BoolCleaner(BaseCleaner, frozen=True):
     out_format: Format = Format.TRUEFALSE
 
     # Static global evaluation mapping table for strict runtime lookups
-    _TRUTHY_MAPPING: dict[str, dict[Format, Any]] = {
+    _TRUTHY_MAPPING: dict[str, dict[Format, CellValue]] = {
         "true": {Format.TRUEFALSE: True, Format.BINARY: "1", Format.YESNO: "Yes"},
         "1": {Format.TRUEFALSE: True, Format.BINARY: "1", Format.YESNO: "Yes"},
         "yes": {Format.TRUEFALSE: True, Format.BINARY: "1", Format.YESNO: "Yes"},
@@ -23,7 +23,7 @@ class BoolCleaner(BaseCleaner, frozen=True):
         "active": {Format.TRUEFALSE: True, Format.BINARY: "1", Format.YESNO: "Yes"},
     }
 
-    _FALSY_MAPPING: dict[str, dict[Format, Any]] = {
+    _FALSY_MAPPING: dict[str, dict[Format, CellValue]] = {
         "false": {Format.TRUEFALSE: False, Format.BINARY: "0", Format.YESNO: "No"},
         "0": {Format.TRUEFALSE: False, Format.BINARY: "0", Format.YESNO: "No"},
         "no": {Format.TRUEFALSE: False, Format.BINARY: "0", Format.YESNO: "No"},
@@ -42,10 +42,10 @@ class BoolCleaner(BaseCleaner, frozen=True):
         return "bool" if self.out_format == BoolCleaner.Format.TRUEFALSE else "str"
 
     @override
-    def clean_value(
-        self, v: str, context: CleanContext | None = None
-    ) -> CellValue | Any | None:
-        normalized = v.lower()
+    def clean_row(self, value: CellValue | None) -> CellValue | None:
+        if not isinstance(value, str):
+            return None
+        normalized = value.lower()
 
         if normalized in self._TRUTHY_MAPPING:
             return self._TRUTHY_MAPPING[normalized][self.out_format]

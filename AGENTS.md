@@ -71,3 +71,8 @@ environment drift:
   configurations unless explicitly instructed.
 - **Lockfiles:** Never manually edit `uv.lock`. Always let `uv` handle lockfile
   updates through standard CLI commands.
+- You are allowed to run test commands without asking for permission.
+- You are allowed to run task fmt and lint commands without asking for
+  permission.
+- You are allowed to run commands that dont make any files changes and are safe
+  to run without permission.

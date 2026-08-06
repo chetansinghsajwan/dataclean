@@ -4,11 +4,11 @@ from typing import override
 from dataclean.engine.dataframe import DataFrame, DataType
 from dataclean.types import StrictBaseModel
 
-from .base_cleaner import BaseCleaner, CellValue, CleanContext
+from .cleaner import CellValue, Cleaner
 
 
 # TODO: Need to add functionality to parse display name
-class EmailCleaner(BaseCleaner, frozen=True):
+class EmailCleaner(Cleaner, frozen=True):
     keep_tags: bool = True
     keep_dots: bool = True
     lowercase: bool = True
@@ -32,9 +32,9 @@ class EmailCleaner(BaseCleaner, frozen=True):
         return "str"
 
     @override
-    def clean_value(
-        self, v: str, context: CleanContext | None = None
-    ) -> CellValue | None:
+    def clean_row(
+        self, value: CellValue | None
+    ) -> CellValue | tuple[CellValue | None, ...] | None:
         """
         Clean the input email value and return the cleaned email.
         If the value cannot be cleaned, return None.
@@ -48,7 +48,9 @@ class EmailCleaner(BaseCleaner, frozen=True):
             str | None: The cleaned email, or None if the value cannot be cleaned.
         """
 
-        email = self._parse_email(v)
+        if not isinstance(value, str):
+            return None
+        email = self._parse_email(value)
 
         if email is None:
             return None

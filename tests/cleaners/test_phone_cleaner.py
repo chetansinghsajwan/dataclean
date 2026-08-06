@@ -65,26 +65,26 @@ def test_phone_clean_value_success_matrix(
     input_val, out_fmt, default_regions, expected_output
 ):
     cleaner = PhoneCleaner(out_format=out_fmt, default_regions=default_regions)
-    assert cleaner.clean_value(input_val) == expected_output
+    assert cleaner.clean_row(input_val) == expected_output
 
 
 def test_phone_clean_empty_default_region_drops_local_numbers():
     # Because default_regions is (), any number without a leading '+' must return None safely
     cleaner = PhoneCleaner()
-    assert cleaner.clean_value("9876543210") is None
-    assert cleaner.clean_value("011-23456789") is None
+    assert cleaner.clean_row("9876543210") is None
+    assert cleaner.clean_row("011-23456789") is None
 
     # But a number with an explicit '+' should still work perfectly
-    assert cleaner.clean_value("+91 98765 43210") == "+919876543210"
+    assert cleaner.clean_row("+91 98765 43210") == "+919876543210"
 
 
 def test_phone_clean_value_invalid_returns_none():
     cleaner = PhoneCleaner(default_regions=("IN",))
 
     # 1. Truly malformed strings, missing digits, or arbitrary text drop out safely
-    assert cleaner.clean_value("N/A") is None
-    assert cleaner.clean_value("98765") is None  # Too short for a valid number
-    assert cleaner.clean_value("This is completely random text") is None
+    assert cleaner.clean_row("N/A") is None
+    assert cleaner.clean_row("98765") is None  # Too short for a valid number
+    assert cleaner.clean_row("This is completely random text") is None
 
     # 🚀 FIX 2: Acknowledge that the engine is powerful enough to extract phone numbers hidden inside text blobs!
-    assert cleaner.clean_value("Call me at 9876543210") == "+919876543210"
+    assert cleaner.clean_row("Call me at 9876543210") == "+919876543210"
