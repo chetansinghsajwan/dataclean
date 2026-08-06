@@ -1,42 +1,42 @@
 name: Tests
 
 on:
-  push:
-    branches:
-      - main
-      - master
-  pull_request:
-    branches:
-      - main
-      - master
+    push:
+        branches:
+            - main
+            - master
+    pull_request:
+        branches:
+            - main
+            - master
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
 
 jobs:
-  tests:
-    name: Run quality checks
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    tests:
+        name: Run quality checks
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
 
-    steps:
-      - name: Checkout Code Repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
+        steps:
+            - name: Checkout Code Repository
+              uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+              with:
+                persist-credentials: false
 
-      - name: Install and Cache Devbox
-        uses: jetify-com/devbox-install-action@a0d2d53632934ae004f878c840055956d9f741b0 # v0.14.0
-        with:
-          enable-cache: true
+            - name: Install and Cache Devbox
+              uses: jetify-com/devbox-install-action@a0d2d53632934ae004f878c840055956d9f741b0 # v0.14.0
+              with:
+                enable-cache: true
 
-      - name: Run quality checks
-        run: devbox run task check
+            - name: Run quality checks
+              run: devbox run task check
 
-      - name: Run tests
-        run: devbox run task test
+            - name: Run tests
+              run: devbox run task test
 
-      - name: Scan for vulnerabilities
-        run: devbox run task scan
+            - name: Scan for vulnerabilities
+              run: devbox run task scan
