@@ -3,7 +3,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from enum import StrEnum
 from typing import Any, override
 
-from dataclean.cleaners.base_cleaner import BaseCleaner
+from dataclean.cleaners.base_cleaner import BaseCleaner, CellValue, CleanContext
 from dataclean.engine.dataframe import DataFrame, DataReader, DataType
 
 
@@ -28,7 +28,9 @@ class NumericCleaner(BaseCleaner, frozen=True):
         return "int" if self.out_format == NumericCleaner.Format.INT else "float"
 
     @override
-    def clean_value(self, v: str) -> Any | None:
+    def clean_value(
+        self, v: str, context: CleanContext | None = None
+    ) -> CellValue | Any | None:
         # Base implementation pipeline guarantees that v arrives non-empty and stripped
         normalized = v.lower()
         multiplier = 1.0

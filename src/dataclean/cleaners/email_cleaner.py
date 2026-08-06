@@ -4,7 +4,7 @@ from typing import override
 from dataclean.engine.dataframe import DataFrame, DataType
 from dataclean.types import StrictBaseModel
 
-from .base_cleaner import BaseCleaner
+from .base_cleaner import BaseCleaner, CellValue, CleanContext
 
 
 # TODO: Need to add functionality to parse display name
@@ -32,7 +32,9 @@ class EmailCleaner(BaseCleaner, frozen=True):
         return "str"
 
     @override
-    def clean_value(self, v: str) -> str | None:
+    def clean_value(
+        self, v: str, context: CleanContext | None = None
+    ) -> CellValue | None:
         """
         Clean the input email value and return the cleaned email.
         If the value cannot be cleaned, return None.
