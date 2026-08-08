@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from dataclean.cleaners.country_cleaner import CountryCleaner
+from dataclean.engine.dataframe import DataFrame
 
 # ==============================================================================
 # 1. CORE PROPERTY TESTS
@@ -27,7 +28,7 @@ def test_cleaner_metadata():
 )
 def test_match_score(col_name, expected_confidence):
     cleaner = CountryCleaner()
-    mock_df = MagicMock()
+    mock_df = MagicMock(spec=DataFrame)
     assert cleaner.match_score(mock_df, (col_name,)) == expected_confidence
 
 

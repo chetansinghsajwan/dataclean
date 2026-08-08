@@ -2,9 +2,11 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 
 from dataclean.cleaners.cleaner import Cleaner
+from dataclean.types import checked
 
 
-@dataclass(frozen=True)
+@checked
+@dataclass
 class Assignment:
     """A cleaner assigned to raw input columns and resolved context outputs."""
 
@@ -14,7 +16,7 @@ class Assignment:
     context_columns: Mapping[str, str] = field(default_factory=dict)
 
 
-@dataclass(frozen=True)
+@dataclass
 class ExecutionPlan:
     """Topologically sorted execution plan with independent execution waves."""
 

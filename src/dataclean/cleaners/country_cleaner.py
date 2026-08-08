@@ -1,21 +1,26 @@
 from collections.abc import Callable, Iterable
+from dataclasses import dataclass
 from enum import Enum
-from typing import ClassVar, Self, override
+from typing import ClassVar, override
 
 import pycountry
-from pydantic import PrivateAttr, model_validator
 
 from dataclean.cleaners.cleaner import Cleaner
 from dataclean.engine.dataframe import DataFrame, DataType
-from dataclean.types import StrictBaseModel, strict_validate
+from dataclean.types import checked
 
 
+@checked
+@dataclass
 class CountryCleaner(Cleaner):
-    class Details(StrictBaseModel):
+    @checked
+    @dataclass
+    class Details:
         name: str
         alpha2: str
         alpha3: str
 
+    @checked
     class Format(Enum):
         AUTO = "auto"
         NAME = "name"
@@ -33,21 +38,15 @@ class CountryCleaner(Cleaner):
 
     # --- PRIVATE VARS ---
 
-    _find_country_pipeline: tuple[Callable[[str], Details | None], ...] = PrivateAttr()
+    _find_country_pipeline: tuple[Callable[[str], Details | None], ...] = ()
 
     # ---------------------------------------------------------------------------
     # INIT FUNCTIONS
     # ---------------------------------------------------------------------------
 
-    @model_validator(mode="after")
-    def _initialize(self) -> Self:
-        object.__setattr__(
-            self,
-            "_find_country_pipeline",
-            self._create_find_country_pipeline(self.in_format),
-        )
-
-        return self
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        self._find_country_pipeline = self._create_find_country_pipeline(self.in_format)
 
     # ---------------------------------------------------------------------------
     # PUBLIC FUNCTIONS
@@ -62,8 +61,8 @@ class CountryCleaner(Cleaner):
         return DataType.STR
 
     @override
-    @strict_validate
-    def clean_row(self, v: str) -> str | None:  # type: ignore
+    @checked
+    def clean_row(self, v: str) -> str | None:
 
         country_match = self._find_country(v)
         return self._get_output(country_match) if country_match else None

@@ -1,12 +1,16 @@
 from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import date, datetime, time
 from enum import StrEnum
 from typing import override
 
 from dataclean.cleaners.cleaner import Cleaner
 from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean.types import checked
 
 
+@checked
+@dataclass
 class DateTimeCleaner(Cleaner):
     class Format(StrEnum):
         ISO_DATETIME = "iso_datetime"  # 2026-06-19T22:45:00

@@ -1,13 +1,17 @@
 import re
 import uuid
 from collections.abc import Iterable
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import override
 
 from dataclean.cleaners.cleaner import Cleaner
 from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean.types import checked
 
 
+@checked
+@dataclass
 class UuidCleaner(Cleaner):
     class Format(StrEnum):
         STANDARD = "standard"  # Hyphenated: "123e4567-e89b-12d3-a456-426614174000"

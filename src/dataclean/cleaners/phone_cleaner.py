@@ -1,5 +1,6 @@
 import re
 from collections.abc import Iterable
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import override
 
@@ -7,8 +8,11 @@ import phonenumbers
 
 from dataclean.cleaners.cleaner import Cleaner
 from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean.types import checked
 
 
+@checked
+@dataclass
 class PhoneCleaner(Cleaner):
     class Format(StrEnum):
         E164 = "e164"

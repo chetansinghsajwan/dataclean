@@ -1,11 +1,15 @@
 from collections.abc import Iterable
+from dataclasses import dataclass
 from enum import StrEnum
-from typing import override
+from typing import ClassVar, override
 
 from dataclean.cleaners.cleaner import Cleaner
 from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean.types import checked
 
 
+@checked
+@dataclass
 class GenderCleaner(Cleaner):
     class Format(StrEnum):
         FULL = "full"  # "Male" / "Female" / "Other"
@@ -15,7 +19,7 @@ class GenderCleaner(Cleaner):
     out_format: Format = Format.FULL
 
     # Shared static mapping configuration matrix
-    _MAPPING: dict[str, dict[Format, str]] = {
+    _MAPPING: ClassVar = {
         "male": {Format.FULL: "Male", Format.CHAR: "M", Format.BINARY: "1"},
         "m": {Format.FULL: "Male", Format.CHAR: "M", Format.BINARY: "1"},
         "man": {Format.FULL: "Male", Format.CHAR: "M", Format.BINARY: "1"},

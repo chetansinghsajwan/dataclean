@@ -1,22 +1,23 @@
 from collections.abc import Iterable, Mapping
-from typing import Any, Self, override
+from dataclasses import dataclass
+from typing import Any, override
 
 import numpy as np
 import pandas as pd
-from pydantic import PrivateAttr, model_validator
 
 from dataclean.config import register_dataframe_api
 from dataclean.engine.dataframe import DataFrame, DataReader, DataType, DataWriter
+from dataclean.types import checked
 
 
-class PandasDataFrame(DataFrame, frozen=False):
+@checked
+@dataclass
+class PandasDataFrame(DataFrame):
     df: pd.DataFrame
-    _cols: tuple[tuple[str, DataType], ...] = PrivateAttr(default_factory=tuple)
+    _cols: tuple[tuple[str, DataType], ...] = ()
 
-    @model_validator(mode="after")
-    def _initialize(self) -> Self:
+    def __post_init__(self):
         self._update_cols()
-        return self
 
     @staticmethod
     @override

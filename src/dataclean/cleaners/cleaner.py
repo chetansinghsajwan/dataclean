@@ -2,20 +2,17 @@
 
 import inspect
 from abc import ABC, abstractmethod
-from typing import Self
-
-from pydantic import PrivateAttr, model_validator
+from dataclasses import dataclass
 
 from dataclean.engine.dataframe import DataFrame, DataType
-from dataclean.types import StrictBaseModel
+from dataclean.types import checked
 
-PRIMARY = "value"
-
-# Supported scalar return types that engine writers accept
-Scalar = str | bool | int | float | None
+PRIMARY: str = "value"
 
 
-class ColumnRole(StrictBaseModel):
+@checked
+@dataclass
+class ColumnRole:
     """An input role required or optionally consumed by a cleaner."""
 
     key: str
@@ -24,25 +21,22 @@ class ColumnRole(StrictBaseModel):
     name_hints: tuple[str, ...] = ()
 
 
-class Cleaner(StrictBaseModel, ABC):
+@checked
+@dataclass
+class Cleaner(ABC):
     """Immutable, unified contract for single-column and multi-column cleaners."""
 
     tags: tuple[str, ...] = ()
     inplace: bool = True
-    _input_roles: tuple[ColumnRole, ...] = PrivateAttr()
-    _name: str = PrivateAttr()
+    _input_roles: tuple[ColumnRole, ...] = ()
+    _name: str = ""
 
-    @model_validator(mode="after")
-    def _set_name(self) -> Self:
-
+    def __post_init__(self) -> None:
         base = type(self).__name__
-        object.__setattr__(
-            self, "_name", f"{base}({', '.join(self.tags)})" if self.tags else base
-        )
-        return self
+        self._name = f"{base}({', '.join(self.tags)})" if self.tags else base
+        self._input_roles = self._infer_roles()
 
-    @model_validator(mode="after")
-    def _infer_roles(self) -> Self:
+    def _infer_roles(self) -> tuple[ColumnRole, ...]:
         """Resolve and validate input roles once, at construction time."""
 
         declared_roles = self.input_roles()
@@ -87,9 +81,7 @@ class Cleaner(StrictBaseModel, ABC):
         else:
             roles = inferred_roles
 
-        # Private attrs on frozen models must be set via object.__setattr__
-        object.__setattr__(self, "_input_roles", roles)
-        return self
+        return roles
 
     @property
     def name(self) -> str:
