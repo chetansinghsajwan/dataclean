@@ -1,11 +1,15 @@
 """Address cleaner for handling multi-column address data."""
 
+from dataclasses import dataclass
 from typing import override
 
 from dataclean.cleaners.cleaner import Cleaner, ColumnRole
 from dataclean.engine.dataframe import DataType
+from dataclean.types import checked
 
 
+@checked
+@dataclass
 class AddressCleaner(Cleaner):
     """
     Cleans address data from multiple columns.

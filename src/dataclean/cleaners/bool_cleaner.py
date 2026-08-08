@@ -1,11 +1,15 @@
 from collections.abc import Iterable
+from dataclasses import dataclass
 from enum import StrEnum
-from typing import override
+from typing import ClassVar, override
 
 from dataclean.cleaners.cleaner import Cleaner
 from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean.types import checked
 
 
+@checked
+@dataclass
 class BoolCleaner(Cleaner):
     class Format(StrEnum):
         TRUEFALSE = "truefalse"  # Returns Python boolean primitives: True / False
@@ -15,7 +19,7 @@ class BoolCleaner(Cleaner):
     out_format: Format = Format.TRUEFALSE
 
     # Static global evaluation mapping table for strict runtime lookups
-    _TRUTHY_MAPPING: dict[str, dict[Format, str | bool]] = {
+    _TRUTHY_MAPPING: ClassVar = {
         "true": {Format.TRUEFALSE: True, Format.BINARY: "1", Format.YESNO: "Yes"},
         "1": {Format.TRUEFALSE: True, Format.BINARY: "1", Format.YESNO: "Yes"},
         "yes": {Format.TRUEFALSE: True, Format.BINARY: "1", Format.YESNO: "Yes"},
@@ -24,7 +28,7 @@ class BoolCleaner(Cleaner):
         "active": {Format.TRUEFALSE: True, Format.BINARY: "1", Format.YESNO: "Yes"},
     }
 
-    _FALSY_MAPPING: dict[str, dict[Format, str | bool]] = {
+    _FALSY_MAPPING: ClassVar = {
         "false": {Format.TRUEFALSE: False, Format.BINARY: "0", Format.YESNO: "No"},
         "0": {Format.TRUEFALSE: False, Format.BINARY: "0", Format.YESNO: "No"},
         "no": {Format.TRUEFALSE: False, Format.BINARY: "0", Format.YESNO: "No"},

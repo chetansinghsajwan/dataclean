@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from dataclean.cleaners.gender_cleaner import GenderCleaner
+from dataclean.engine.dataframe import DataFrame
 
 # ==============================================================================
 # 1. CORE PROPERTY TESTS
@@ -27,7 +28,7 @@ def test_gender_cleaner_metadata():
 )
 def test_gender_cleaner_confidence_heuristics(col_name, expected_confidence):
     cleaner = GenderCleaner()
-    mock_df = MagicMock()
+    mock_df = MagicMock(spec=DataFrame)
     assert cleaner.match_score(mock_df, (col_name,)) == expected_confidence
 
 
