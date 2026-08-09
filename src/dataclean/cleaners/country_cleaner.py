@@ -1,21 +1,26 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
+from dataclasses import dataclass
 from enum import Enum
-from typing import ClassVar, Self, override
+from typing import ClassVar, override
 
 import pycountry
-from pydantic import PrivateAttr, model_validator
 
-from dataclean.cleaners.base_cleaner import BaseCleaner
-from dataclean.engine.dataframe import DataFrame, DataType
-from dataclean.types import StrictBaseModel, strict_validate
+from dataclean.cleaners.cleaner import Cleaner
+from dataclean.engine.dataframe import DataFrame
+from dataclean.types import checked
 
 
-class CountryCleaner(BaseCleaner, frozen=True):
-    class Details(StrictBaseModel, frozen=True):
+@checked
+@dataclass
+class CountryCleaner(Cleaner):
+    @checked
+    @dataclass
+    class Details:
         name: str
         alpha2: str
         alpha3: str
 
+    @checked
     class Format(Enum):
         AUTO = "auto"
         NAME = "name"
@@ -33,39 +38,40 @@ class CountryCleaner(BaseCleaner, frozen=True):
 
     # --- PRIVATE VARS ---
 
-    _find_country_pipeline: tuple[Callable[[str], Details | None], ...] = PrivateAttr()
+    _find_country_pipeline: tuple[Callable[[str], Details | None], ...] = ()
 
     # ---------------------------------------------------------------------------
     # INIT FUNCTIONS
     # ---------------------------------------------------------------------------
 
-    @model_validator(mode="after")
-    def _initialize(self) -> Self:
+    def __post_init__(self) -> None:
+        super().__post_init__()
         self._find_country_pipeline = self._create_find_country_pipeline(self.in_format)
-
-        return self
 
     # ---------------------------------------------------------------------------
     # PUBLIC FUNCTIONS
     # ---------------------------------------------------------------------------
 
     @override
-    def name(self) -> str:
-        return "CountryCleaner"
+    def _outputs(self) -> Cleaner.OutputSchema:
+        return Cleaner.OutputSchema(
+            cols=(
+                Cleaner.OutputSchema.Column(
+                    roles=("country",),
+                ),
+            )
+        )
 
     @override
-    def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        return "str"
+    @checked
+    def clean_row(self, v: str) -> str | None:
 
-    @override
-    @strict_validate
-    def clean_value(self, v: str) -> str | None:
         country_match = self._find_country(v)
         return self._get_output(country_match) if country_match else None
 
     @override
-    def get_data_type_confidence(self, df: DataFrame, cols: tuple[str, ...]) -> float:
-        return 1.0 if "country" in cols[0].lower() else 0.0
+    def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
+        return 1.0 if "country" in tuple(cols)[0].lower() else 0.0
 
     # ---------------------------------------------------------------------------
     # PRIVATE FUNCTIONS

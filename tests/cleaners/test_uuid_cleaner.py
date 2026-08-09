@@ -8,9 +8,12 @@ from dataclean.cleaners.uuid_cleaner import UuidCleaner
 
 
 def test_uuid_cleaner_metadata():
+    from dataclean.engine.dataframe import DataType
+
     cleaner = UuidCleaner()
-    assert cleaner.name() == "UuidCleaner"
-    assert cleaner.output_schema() == "str"
+    assert cleaner.name == "UuidCleaner"
+    assert len(cleaner.outputs.cols) == 1
+    assert cleaner.outputs.cols[0].dtype == DataType.STR
 
 
 # ------------------------------------------------------------------------------
@@ -63,14 +66,14 @@ def test_uuid_cleaner_metadata():
 )
 def test_uuid_clean_value_success_matrix(input_val, out_fmt, expected_output):
     cleaner = UuidCleaner(out_format=out_fmt)
-    assert cleaner.clean_value(input_val) == expected_output
+    assert cleaner.clean_row(input_val) == expected_output
 
 
 def test_uuid_clean_value_invalid_returns_none():
     cleaner = UuidCleaner()
     # Malformed strings or shortened sequences fail validation safely
-    assert cleaner.clean_value("short-uuid-123") is None
-    assert cleaner.clean_value("123e4567-e89b-12d3-a456-42661417400Z") is None
+    assert cleaner.clean_row("short-uuid-123") is None
+    assert cleaner.clean_row("123e4567-e89b-12d3-a456-42661417400Z") is None
 
 
 # ------------------------------------------------------------------------------
@@ -84,8 +87,8 @@ def test_uuid_version_enforcement():
 
     # Allow only v7 time-ordered identifiers -> returns None because version is 4
     v7_only_cleaner = UuidCleaner(allowed_versions={7})
-    assert v7_only_cleaner.clean_value(v4_uuid) is None
+    assert v7_only_cleaner.clean_row(v4_uuid) is None
 
     # Allow any valid version configuration -> passes seamlessly now
     lax_cleaner = UuidCleaner(allowed_versions=None)
-    assert lax_cleaner.clean_value(v4_uuid) is not None
+    assert lax_cleaner.clean_row(v4_uuid) is not None

@@ -1,11 +1,16 @@
+from collections.abc import Iterable
+from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, override
+from typing import ClassVar, override
 
-from dataclean.cleaners.base_cleaner import BaseCleaner
+from dataclean.cleaners.cleaner import Cleaner
 from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean.types import checked
 
 
-class BoolCleaner(BaseCleaner, frozen=True):
+@checked
+@dataclass
+class BoolCleaner(Cleaner):
     class Format(StrEnum):
         TRUEFALSE = "truefalse"  # Returns Python boolean primitives: True / False
         BINARY = "binary"  # Returns structured string flags: "1" / "0"
@@ -14,7 +19,7 @@ class BoolCleaner(BaseCleaner, frozen=True):
     out_format: Format = Format.TRUEFALSE
 
     # Static global evaluation mapping table for strict runtime lookups
-    _TRUTHY_MAPPING: dict[str, dict[Format, Any]] = {
+    _TRUTHY_MAPPING: ClassVar = {
         "true": {Format.TRUEFALSE: True, Format.BINARY: "1", Format.YESNO: "Yes"},
         "1": {Format.TRUEFALSE: True, Format.BINARY: "1", Format.YESNO: "Yes"},
         "yes": {Format.TRUEFALSE: True, Format.BINARY: "1", Format.YESNO: "Yes"},
@@ -23,7 +28,7 @@ class BoolCleaner(BaseCleaner, frozen=True):
         "active": {Format.TRUEFALSE: True, Format.BINARY: "1", Format.YESNO: "Yes"},
     }
 
-    _FALSY_MAPPING: dict[str, dict[Format, Any]] = {
+    _FALSY_MAPPING: ClassVar = {
         "false": {Format.TRUEFALSE: False, Format.BINARY: "0", Format.YESNO: "No"},
         "0": {Format.TRUEFALSE: False, Format.BINARY: "0", Format.YESNO: "No"},
         "no": {Format.TRUEFALSE: False, Format.BINARY: "0", Format.YESNO: "No"},
@@ -33,16 +38,26 @@ class BoolCleaner(BaseCleaner, frozen=True):
     }
 
     @override
-    def name(self) -> str:
-        return "BoolCleaner"
+    def _outputs(self) -> Cleaner.OutputSchema:
+
+        dtype = (
+            DataType.BOOL
+            if self.out_format == BoolCleaner.Format.TRUEFALSE
+            else DataType.STR
+        )
+
+        return Cleaner.OutputSchema(
+            cols=(
+                Cleaner.OutputSchema.Column(
+                    name=None,
+                    dtype=dtype,
+                ),
+            )
+        )
 
     @override
-    def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        # Maps dynamically to 'bool' if native, or 'str' if converting to formatted flags
-        return "bool" if self.out_format == BoolCleaner.Format.TRUEFALSE else "str"
+    def clean_row(self, v: str) -> str | bool | None:  # type: ignore
 
-    @override
-    def clean_value(self, v: str) -> Any | None:
         normalized = v.lower()
 
         if normalized in self._TRUTHY_MAPPING:
@@ -54,9 +69,9 @@ class BoolCleaner(BaseCleaner, frozen=True):
         return None
 
     @override
-    def get_data_type_confidence(self, df: DataFrame, cols: tuple[str, ...]) -> float:
+    def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
 
-        col_name = cols[0].lower()
+        col_name = tuple(cols)[0].lower()
 
         if any(
             token in col_name for token in ("is_", "has_", "active", "status", "flag")

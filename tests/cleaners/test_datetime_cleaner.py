@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from dataclean.cleaners.datetime_cleaner import DateTimeCleaner
+from dataclean.engine.dataframe import DataFrame, DataType
 
 # ==============================================================================
 # 1. METADATA & PROPERTY HEURISTICS
@@ -10,9 +11,11 @@ from dataclean.cleaners.datetime_cleaner import DateTimeCleaner
 
 
 def test_datetime_cleaner_metadata():
+
     cleaner = DateTimeCleaner()
-    assert cleaner.name() == "DateTimeCleaner"
-    assert cleaner.output_schema() == "str"
+    assert cleaner.name == "DateTimeCleaner"
+    assert len(cleaner.outputs.cols) == 1
+    assert cleaner.outputs.cols[0].dtype == DataType.STR
 
 
 @pytest.mark.parametrize(
@@ -28,8 +31,8 @@ def test_datetime_cleaner_metadata():
 )
 def test_datetime_cleaner_confidence(col_name, expected_confidence):
     cleaner = DateTimeCleaner()
-    mock_df = MagicMock()
-    assert cleaner.get_data_type_confidence(mock_df, (col_name,)) == expected_confidence
+    mock_df = MagicMock(spec=DataFrame)
+    assert cleaner.match_score(mock_df, (col_name,)) == expected_confidence
 
 
 # ==============================================================================
@@ -59,7 +62,7 @@ def test_datetime_cleaner_confidence(col_name, expected_confidence):
 )
 def test_datetime_clean_value_success(input_val, out_fmt, expected_output):
     cleaner = DateTimeCleaner(out_format=out_fmt)
-    assert cleaner.clean_value(input_val) == expected_output
+    assert cleaner.clean_row(input_val) == expected_output
 
 
 @pytest.mark.parametrize(
@@ -72,11 +75,11 @@ def test_datetime_clean_value_success(input_val, out_fmt, expected_output):
 )
 def test_datetime_clean_value_invalid_coercions(input_val, out_fmt):
     cleaner = DateTimeCleaner(out_format=out_fmt)
-    assert cleaner.clean_value(input_val) is None
+    assert cleaner.clean_row(input_val) is None
 
 
 def test_datetime_clean_value_returns_none_on_bad_string():
     cleaner = DateTimeCleaner()
     # Unparseable temporal string tokens fall out safely as None
-    assert cleaner.clean_value("not-a-date") is None
-    assert cleaner.clean_value("2026/13/45") is None
+    assert cleaner.clean_row("not-a-date") is None
+    assert cleaner.clean_row("2026/13/45") is None

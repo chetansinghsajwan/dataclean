@@ -2,20 +2,21 @@ from collections.abc import Iterable, Mapping
 from logging import Logger, getLogger
 from typing import Any
 
-from dataclean.cleaners.base_cleaner import BaseCleaner
+from dataclean.cleaners.cleaner import Cleaner
 from dataclean.col_renamer import ColRenamer
 from dataclean.config import config
 from dataclean.engine.dataframe import DataFrame, DataWriter
-from dataclean.types import strict_validate
+from dataclean.types import beartype
 
 
-def get_cleaner(df: DataFrame, cols: Iterable[str]) -> (BaseCleaner, float):
-    selected_cleaner: BaseCleaner = None
+def get_cleaner(df: DataFrame, cols: Iterable[str]) -> tuple[Cleaner | None, float]:
+    selected_cleaner: Cleaner | None = None
     selected_cleaner_confidence: float = 0
 
     for cleaner in config.cleaners:
-        confidence = cleaner.get_data_type_confidence(df, cols)
-        confidence = min(max(confidence, 0), 1)
+        # Ensure we pass a tuple to older cleaners expecting tuple semantics
+        confidence = cleaner.match_score(df, tuple(cols))
+        confidence = min(max(confidence, 0.0), 1.0)
 
         if confidence > selected_cleaner_confidence:
             selected_cleaner = cleaner
@@ -27,19 +28,20 @@ def get_cleaner(df: DataFrame, cols: Iterable[str]) -> (BaseCleaner, float):
     return selected_cleaner, selected_cleaner_confidence
 
 
-def _wrap_df(df: Any) -> DataFrame:
+def _wrap_df(df: Any) -> DataFrame | None:
 
     if isinstance(df, DataFrame):
         return df
 
     for api in config.dataframe_apis:
         if api.supports(df):
+            # API classes are expected to be callables that construct a wrapper when given df=df
             return api(df=df)
 
     return None
 
 
-@strict_validate
+@beartype
 def clean(
     df: DataFrame | Any,
     rename_cols: bool = True,
@@ -50,27 +52,23 @@ def clean(
     use_global_config: bool = True,
     logger: Logger | None = None,
     inplace: bool | None = None,
-    cleaners: dict[str, BaseCleaner] | None = None,
+    cleaners: Iterable[str] | None = None,
 ) -> DataFrame:
 
     col_renamer = col_renamer or config.col_renamer
-
     if logger is None:
         logger = getLogger(__name__)
-
     wrapped_df = _wrap_df(df)
     if wrapped_df is None:
         e = TypeError(
             f"Dataframe of type '{type(df)}' is not supported. Register your dataframe."
         )
         logger.error(e)
-
         raise e
 
     df = wrapped_df
 
     logger.debug("Cleaning data...")
-
     logger.debug(f"df: {df.cols()}")
     logger.debug(f"{rename_cols=}")
     logger.debug(f"{rename_col_map=}")
@@ -87,25 +85,24 @@ def clean(
         inplace = config.inplace
 
     if cleaners is None:
-        cleaners = []
+        cleaners = []  # expected to be an iterable of column names to skip
 
     if use_global_config:
         logger.debug(f"Global config: {config}")
-
-        ignore_cols = list(set(ignore_cols + config.ignore_cols))
+        # Normalize both iterables to tuples before concatenation to satisfy type checker
+        ignore_cols = list(set(tuple(ignore_cols) + tuple(config.ignore_cols)))
 
     if rename_cols:
         if rename_col_map is None:
-            rename_col_map = col_renamer.rename_cols(df.col_names())
+            rename_col_map = col_renamer.rename_cols(list(df.col_names()))
         else:
             cols_to_auto_rename = [
                 col for col in df.col_names() if col not in rename_col_map
             ]
             auto_rename_col_map = col_renamer.rename_cols(cols_to_auto_rename)
-
             logger.debug(f"Rename map from the column renamer: {auto_rename_col_map}")
-
-            rename_col_map = auto_rename_col_map | rename_col_map
+            # Normalize mapping types to dict before merging
+            rename_col_map = dict(auto_rename_col_map) | dict(rename_col_map)
 
         logger.info(f"Renaming columns using map: {rename_col_map}")
 
@@ -113,7 +110,7 @@ def clean(
 
     if clean_cols:
         auto_clean_cols = [col for col in df.col_names() if col not in cleaners]
-        col_cleaner_map: dict[str, BaseCleaner] = {}
+        col_cleaner_map: dict[str, Cleaner] = {}
 
         for col in auto_clean_cols:
             logger.debug(f"Finding cleaner for col '{col}'")
@@ -124,33 +121,39 @@ def clean(
                 continue
 
             logger.debug(
-                f"Found cleaner '{cleaner.name()}' for '{col}' with confidence '{cleaner_confidence}'"
+                f"Found cleaner '{cleaner.name}' for '{col}' with confidence '{cleaner_confidence}'"
             )
 
             col_cleaner_map[col] = cleaner
 
         writers = []
         for col, cleaner in col_cleaner_map.items():
-            schema = cleaner.output_schema()
+            outputs = cleaner.outputs
+            cols = outputs.cols if outputs is not None else ()
 
-            if not isinstance(schema, tuple):
+            # Single-column output (default)
+            if len(cols) == 1:
+                dtype = cols[0].dtype
                 writers.append(
                     DataWriter(
-                        expr=cleaner.clean_value,
+                        expr=cleaner.clean_row,
                         read_cols=(col,),
-                        write_cols=((f"{col}_cleaned", schema),),
+                        write_cols=((f"{col}_cleaned", dtype),),
                     )
                 )
                 continue
 
+            # Multi-column outputs
+            write_cols = []
+            for i, outcol in enumerate(cols):
+                name = outcol.name or f"{col}_{i}"
+                write_cols.append((f"{col}_{name}_cleaned", outcol.dtype))
+
             writers.append(
                 DataWriter(
-                    expr=cleaner.clean_value,
+                    expr=cleaner.clean_row,
                     read_cols=(col,),
-                    write_cols=tuple(
-                        (f"{col}_{comp}_cleaned", data_type)
-                        for comp, data_type in schema
-                    ),
+                    write_cols=tuple(write_cols),
                 )
             )
 

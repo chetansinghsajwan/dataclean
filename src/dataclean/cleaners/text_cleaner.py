@@ -1,14 +1,16 @@
 import re
-from collections.abc import Callable
-from typing import Any, ClassVar, Self, override
+from collections.abc import Callable, Iterable
+from dataclasses import dataclass
+from typing import ClassVar, override
 
-from pydantic import PrivateAttr, model_validator
+from dataclean.cleaners.cleaner import Cleaner
+from dataclean.engine.dataframe import DataFrame
+from dataclean.types import checked
 
-from dataclean.cleaners.base_cleaner import BaseCleaner
-from dataclean.engine.dataframe import DataFrame, DataType
 
-
-class TextCleaner(BaseCleaner, frozen=True):
+@checked
+@dataclass
+class TextCleaner(Cleaner):
     lowercase: bool = True
     remove_html: bool = True
     remove_urls: bool = True
@@ -26,10 +28,13 @@ class TextCleaner(BaseCleaner, frozen=True):
     _NL_SPACE_RE: ClassVar[re.Pattern] = re.compile(r"[\x00-\x1f\x7f-\x9f]")
     _NL_STRIP_RE: ClassVar[re.Pattern] = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")
 
-    _pipeline: tuple[Callable[[str], str], ...] = PrivateAttr()
+    _pipeline: tuple[Callable[[str], str], ...] = ()
 
-    @model_validator(mode="after")
-    def _build_pipeline(self) -> Self:
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        self._pipeline = self._build_pipeline()
+
+    def _build_pipeline(self) -> tuple[Callable[[str], str], ...]:
         """Evaluates configurations once and builds a linear regex execution pipeline."""
         steps: list[Callable[[str], str]] = []
 
@@ -60,36 +65,24 @@ class TextCleaner(BaseCleaner, frozen=True):
         if self.lowercase:
             steps.append(lambda x: x.lower())
 
-        self._pipeline = tuple(steps)
-        return self
+        return tuple(steps)
 
     @override
-    def name(self) -> str:
-        return "TextCleaner"
-
-    @override
-    def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        return "str"
-
-    @override
-    def clean_value(self, v: Any) -> str | None:
-        if not isinstance(v, str):
-            return None
-
-        normalized = v
+    def clean_row(self, v: str) -> str | None:  # type: ignore
 
         # 🚀 Linear Pipeline Execution
         for step in self._pipeline:
-            normalized = step(normalized)
+            v = step(v)
 
-        return normalized if normalized else None
+        return v if v else None
 
     @override
-    def get_data_type_confidence(self, df: DataFrame, cols: tuple[str, ...]) -> float:
-        if not cols:
+    def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
+        if not tuple(cols):
             return 0.0
+        cols_tuple = tuple(cols)
         if any(
-            token in cols[0].lower()
+            token in cols_tuple[0].lower()
             for token in (
                 "text",
                 "description",

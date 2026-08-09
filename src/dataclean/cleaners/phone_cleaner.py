@@ -1,14 +1,19 @@
 import re
+from collections.abc import Iterable
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import override
 
 import phonenumbers
 
-from dataclean.cleaners.base_cleaner import BaseCleaner
-from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean.cleaners.cleaner import Cleaner
+from dataclean.engine.dataframe import DataFrame
+from dataclean.types import checked
 
 
-class PhoneCleaner(BaseCleaner, frozen=True):
+@checked
+@dataclass
+class PhoneCleaner(Cleaner):
     class Format(StrEnum):
         E164 = "e164"
         INTERNATIONAL = "international"
@@ -19,15 +24,17 @@ class PhoneCleaner(BaseCleaner, frozen=True):
     default_regions: tuple[str, ...] = ()
 
     @override
-    def name(self) -> str:
-        return "PhoneCleaner"
+    def _outputs(self) -> Cleaner.OutputSchema:
+        return Cleaner.OutputSchema(
+            cols=(Cleaner.OutputSchema.Column(roles=("phone",)),)
+        )
 
     @override
-    def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        return "str"
+    def clean_row(self, v: str | None, country: str | None = None) -> str | None:  # type: ignore
 
-    @override
-    def clean_value(self, v: str) -> str | None:
+        if v is None:
+            return None
+
         normalized = v.strip()
 
         if re.match(r"^\d+(\.\d+)?([eE][+-]?\d+)$", normalized):
@@ -70,11 +77,12 @@ class PhoneCleaner(BaseCleaner, frozen=True):
         return None
 
     @override
-    def get_data_type_confidence(self, df: DataFrame, cols: tuple[str, ...]) -> float:
-        if not cols:
+    def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
+        cols_tuple = tuple(cols)
+        if not cols_tuple:
             return 0.0
 
-        col_name = cols[0].lower()
+        col_name = cols_tuple[0].lower()
         if any(
             token in col_name
             for token in ("phone", "tel", "mobile", "fax", "contact_no")
