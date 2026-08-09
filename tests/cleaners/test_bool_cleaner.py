@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from dataclean.cleaners.bool_cleaner import BoolCleaner
-from dataclean.engine.dataframe import DataFrame
+from dataclean.engine.dataframe import DataFrame, DataType
 
 # ==============================================================================
 # 1. CORE METADATA & DATA TYPE HEURISTICS
@@ -13,10 +13,12 @@ from dataclean.engine.dataframe import DataFrame
 def test_boolean_cleaner_metadata():
     cleaner = BoolCleaner(out_format=BoolCleaner.Format.TRUEFALSE)
     assert cleaner.name == "BoolCleaner"
-    assert cleaner.output_schema() == "bool"
+    assert len(cleaner.outputs.cols) == 1
+    assert cleaner.outputs.cols[0].dtype == DataType.BOOL
 
     str_cleaner = BoolCleaner(out_format=BoolCleaner.Format.YESNO)
-    assert str_cleaner.output_schema() == "str"
+    assert len(str_cleaner.outputs.cols) == 1
+    assert str_cleaner.outputs.cols[0].dtype == DataType.STR
 
 
 @pytest.mark.parametrize(

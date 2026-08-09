@@ -7,7 +7,7 @@ from typing import override
 import phonenumbers
 
 from dataclean.cleaners.cleaner import Cleaner
-from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean.engine.dataframe import DataFrame
 from dataclean.types import checked
 
 
@@ -24,12 +24,10 @@ class PhoneCleaner(Cleaner):
     default_regions: tuple[str, ...] = ()
 
     @override
-    def provided_roles(self) -> tuple[str, ...]:
-        return ("phone",)
-
-    @override
-    def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        return DataType.STR
+    def _outputs(self) -> Cleaner.OutputSchema:
+        return Cleaner.OutputSchema(
+            cols=(Cleaner.OutputSchema.Column(roles=("phone",)),)
+        )
 
     @override
     def clean_row(self, v: str | None, country: str | None = None) -> str | None:  # type: ignore

@@ -2,7 +2,7 @@
 
 import inspect
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from dataclean.engine.dataframe import DataFrame, DataType
 from dataclean.types import checked
@@ -22,19 +22,33 @@ class ColumnRole:
 
 
 @checked
-@dataclass
+@dataclass(kw_only=True)
 class Cleaner(ABC):
     """Immutable, unified contract for single-column and multi-column cleaners."""
+
+    @checked
+    @dataclass
+    class OutputSchema:
+        @checked
+        @dataclass
+        class Column:
+            name: str | None = None
+            dtype: DataType = DataType.STR
+            roles: tuple[str, ...] = ()
+
+        cols: tuple[Column, ...] = ()
 
     tags: tuple[str, ...] = ()
     inplace: bool = True
     _input_roles: tuple[ColumnRole, ...] = ()
     _name: str = ""
+    outputs: OutputSchema = field(init=False, default_factory=OutputSchema)
 
     def __post_init__(self) -> None:
         base = type(self).__name__
         self._name = f"{base}({', '.join(self.tags)})" if self.tags else base
         self._input_roles = self._infer_roles()
+        self.outputs = self._outputs()
 
     def _infer_roles(self) -> tuple[ColumnRole, ...]:
         """Resolve and validate input roles once, at construction time."""
@@ -89,10 +103,6 @@ class Cleaner(ABC):
         return self._name
 
     @abstractmethod
-    def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        """Return the output schema."""
-
-    @abstractmethod
     def clean_row(self, *values: str | None) -> str | None | tuple[str | None, ...]:
         pass
 
@@ -105,9 +115,9 @@ class Cleaner(ABC):
         """Return construction-time input-role metadata."""
         return self._input_roles
 
-    def provided_roles(self) -> tuple[str, ...]:
-        """Semantic role(s) this cleaner's output represents."""
-        return ()
+    def _outputs(self) -> OutputSchema:
+        """Return the output schema."""
+        return Cleaner.OutputSchema(cols=(Cleaner.OutputSchema.Column(),))
 
     def match_score(self, df: DataFrame, cols: tuple[str, ...]) -> float:
         """Score confidence (0.0-1.0) that this cleaner matches the given columns."""

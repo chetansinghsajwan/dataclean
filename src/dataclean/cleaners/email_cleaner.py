@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import override
 
-from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean.engine.dataframe import DataFrame
 from dataclean.types import checked
 
 from .cleaner import Cleaner
@@ -33,15 +33,17 @@ class EmailCleaner(Cleaner):
         domain: str
 
     @override
-    def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        if self.output_format == "components":
-            return (
-                ("local", DataType.STR),
-                ("tag", DataType.STR),
-                ("domain", DataType.STR),
+    def _outputs(self) -> Cleaner.OutputSchema:
+        if self.output_format == EmailCleaner.OutputFormat.COMPONENTS:
+            return Cleaner.OutputSchema(
+                cols=(
+                    Cleaner.OutputSchema.Column(name="local"),
+                    Cleaner.OutputSchema.Column(name="tag"),
+                    Cleaner.OutputSchema.Column(name="domain"),
+                )
             )
 
-        return DataType.STR
+        return Cleaner.OutputSchema(cols=(Cleaner.OutputSchema.Column(),))
 
     @override
     def clean_row(self, v: str) -> str | tuple[str | None, ...] | None:  # type: ignore

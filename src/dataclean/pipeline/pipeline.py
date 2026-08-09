@@ -14,6 +14,8 @@ from dataclean.pipeline.cleaner_resolver import Resolver
 from dataclean.pipeline.dependency_resolver import DependencyResolver
 from dataclean.pipeline.entity_extractor import EntityExtractor
 
+PRIMARY = "value"
+
 
 class Pipeline:
     """Resolve unified cleaners and execute them in dependency-safe waves."""
@@ -75,14 +77,27 @@ class Pipeline:
         read_columns = tuple(assignment.role_columns.values()) + tuple(
             assignment.context_columns.values()
         )
-        schema = cleaner.output_schema()
-        if isinstance(schema, tuple):
-            write_columns = schema
+        outputs = getattr(cleaner, "outputs", None)
+        cols = outputs.cols if outputs is not None else ()
+
+        # Determine base primary column for naming
+        primary_column = assignment.role_columns.get(
+            "value"
+        ) or assignment.role_columns.get(
+            PRIMARY, next(iter(assignment.role_columns.values()))
+        )
+        if not primary_column:
+            raise ValueError("Scalar cleaners require a 'value' input role")
+
+        if len(cols) == 1:
+            # Single-column cleaners overwrite the primary input column in the pipeline
+            write_columns = ((primary_column, cols[0].dtype),)
         else:
-            primary_column = assignment.role_columns.get("value")
-            if primary_column is None:
-                raise ValueError("Scalar cleaners require a 'value' input role")
-            write_columns = ((primary_column, schema),)
+            write_columns = tuple(
+                (f"{primary_column}_{(col.name or str(i))}_cleaned", col.dtype)
+                for i, col in enumerate(cols)
+            )
+
         return DataWriter(
             expr=cleaner.clean_row, read_cols=read_columns, write_cols=write_columns
         )

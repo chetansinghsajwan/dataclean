@@ -5,7 +5,7 @@ from enum import StrEnum
 from typing import override
 
 from dataclean.cleaners.cleaner import Cleaner
-from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean.engine.dataframe import DataFrame
 from dataclean.types import checked
 
 
@@ -30,10 +30,6 @@ class DateTimeCleaner(Cleaner):
         "%H:%M:%S",
         "%I:%M %p",
     )
-
-    @override
-    def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        return DataType.STR
 
     @override
     def clean_row(self, v: str) -> str | None:  # type: ignore

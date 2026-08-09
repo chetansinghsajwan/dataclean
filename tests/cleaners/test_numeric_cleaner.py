@@ -1,6 +1,7 @@
 import pytest
 
 from dataclean.cleaners.numeric_cleaner import NumericCleaner
+from dataclean.engine.dataframe import DataType
 
 # ==============================================================================
 # 1. CORE METADATA & DATA TYPE HEURISTICS
@@ -10,7 +11,8 @@ from dataclean.cleaners.numeric_cleaner import NumericCleaner
 def test_numeric_cleaner_metadata():
     cleaner_float = NumericCleaner(out_format=NumericCleaner.Format.FLOAT)
     assert cleaner_float.name == "NumericCleaner"
-    assert cleaner_float.output_schema() == "float"
+    assert len(cleaner_float.outputs.cols) == 1
+    assert cleaner_float.outputs.cols[0].dtype == DataType.FLOAT
 
 
 # ==============================================================================
