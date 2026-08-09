@@ -1,35 +1,15 @@
-from abc import ABC
-from typing import Any
+import os
 
-from pydantic import BaseModel, ConfigDict, validate_call
+from beartype import beartype
 
-
-class StrictBaseModel(BaseModel, ABC):
-    model_config = ConfigDict(
-        strict=True,
-        extra="forbid",
-        frozen=False,
-        arbitrary_types_allowed=True,
-    )
-
-    def __init_subclass__(cls, frozen: bool = False, **kwargs: Any) -> None:
-        """
-        Intercepts subclass creation and dynamically mutates its model_config.
-        """
-        super().__init_subclass__(**kwargs)
-
-        cls.model_config = ConfigDict(
-            strict=True,
-            extra="forbid",
-            frozen=frozen,
-            arbitrary_types_allowed=True,
-        )
+_DEV_MODE = os.environ.get("APP_ENV", "prod") == "dev"
 
 
-# Create a reusable strict validation decorator shortcut
-strict_validate = validate_call(
-    config=ConfigDict(
-        strict=True,
-        arbitrary_types_allowed=True,
-    )
-)
+def checked(func):
+    """Always applies beartype runtime type checking."""
+    return beartype(func)
+
+
+def dev_checked(func):
+    """Applies beartype only when APP_ENV=dev; no-op otherwise (zero overhead in prod)."""
+    return beartype(func) if _DEV_MODE else func

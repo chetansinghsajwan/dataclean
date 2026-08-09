@@ -1,38 +1,52 @@
 import re
+from collections.abc import Iterable
+from dataclasses import dataclass
+from enum import StrEnum
 from typing import override
 
-from dataclean.engine.dataframe import DataFrame, DataType
-from dataclean.types import StrictBaseModel
+from dataclean.engine.dataframe import DataFrame
+from dataclean.types import checked
 
-from .base_cleaner import BaseCleaner
+from .cleaner import Cleaner
 
 
 # TODO: Need to add functionality to parse display name
-class EmailCleaner(BaseCleaner, frozen=True):
+@checked
+@dataclass
+class EmailCleaner(Cleaner):
+    class OutputFormat(StrEnum):
+        FULL = "full"
+        COMPONENTS = "components"
+
     keep_tags: bool = True
     keep_dots: bool = True
     lowercase: bool = True
+    output_format: OutputFormat = OutputFormat.FULL
 
     _EMAIL_REGEX = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
 
-    class EmailComponents(StrictBaseModel, frozen=True):
+    @checked
+    @dataclass
+    class EmailComponents:
         local: str
         tag: str | None
         domain: str
 
     @override
-    def name(self) -> str:
-        return "EmailCleaner"
+    def _outputs(self) -> Cleaner.OutputSchema:
+        if self.output_format == EmailCleaner.OutputFormat.COMPONENTS:
+            return Cleaner.OutputSchema(
+                cols=(
+                    Cleaner.OutputSchema.Column(name="local"),
+                    Cleaner.OutputSchema.Column(name="tag"),
+                    Cleaner.OutputSchema.Column(name="domain"),
+                )
+            )
+
+        return Cleaner.OutputSchema(cols=(Cleaner.OutputSchema.Column(),))
 
     @override
-    def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        if self.split_components:
-            return (("local", "str"), ("tag", "str"), ("domain", "str"))
-
-        return "str"
-
-    @override
-    def clean_value(self, v: str) -> str | None:
+    def clean_row(self, v: str) -> str | tuple[str | None, ...] | None:  # type: ignore
         """
         Clean the input email value and return the cleaned email.
         If the value cannot be cleaned, return None.
@@ -68,7 +82,7 @@ class EmailCleaner(BaseCleaner, frozen=True):
                 domain=email.domain.lower(),
             )
 
-        if self.split_components:
+        if self.output_format == "components":
             return (email.local, email.tag, email.domain)
 
         if email.tag is not None:
@@ -77,8 +91,11 @@ class EmailCleaner(BaseCleaner, frozen=True):
         return f"{email.local}@{email.domain}"
 
     @override
-    def get_data_type_confidence(self, df: DataFrame, cols: tuple[str]) -> float:
-        return 1 if "email" in cols[0].lower() else 0
+    def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
+        cols_tuple = tuple(cols)
+        if not cols_tuple:
+            return 0.0
+        return 1.0 if "email" in cols_tuple[0].lower() else 0.0
 
     def _parse_email(self, v: str) -> EmailComponents | None:
 

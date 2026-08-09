@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from dataclean.cleaners.country_cleaner import CountryCleaner
+from dataclean.engine.dataframe import DataFrame, DataType
 
 # ==============================================================================
 # 1. CORE PROPERTY TESTS
@@ -10,9 +11,11 @@ from dataclean.cleaners.country_cleaner import CountryCleaner
 
 
 def test_cleaner_metadata():
+
     cleaner = CountryCleaner()
-    assert cleaner.name() == "CountryCleaner"
-    assert cleaner.output_schema() == "str"
+    assert cleaner.name == "CountryCleaner"
+    assert len(cleaner.outputs.cols) == 1
+    assert cleaner.outputs.cols[0].dtype == DataType.STR
 
 
 @pytest.mark.parametrize(
@@ -25,10 +28,10 @@ def test_cleaner_metadata():
         ("id", 0.0),
     ],
 )
-def test_get_data_type_confidence(col_name, expected_confidence):
+def test_match_score(col_name, expected_confidence):
     cleaner = CountryCleaner()
-    mock_df = MagicMock()
-    assert cleaner.get_data_type_confidence(mock_df, (col_name,)) == expected_confidence
+    mock_df = MagicMock(spec=DataFrame)
+    assert cleaner.match_score(mock_df, (col_name,)) == expected_confidence
 
 
 # ==============================================================================
@@ -83,9 +86,9 @@ def test_custom_tuple_format_pipeline_deduplication():
         ("in", CountryCleaner.Format.ALPHA2, CountryCleaner.Format.NAME, "India"),
     ],
 )
-def test_clean_value_success(input_value, in_fmt, out_fmt, expected_output):
+def test_clean_row_success(input_value, in_fmt, out_fmt, expected_output):
     cleaner = CountryCleaner(in_format=in_fmt, out_format=out_fmt)
-    assert cleaner.clean_value(input_value) == expected_output
+    assert cleaner.clean_row(input_value) == expected_output
 
 
 @pytest.mark.parametrize(
@@ -102,6 +105,6 @@ def test_clean_value_success(input_value, in_fmt, out_fmt, expected_output):
         # ("IN", CountryCleaner.Format.NAME),  # "IN" is an ALPHA2, but only NAME allowed
     ],
 )
-def test_clean_value_returns_none_on_miss(input_value, in_fmt):
+def test_clean_row_returns_none_on_miss(input_value, in_fmt):
     cleaner = CountryCleaner(in_format=in_fmt)
-    assert cleaner.clean_value(input_value) is None
+    assert cleaner.clean_row(input_value) is None

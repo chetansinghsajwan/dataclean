@@ -1,11 +1,16 @@
+from collections.abc import Iterable
+from dataclasses import dataclass
 from enum import StrEnum
-from typing import override
+from typing import ClassVar, override
 
-from dataclean.cleaners.base_cleaner import BaseCleaner
-from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean.cleaners.cleaner import Cleaner
+from dataclean.engine.dataframe import DataFrame
+from dataclean.types import checked
 
 
-class GenderCleaner(BaseCleaner, frozen=True):
+@checked
+@dataclass
+class GenderCleaner(Cleaner):
     class Format(StrEnum):
         FULL = "full"  # "Male" / "Female" / "Other"
         CHAR = "char"  # "M" / "F" / "O"
@@ -14,7 +19,7 @@ class GenderCleaner(BaseCleaner, frozen=True):
     out_format: Format = Format.FULL
 
     # Shared static mapping configuration matrix
-    _MAPPING: dict[str, dict[Format, str]] = {
+    _MAPPING: ClassVar = {
         "male": {Format.FULL: "Male", Format.CHAR: "M", Format.BINARY: "1"},
         "m": {Format.FULL: "Male", Format.CHAR: "M", Format.BINARY: "1"},
         "man": {Format.FULL: "Male", Format.CHAR: "M", Format.BINARY: "1"},
@@ -29,15 +34,7 @@ class GenderCleaner(BaseCleaner, frozen=True):
     }
 
     @override
-    def name(self) -> str:
-        return "GenderCleaner"
-
-    @override
-    def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        return "str"
-
-    @override
-    def clean_value(self, v: str) -> str | None:
+    def clean_row(self, v: str) -> str | None:  # type: ignore
 
         match_details = self._MAPPING.get(v.lower())
 
@@ -47,11 +44,12 @@ class GenderCleaner(BaseCleaner, frozen=True):
         return match_details[self.out_format]
 
     @override
-    def get_data_type_confidence(self, df: DataFrame, cols: tuple[str, ...]) -> float:
-        if not cols:
+    def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
+        cols_tuple = tuple(cols)
+        if not cols_tuple:
             return 0.0
 
-        col_name = cols[0].lower()
+        col_name = cols_tuple[0].lower()
         if "gender" in col_name or "sex" in col_name:
             return 1.0
 

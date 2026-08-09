@@ -1,48 +1,49 @@
 pre-commit:
-  parallel: true
-  skip:
-    - merge
-    - rebase
+    parallel: true
+    skip:
+        - merge
+        - rebase
 
-  commands:
-    fmt-python:
-      glob: "*.{py,pyi}"
-      run: task fmt:py -- {staged_files}
-      stage_fixed: true
-      fail_text: "Formatting failed — run 'task fmt:py' locally to see the full error"
+    commands:
+        fmt-python:
+            glob: "*.{py,pyi}"
+            run: task fmt:py -- {staged_files}
+            stage_fixed: true
+            fail_text: "Formatting failed — run 'task fmt:py' locally to see the full error"
 
-    fmt-json:
-      glob: "*.{json,jsonc}"
-      run: task fmt:json -- {staged_files}
-      stage_fixed: true
-      fail_text: "Formatting failed — run 'task fmt:json' locally to see the full error"
+        fmt-json:
+            glob: "*.{json,jsonc}"
+            run: task fmt:json -- {staged_files}
+            stage_fixed: true
+            fail_text: "Formatting failed — run 'task fmt:json' locally to see the full error"
 
-    fmt-toml:
-      glob: "*.toml"
-      run: task fmt:toml -- {staged_files}
-      stage_fixed: true
-      fail_text: "Formatting failed — run 'task fmt:toml' locally to see the full error"
+        fmt-toml:
+            glob: "*.toml"
+            run: task fmt:toml -- {staged_files}
+            stage_fixed: true
+            fail_text: "Formatting failed — run 'task fmt:toml' locally to see the full error"
 
-    fmt-md:
-      glob: "*.md"
-      run: task fmt:md -- {staged_files}
-      stage_fixed: true
-      fail_text: "Formatting failed — run 'task fmt:md' locally to see the full error"
+        fmt-md:
+            glob: "*.md"
+            run: task fmt:md -- {staged_files}
+            stage_fixed: true
+            fail_text: "Formatting failed — run 'task fmt:md' locally to see the full error"
 
-    fmt-sh:
-      glob: "*.sh"
-      run: task fmt:sh -- {staged_files}
-      stage_fixed: true
-      fail_text: "Formatting failed — run 'task fmt:sh' locally to see the full error"
+        fmt-sh:
+            glob: "*.sh"
+            run: task fmt:sh -- {staged_files}
+            stage_fixed: true
+            fail_text: "Formatting failed — run 'task fmt:sh' locally to see the full error"
 
-    fmt-nix:
-      glob: "*.nix"
-      run: task fmt:nix -- {staged_files}
-      stage_fixed: true
-      fail_text: "Formatting failed — run 'task fmt:nix' locally to see the full error"
+        fmt-nix:
+            glob: "*.nix"
+            run: task fmt:nix -- {staged_files}
+            stage_fixed: true
+            fail_text: "Formatting failed — run 'task fmt:nix' locally to see the full error"
 
 pre-push:
-  commands:
-    lint:
-      run: task check
-      fail_text: "check failed — run 'task check' locally before pushing, or 'task fix' to auto-fix what's possible"
+    commands:
+        lint:
+            run: task check
+            fail_text: "check failed — run 'task check' locally before pushing, or 'task fix' to auto-fix
+                what's possible"

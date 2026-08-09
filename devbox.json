@@ -19,7 +19,8 @@
         "statix@latest", // nix linter
         "deadnix@latest", // nix dead code analyzer
         "nil@latest", // nix lsp
-        "zizmor@latest", // github actions checker
+        "zizmor@latest",
+        "yamlfmt@latest", // github actions checker
     ],
     "env": {
         "PYTHONPATH": "$PWD/src",
