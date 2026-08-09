@@ -39,14 +39,12 @@ class Resolver:
 
         ordered_cleaners = sorted(
             self._cleaners,
-            key=lambda cleaner: sum(
-                role.required for role in cleaner.resolved_input_roles
-            ),
+            key=lambda cleaner: sum(col.required for col in cleaner.inputs.cols),
             reverse=True,
         )
         for cleaner in ordered_cleaners:
-            roles = cleaner.resolved_input_roles
-            if len(roles) == 1 and roles[0].key == PRIMARY:
+            cols = cleaner.inputs.cols
+            if len(cols) == 1 and cols[0].key == PRIMARY:
                 assignments.extend(
                     self._resolve_primary_cleaner(df, unclaimed, cleaner)
                 )
@@ -69,7 +67,7 @@ class Resolver:
     ) -> tuple[Assignment, ...]:
         assignments: list[Assignment] = []
         for column in sorted(columns):
-            score = self._score(df, column, cleaner.resolved_input_roles[0], cleaner)
+            score = self._score(df, column, cleaner.inputs.cols[0], cleaner)
             if score >= 0.5:
                 assignments.append(
                     Assignment(
@@ -86,13 +84,13 @@ class Resolver:
         role_columns: dict[str, str] = {}
         scores: list[float] = []
         available = set(columns)
-        for role in cleaner.resolved_input_roles:
-            best_column, best_score = self._best_match(df, available, role, cleaner)
+        for col in cleaner.inputs.cols:
+            best_column, best_score = self._best_match(df, available, col, cleaner)
             if best_column is None or best_score < 0.5:
-                if role.required:
+                if col.required:
                     return None
                 continue
-            role_columns[role.key] = best_column
+            role_columns[col.key] = best_column
             scores.append(best_score)
             available.remove(best_column)
 

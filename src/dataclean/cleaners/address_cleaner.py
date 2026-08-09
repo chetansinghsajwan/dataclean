@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import override
 
-from dataclean.cleaners.cleaner import Cleaner, ColumnRole
+from dataclean.cleaners.cleaner import Cleaner
 from dataclean.types import checked
 
 
@@ -33,28 +33,32 @@ class AddressCleaner(Cleaner):
         )
 
     @override
-    def input_roles(self) -> tuple[ColumnRole, ...]:
-        return (
-            ColumnRole(key="county", required=False, name_hints=("county",)),
-            ColumnRole(
-                key="country",
-                required=False,
-                name_hints=("country",),
-            ),
-            ColumnRole(
-                key="address_line1",
-                name_hints=("address_line1", "address_line", "street"),
-            ),
-            ColumnRole(
-                key="address_line2",
-                required=False,
-                name_hints=("address_line2", "city"),
-            ),
-            ColumnRole(
-                key="address_line3",
-                required=False,
-                name_hints=("address_line3", "postcode", "zip"),
-            ),
+    def _inputs(self) -> Cleaner.InputSchema:
+        return Cleaner.InputSchema(
+            cols=(
+                Cleaner.InputSchema.Column(
+                    key="county", required=False, name_hints=("county",)
+                ),
+                Cleaner.InputSchema.Column(
+                    key="country",
+                    required=False,
+                    name_hints=("country",),
+                ),
+                Cleaner.InputSchema.Column(
+                    key="address_line1",
+                    name_hints=("address_line1", "address_line", "street"),
+                ),
+                Cleaner.InputSchema.Column(
+                    key="address_line2",
+                    required=False,
+                    name_hints=("address_line2", "city"),
+                ),
+                Cleaner.InputSchema.Column(
+                    key="address_line3",
+                    required=False,
+                    name_hints=("address_line3", "postcode", "zip"),
+                ),
+            )
         )
 
     @override
