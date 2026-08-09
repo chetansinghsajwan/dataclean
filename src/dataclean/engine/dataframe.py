@@ -1,32 +1,62 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable, Iterator, Mapping
-from typing import Any, Literal
+from dataclasses import dataclass
+from enum import StrEnum
+from typing import Any
 
-from dataclean.types import StrictBaseModel
-
-DataType = Literal[
-    "str",
-    "bool",
-    "int",
-    "float",
-    "double",
-]
+from dataclean.types import checked
 
 
-class DataReader(StrictBaseModel, frozen=True):
-    fn: Callable[[str | bool | int | float | None], ...]
+class DataType(StrEnum):
+    STR = "str"
+    BOOL = "bool"
+    INT = "int"
+    FLOAT = "float"
+    DOUBLE = "double"
+
+
+@checked
+@dataclass
+class DataReader:
+    # Accept any callable shape; engines will validate at runtime
+    fn: Callable[..., None]
     cols: tuple[str, ...]
 
 
-class DataWriter(StrictBaseModel, frozen=True):
-    expr: Callable[..., str] | str | bool | int | float | None
+@checked
+@dataclass
+class DataWriter:
+    expr: (
+        Callable[
+            ...,
+            str
+            | bool
+            | int
+            | float
+            | None
+            | tuple[str | bool | int | float | None, ...],
+        ]
+        | str
+        | bool
+        | int
+        | float
+        | None
+        | tuple[str | bool | int | float | None, ...]
+    )
     read_cols: tuple[str, ...]
     write_cols: tuple[tuple[str, DataType], ...]
 
 
-class DataFrame(StrictBaseModel, ABC):
+@checked
+@dataclass
+class DataFrame(ABC):
+    # Optional reference to the underlying raw dataframe for engine adapters and tests
+    df: Any | None = None
+
+    @staticmethod
     @abstractmethod
     def supports(df: Any) -> bool:
+        """Return True when this API implementation can wrap the given raw dataframe."""
         pass
 
     def col_names(self) -> Iterator[str]:

@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from dataclean.cleaners.gender_cleaner import GenderCleaner
+from dataclean.engine.dataframe import DataFrame, DataType
 
 # ==============================================================================
 # 1. CORE PROPERTY TESTS
@@ -11,8 +12,9 @@ from dataclean.cleaners.gender_cleaner import GenderCleaner
 
 def test_gender_cleaner_metadata():
     cleaner = GenderCleaner()
-    assert cleaner.name() == "GenderCleaner"
-    assert cleaner.output_schema() == "str"
+    assert cleaner.name == "GenderCleaner"
+    assert len(cleaner.outputs.cols) == 1
+    assert cleaner.outputs.cols[0].dtype == DataType.STR
 
 
 @pytest.mark.parametrize(
@@ -27,8 +29,8 @@ def test_gender_cleaner_metadata():
 )
 def test_gender_cleaner_confidence_heuristics(col_name, expected_confidence):
     cleaner = GenderCleaner()
-    mock_df = MagicMock()
-    assert cleaner.get_data_type_confidence(mock_df, (col_name,)) == expected_confidence
+    mock_df = MagicMock(spec=DataFrame)
+    assert cleaner.match_score(mock_df, (col_name,)) == expected_confidence
 
 
 # ==============================================================================
@@ -63,7 +65,7 @@ def test_gender_cleaner_confidence_heuristics(col_name, expected_confidence):
 )
 def test_clean_value_format_translations(input_value, target_format, expected_output):
     cleaner = GenderCleaner(out_format=target_format)
-    assert cleaner.clean_value(input_value) == expected_output
+    assert cleaner.clean_row(input_value) == expected_output
 
 
 # ==============================================================================
@@ -78,11 +80,11 @@ def test_clean_value_format_translations(input_value, target_format, expected_ou
 def test_clean_value_handles_mixed_casing(cased_input):
     cleaner = GenderCleaner(out_format=GenderCleaner.Format.FULL)
     # Even with random data entry casing variations, mapping lookup should be successful
-    assert cleaner.clean_value(cased_input) in ["Male", "Female", "Other"]
+    assert cleaner.clean_row(cased_input) in ["Male", "Female", "Other"]
 
 
 def test_clean_value_returns_none_on_unmapped_token():
     cleaner = GenderCleaner()
     # If the token exists but isn't part of our domain map, return None safely
-    assert cleaner.clean_value("unknown_variant") is None
-    assert cleaner.clean_value("alien") is None
+    assert cleaner.clean_row("unknown_variant") is None
+    assert cleaner.clean_row("alien") is None

@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from dataclean.cleaners.bool_cleaner import BoolCleaner
+from dataclean.engine.dataframe import DataFrame, DataType
 
 # ==============================================================================
 # 1. CORE METADATA & DATA TYPE HEURISTICS
@@ -11,11 +12,13 @@ from dataclean.cleaners.bool_cleaner import BoolCleaner
 
 def test_boolean_cleaner_metadata():
     cleaner = BoolCleaner(out_format=BoolCleaner.Format.TRUEFALSE)
-    assert cleaner.name() == "BoolCleaner"
-    assert cleaner.output_schema() == "bool"
+    assert cleaner.name == "BoolCleaner"
+    assert len(cleaner.outputs.cols) == 1
+    assert cleaner.outputs.cols[0].dtype == DataType.BOOL
 
     str_cleaner = BoolCleaner(out_format=BoolCleaner.Format.YESNO)
-    assert str_cleaner.output_schema() == "str"
+    assert len(str_cleaner.outputs.cols) == 1
+    assert str_cleaner.outputs.cols[0].dtype == DataType.STR
 
 
 @pytest.mark.parametrize(
@@ -31,8 +34,8 @@ def test_boolean_cleaner_metadata():
 )
 def test_boolean_cleaner_confidence(col_name, expected_confidence):
     cleaner = BoolCleaner()
-    mock_df = MagicMock()
-    assert cleaner.get_data_type_confidence(mock_df, (col_name,)) == expected_confidence
+    mock_df = MagicMock(spec=DataFrame)
+    assert cleaner.match_score(mock_df, (col_name,)) == expected_confidence
 
 
 # ==============================================================================
@@ -64,11 +67,11 @@ def test_boolean_cleaner_confidence(col_name, expected_confidence):
 )
 def test_boolean_clean_value_translations(input_val, out_fmt, expected_output):
     cleaner = BoolCleaner(out_format=out_fmt)
-    assert cleaner.clean_value(input_val) == expected_output
+    assert cleaner.clean_row(input_val) == expected_output
 
 
 def test_boolean_clean_value_returns_none_on_miss():
     cleaner = BoolCleaner()
     # Unrecognized or out-of-bounds string options safely fall through to None [cite: 1416]
-    assert cleaner.clean_value("not_a_boolean_flag") is None
-    assert cleaner.clean_value("pending") is None
+    assert cleaner.clean_row("not_a_boolean_flag") is None
+    assert cleaner.clean_row("pending") is None
