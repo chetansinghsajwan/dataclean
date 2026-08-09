@@ -11,9 +11,12 @@ from dataclean.engine.dataframe import DataFrame
 
 
 def test_text_cleaner_metadata():
+    from dataclean.engine.dataframe import DataType
+
     cleaner = TextCleaner()
     assert cleaner.name == "TextCleaner"
-    assert cleaner.output_schema() == "str"
+    assert len(cleaner.outputs.cols) == 1
+    assert cleaner.outputs.cols[0].dtype == DataType.STR
 
 
 @pytest.mark.parametrize(

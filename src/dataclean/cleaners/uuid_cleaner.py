@@ -6,7 +6,7 @@ from enum import StrEnum
 from typing import override
 
 from dataclean.cleaners.cleaner import Cleaner
-from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean.engine.dataframe import DataFrame
 from dataclean.types import checked
 
 
@@ -22,10 +22,6 @@ class UuidCleaner(Cleaner):
 
     # Restrict to specific versions (e.g., {4, 7}). Set to None to accept any valid version.
     allowed_versions: set[int] | None = None
-
-    @override
-    def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        return DataType.STR
 
     @override
     def clean_row(self, v: str) -> str | None:  # type: ignore

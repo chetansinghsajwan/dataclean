@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from dataclean.cleaners.gender_cleaner import GenderCleaner
-from dataclean.engine.dataframe import DataFrame
+from dataclean.engine.dataframe import DataFrame, DataType
 
 # ==============================================================================
 # 1. CORE PROPERTY TESTS
@@ -13,7 +13,8 @@ from dataclean.engine.dataframe import DataFrame
 def test_gender_cleaner_metadata():
     cleaner = GenderCleaner()
     assert cleaner.name == "GenderCleaner"
-    assert cleaner.output_schema() == "str"
+    assert len(cleaner.outputs.cols) == 1
+    assert cleaner.outputs.cols[0].dtype == DataType.STR
 
 
 @pytest.mark.parametrize(

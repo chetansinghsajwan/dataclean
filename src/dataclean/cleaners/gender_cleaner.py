@@ -4,7 +4,7 @@ from enum import StrEnum
 from typing import ClassVar, override
 
 from dataclean.cleaners.cleaner import Cleaner
-from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean.engine.dataframe import DataFrame
 from dataclean.types import checked
 
 
@@ -32,10 +32,6 @@ class GenderCleaner(Cleaner):
         "o": {Format.FULL: "Other", Format.CHAR: "O", Format.BINARY: "-1"},
         "non-binary": {Format.FULL: "Other", Format.CHAR: "O", Format.BINARY: "-1"},
     }
-
-    @override
-    def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        return DataType.STR
 
     @override
     def clean_row(self, v: str) -> str | None:  # type: ignore

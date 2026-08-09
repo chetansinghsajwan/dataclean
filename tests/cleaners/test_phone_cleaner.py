@@ -11,9 +11,12 @@ from dataclean.engine.dataframe import DataFrame
 
 
 def test_phone_cleaner_metadata():
+    from dataclean.engine.dataframe import DataType
+
     cleaner = PhoneCleaner()
     assert cleaner.name == "PhoneCleaner"
-    assert cleaner.output_schema() == "str"
+    assert len(cleaner.outputs.cols) == 1
+    assert cleaner.outputs.cols[0].dtype == DataType.STR
     # Verify the new default configuration is an empty tuple
     assert cleaner.default_regions == ()
 

@@ -10,7 +10,6 @@ from dataclean.cleaners.cleaner import Cleaner, ColumnRole
 from dataclean.cleaners.country_cleaner import CountryCleaner
 from dataclean.cleaners.phone_cleaner import PhoneCleaner
 from dataclean.col_renamer import ColRenamer
-from dataclean.engine.dataframe import DataType
 from dataclean.engine.pandas import PandasDataFrame
 from dataclean.pipeline import Assignment, Pipeline
 from dataclean.pipeline.cleaner_resolver import Resolver
@@ -30,9 +29,6 @@ def test_cleaner_name_includes_configured_tags() -> None:
 
 def test_explicit_roles_must_match_clean_row_signature() -> None:
     class InvalidCleaner(Cleaner):
-        def output_schema(self) -> DataType:
-            return DataType.STR
-
         def input_roles(self) -> tuple[ColumnRole, ...]:
             return (ColumnRole(key="wrong"),)
 

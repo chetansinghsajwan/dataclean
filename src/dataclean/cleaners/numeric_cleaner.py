@@ -25,11 +25,15 @@ class NumericCleaner(Cleaner):
     _SUFFIX_MAP = {"k": 1e3, "m": 1e6, "b": 1e9, "t": 1e12}
 
     @override
-    def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        return (
-            DataType.INT
-            if self.out_format == NumericCleaner.Format.INT
-            else DataType.FLOAT
+    def _outputs(self) -> Cleaner.OutputSchema:
+        return Cleaner.OutputSchema(
+            cols=(
+                Cleaner.OutputSchema.Column(
+                    dtype=DataType.INT
+                    if self.out_format == NumericCleaner.Format.INT
+                    else DataType.FLOAT
+                ),
+            )
         )
 
     @override

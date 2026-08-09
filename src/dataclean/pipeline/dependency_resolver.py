@@ -30,8 +30,11 @@ class DependencyResolver:
         assignment_list = tuple(assignments)
         producers: dict[str, list[int]] = defaultdict(list)
         for index, assignment in enumerate(assignment_list):
-            for role in assignment.cleaner.provided_roles():
-                producers[role].append(index)
+            outputs = getattr(assignment.cleaner, "outputs", None)
+            cols = outputs.cols if outputs is not None else ()
+            for col in cols:
+                for role in col.roles:
+                    producers[role].append(index)
 
         dependencies: dict[int, set[int]] = defaultdict(set)
         resolved_context: dict[int, dict[str, str]] = defaultdict(dict)
@@ -126,11 +129,18 @@ class DependencyResolver:
         )
 
     def _output_column(self, assignment: Assignment, role: str) -> str:
-        schema = assignment.cleaner.output_schema()
-        if isinstance(schema, tuple):
-            for output_column, _ in schema:
-                if output_column == role:
-                    return output_column
+        outputs = getattr(assignment.cleaner, "outputs", None)
+        cols = outputs.cols if outputs is not None else ()
+        for col in cols:
+            if role in col.roles:
+                # If the cleaner declares an explicit output column name, use it.
+                if col.name:
+                    return col.name
+                # Otherwise fall back to the producer's primary input column
+                return assignment.role_columns.get(
+                    PRIMARY, next(iter(assignment.role_columns.values()))
+                )
+        # Default fallback: producer's primary input column
         return assignment.role_columns.get(
             PRIMARY, next(iter(assignment.role_columns.values()))
         )

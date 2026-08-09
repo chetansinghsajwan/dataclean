@@ -38,12 +38,21 @@ class BoolCleaner(Cleaner):
     }
 
     @override
-    def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        # Maps dynamically to 'bool' if native, or 'str' if converting to formatted flags
-        return (
+    def _outputs(self) -> Cleaner.OutputSchema:
+
+        dtype = (
             DataType.BOOL
             if self.out_format == BoolCleaner.Format.TRUEFALSE
             else DataType.STR
+        )
+
+        return Cleaner.OutputSchema(
+            cols=(
+                Cleaner.OutputSchema.Column(
+                    name=None,
+                    dtype=dtype,
+                ),
+            )
         )
 
     @override

@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import override
 
 from dataclean.cleaners.cleaner import Cleaner, ColumnRole
-from dataclean.engine.dataframe import DataType
 from dataclean.types import checked
 
 
@@ -19,18 +18,18 @@ class AddressCleaner(Cleaner):
     """
 
     @override
-    def provided_roles(self) -> tuple[str, ...]:
-        return ("address", "country", "state", "postcode")
-
-    @override
-    def output_schema(self) -> tuple[tuple[str, DataType], ...]:
-        return (
-            ("country", DataType.STR),
-            ("state", DataType.STR),
-            ("postcode", DataType.STR),
-            ("address_line", DataType.STR),
-            ("street", DataType.STR),
-            ("house_no", DataType.STR),
+    def _outputs(self) -> Cleaner.OutputSchema:
+        return Cleaner.OutputSchema(
+            cols=(
+                Cleaner.OutputSchema.Column(name="country", roles=("country",)),
+                Cleaner.OutputSchema.Column(name="state", roles=("state",)),
+                Cleaner.OutputSchema.Column(name="postcode", roles=("postcode",)),
+                Cleaner.OutputSchema.Column(
+                    name="address_line", roles=("address_line",)
+                ),
+                Cleaner.OutputSchema.Column(name="street", roles=("street",)),
+                Cleaner.OutputSchema.Column(name="house_no", roles=("house_no",)),
+            )
         )
 
     @override
