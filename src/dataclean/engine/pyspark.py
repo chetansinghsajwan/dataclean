@@ -1,27 +1,28 @@
 from collections.abc import Callable, Iterable, Mapping
-from typing import Any, Self, cast, override
+from dataclasses import dataclass
+from typing import Any, cast, override
 
 import pandas as pd
 import pyspark.sql as sp
 import pyspark.sql.connect.dataframe as spc
 import pyspark.sql.functions as spf
 import pyspark.sql.types as spt
-from pydantic import PrivateAttr, model_validator
 
 from dataclean.config import register_dataframe_api
 from dataclean.engine.dataframe import DataFrame, DataReader, DataType, DataWriter
+from dataclean.types import checked
 
 SparkDataFrame = sp.DataFrame | spc.DataFrame
 
 
-class PySparkDataFrame(DataFrame, frozen=False):
+@checked
+@dataclass
+class PySparkDataFrame(DataFrame):
     df: SparkDataFrame
-    _cols: tuple[tuple[str, DataType], ...] = PrivateAttr(default_factory=tuple)
+    _cols: tuple[tuple[str, DataType], ...] = ()
 
-    @model_validator(mode="after")
-    def _initialize_internal_cache(self) -> Self:
+    def __post_init__(self):
         self._update_cols()
-        return self
 
     @staticmethod
     @override

@@ -24,7 +24,9 @@ many. Same contract, same execution method — no separate hierarchy.
 PRIMARY = "value"  # sentinel role key for the common single-column case
 
 
-class Cleaner(StrictBaseModel, ABC, frozen=True):
+@checked
+@dataclass
+class Cleaner(ABC):
     inplace: bool = True
     split_components: bool = False
 
@@ -79,7 +81,9 @@ executes.
 ## 3. `ColumnRole` — shared descriptor for all input kinds
 
 ```python
-class ColumnRole(StrictBaseModel, frozen=True):
+@checked
+@dataclass
+class ColumnRole:
     key: str
     required: bool = True
     detector: "Cleaner | None" = None  # reuse an existing cleaner's confidence scoring
@@ -94,7 +98,9 @@ group-cleaner input columns -- one mechanism, not three.
 ### Simple cleaner -- no boilerplate
 
 ```python
-class EmailCleaner(Cleaner, frozen=True):
+@checked
+@dataclass
+class EmailCleaner(Cleaner):
     def name(self) -> str:
         return "EmailCleaner"
 
@@ -112,7 +118,9 @@ class EmailCleaner(Cleaner, frozen=True):
 ### Cleaner with optional context -- still no `input_roles()` override needed
 
 ```python
-class PhoneCleaner(Cleaner, frozen=True):
+@checked
+@dataclass
+class PhoneCleaner(Cleaner):
     def clean_row(self, value: str, country: str | None = None) -> str | None:
         # required role = "value" (no default), optional role = "country" (has default)
         # inferred automatically from signature
@@ -125,7 +133,9 @@ class PhoneCleaner(Cleaner, frozen=True):
 ### Group cleaner -- explicit `input_roles()` when detector/name_hints needed
 
 ```python
-class AddressCleaner(Cleaner, frozen=True):
+@checked
+@dataclass
+class AddressCleaner(Cleaner):
     def input_roles(self) -> tuple[ColumnRole, ...]:
         return (
             ColumnRole(key="country", required=False, detector=CountryCleaner()),

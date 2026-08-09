@@ -1,13 +1,15 @@
 import re
 from collections.abc import Callable, Iterable
-from typing import ClassVar, Self, override
-
-from pydantic import PrivateAttr, model_validator
+from dataclasses import dataclass
+from typing import ClassVar, override
 
 from dataclean.cleaners.cleaner import Cleaner
 from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean.types import checked
 
 
+@checked
+@dataclass
 class TextCleaner(Cleaner):
     lowercase: bool = True
     remove_html: bool = True
@@ -26,10 +28,13 @@ class TextCleaner(Cleaner):
     _NL_SPACE_RE: ClassVar[re.Pattern] = re.compile(r"[\x00-\x1f\x7f-\x9f]")
     _NL_STRIP_RE: ClassVar[re.Pattern] = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")
 
-    _pipeline: tuple[Callable[[str], str], ...] = PrivateAttr()
+    _pipeline: tuple[Callable[[str], str], ...] = ()
 
-    @model_validator(mode="after")
-    def _build_pipeline(self) -> Self:
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        self._pipeline = self._build_pipeline()
+
+    def _build_pipeline(self) -> tuple[Callable[[str], str], ...]:
         """Evaluates configurations once and builds a linear regex execution pipeline."""
         steps: list[Callable[[str], str]] = []
 
@@ -60,8 +65,7 @@ class TextCleaner(Cleaner):
         if self.lowercase:
             steps.append(lambda x: x.lower())
 
-        object.__setattr__(self, "_pipeline", tuple(steps))
-        return self
+        return tuple(steps)
 
     @override
     def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:

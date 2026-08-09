@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable, Iterator, Mapping
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
-from dataclean.types import StrictBaseModel
+from dataclean.types import checked
 
 
 class DataType(StrEnum):
@@ -14,13 +15,17 @@ class DataType(StrEnum):
     DOUBLE = "double"
 
 
-class DataReader(StrictBaseModel):
+@checked
+@dataclass
+class DataReader:
     # Accept any callable shape; engines will validate at runtime
     fn: Callable[..., None]
     cols: tuple[str, ...]
 
 
-class DataWriter(StrictBaseModel):
+@checked
+@dataclass
+class DataWriter:
     expr: (
         Callable[
             ...,
@@ -42,7 +47,9 @@ class DataWriter(StrictBaseModel):
     write_cols: tuple[tuple[str, DataType], ...]
 
 
-class DataFrame(StrictBaseModel, ABC):
+@checked
+@dataclass
+class DataFrame(ABC):
     # Optional reference to the underlying raw dataframe for engine adapters and tests
     df: Any | None = None
 

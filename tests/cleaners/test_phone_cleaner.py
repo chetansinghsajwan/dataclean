@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from dataclean.cleaners.phone_cleaner import PhoneCleaner
+from dataclean.engine.dataframe import DataFrame
 
 # ==============================================================================
 # 1. CORE PROPERTIES & HEURISTICS
@@ -29,7 +30,7 @@ def test_phone_cleaner_metadata():
 )
 def test_phone_cleaner_confidence(col_name, expected_confidence):
     cleaner = PhoneCleaner()
-    mock_df = MagicMock()
+    mock_df = MagicMock(spec=DataFrame)
     assert cleaner.match_score(mock_df, (col_name,)) == expected_confidence
 
 

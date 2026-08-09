@@ -1,15 +1,18 @@
 import re
 from collections.abc import Iterable
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import override
 
 from dataclean.engine.dataframe import DataFrame, DataType
-from dataclean.types import StrictBaseModel
+from dataclean.types import checked
 
 from .cleaner import Cleaner
 
 
 # TODO: Need to add functionality to parse display name
+@checked
+@dataclass
 class EmailCleaner(Cleaner):
     class OutputFormat(StrEnum):
         FULL = "full"
@@ -22,7 +25,9 @@ class EmailCleaner(Cleaner):
 
     _EMAIL_REGEX = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
 
-    class EmailComponents(StrictBaseModel):
+    @checked
+    @dataclass
+    class EmailComponents:
         local: str
         tag: str | None
         domain: str

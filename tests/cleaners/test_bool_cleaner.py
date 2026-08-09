@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from dataclean.cleaners.bool_cleaner import BoolCleaner
+from dataclean.engine.dataframe import DataFrame
 
 # ==============================================================================
 # 1. CORE METADATA & DATA TYPE HEURISTICS
@@ -31,7 +32,7 @@ def test_boolean_cleaner_metadata():
 )
 def test_boolean_cleaner_confidence(col_name, expected_confidence):
     cleaner = BoolCleaner()
-    mock_df = MagicMock()
+    mock_df = MagicMock(spec=DataFrame)
     assert cleaner.match_score(mock_df, (col_name,)) == expected_confidence
 
 

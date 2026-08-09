@@ -1,13 +1,17 @@
 import re
 from collections.abc import Iterable
+from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
 from enum import StrEnum
 from typing import override
 
 from dataclean.cleaners.cleaner import Cleaner
 from dataclean.engine.dataframe import DataFrame, DataReader, DataType
+from dataclean.types import checked
 
 
+@checked
+@dataclass
 class NumericCleaner(Cleaner):
     class Format(StrEnum):
         INT = "int"  # Casts the cleaned value to a strict Python integer
