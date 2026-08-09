@@ -40,12 +40,12 @@ class DependencyResolver:
         resolved_context: dict[int, dict[str, str]] = defaultdict(dict)
         for index, assignment in enumerate(assignment_list):
             consumer_column = assignment.role_columns.get(PRIMARY)
-            for role in assignment.cleaner.resolved_input_roles:
-                if role.key == PRIMARY or role.key in assignment.role_columns:
+            for col in assignment.cleaner.inputs.cols:
+                if col.key == PRIMARY or col.key in assignment.role_columns:
                     continue
                 producer_index = self._resolve_producer(
-                    role.key,
-                    role.required,
+                    col.key,
+                    col.required,
                     consumer_column,
                     producers,
                     assignment_list,
@@ -54,8 +54,8 @@ class DependencyResolver:
                 if producer_index is None:
                     continue
                 dependencies[index].add(producer_index)
-                resolved_context[index][role.key] = self._output_column(
-                    assignment_list[producer_index], role.key
+                resolved_context[index][col.key] = self._output_column(
+                    assignment_list[producer_index], col.key
                 )
 
         resolved_assignments = tuple(

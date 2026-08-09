@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 from dataclean.cleaners.address_cleaner import AddressCleaner
-from dataclean.cleaners.cleaner import Cleaner, ColumnRole
+from dataclean.cleaners.cleaner import Cleaner
 from dataclean.cleaners.country_cleaner import CountryCleaner
 from dataclean.cleaners.phone_cleaner import PhoneCleaner
 from dataclean.col_renamer import ColRenamer
@@ -19,7 +19,7 @@ from dataclean.pipeline.entity_extractor import EntityExtractor
 
 def test_cleaner_infers_primary_role() -> None:
     cleaner = CountryCleaner()
-    assert cleaner.resolved_input_roles == (ColumnRole(key="value"),)
+    assert cleaner.inputs.cols == (Cleaner.InputSchema.Column(key="value"),)
 
 
 def test_cleaner_name_includes_configured_tags() -> None:
@@ -29,8 +29,8 @@ def test_cleaner_name_includes_configured_tags() -> None:
 
 def test_explicit_roles_must_match_clean_row_signature() -> None:
     class InvalidCleaner(Cleaner):
-        def input_roles(self) -> tuple[ColumnRole, ...]:
-            return (ColumnRole(key="wrong"),)
+        def _inputs(self) -> Cleaner.InputSchema:
+            return Cleaner.InputSchema(cols=(Cleaner.InputSchema.Column(key="wrong"),))
 
         def clean_row(self, v: str) -> str:  # type: ignore
             return v
