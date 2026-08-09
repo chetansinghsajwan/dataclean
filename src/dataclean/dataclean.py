@@ -128,26 +128,32 @@ def clean(
 
         writers = []
         for col, cleaner in col_cleaner_map.items():
-            schema = cleaner.output_schema()
+            outputs = cleaner.outputs
+            cols = outputs.cols if outputs is not None else ()
 
-            if not isinstance(schema, tuple):
+            # Single-column output (default)
+            if len(cols) == 1:
+                dtype = cols[0].dtype
                 writers.append(
                     DataWriter(
                         expr=cleaner.clean_row,
                         read_cols=(col,),
-                        write_cols=((f"{col}_cleaned", schema),),
+                        write_cols=((f"{col}_cleaned", dtype),),
                     )
                 )
                 continue
+
+            # Multi-column outputs
+            write_cols = []
+            for i, outcol in enumerate(cols):
+                name = outcol.name or f"{col}_{i}"
+                write_cols.append((f"{col}_{name}_cleaned", outcol.dtype))
 
             writers.append(
                 DataWriter(
                     expr=cleaner.clean_row,
                     read_cols=(col,),
-                    write_cols=tuple(
-                        (f"{col}_{comp}_cleaned", data_type)
-                        for comp, data_type in schema
-                    ),
+                    write_cols=tuple(write_cols),
                 )
             )
 

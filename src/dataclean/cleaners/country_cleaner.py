@@ -6,7 +6,7 @@ from typing import ClassVar, override
 import pycountry
 
 from dataclean.cleaners.cleaner import Cleaner
-from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean.engine.dataframe import DataFrame
 from dataclean.types import checked
 
 
@@ -53,12 +53,14 @@ class CountryCleaner(Cleaner):
     # ---------------------------------------------------------------------------
 
     @override
-    def provided_roles(self) -> tuple[str, ...]:
-        return ("country",)
-
-    @override
-    def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        return DataType.STR
+    def _outputs(self) -> Cleaner.OutputSchema:
+        return Cleaner.OutputSchema(
+            cols=(
+                Cleaner.OutputSchema.Column(
+                    roles=("country",),
+                ),
+            )
+        )
 
     @override
     @checked

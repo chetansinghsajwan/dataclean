@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import ClassVar, override
 
 from dataclean.cleaners.cleaner import Cleaner
-from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean.engine.dataframe import DataFrame
 from dataclean.types import checked
 
 
@@ -66,10 +66,6 @@ class TextCleaner(Cleaner):
             steps.append(lambda x: x.lower())
 
         return tuple(steps)
-
-    @override
-    def output_schema(self) -> DataType | tuple[tuple[str, DataType], ...]:
-        return DataType.STR
 
     @override
     def clean_row(self, v: str) -> str | None:  # type: ignore
