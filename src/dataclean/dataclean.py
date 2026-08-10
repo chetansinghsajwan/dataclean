@@ -6,7 +6,7 @@ from dataclean.cleaners.cleaner import Cleaner
 from dataclean.col_renamer import ColRenamer
 from dataclean.config import config
 from dataclean.engine.dataframe import DataFrame, DataWriter
-from dataclean.types import beartype
+from dataclean.types import checked
 
 
 def get_cleaner(df: DataFrame, cols: Iterable[str]) -> tuple[Cleaner | None, float]:
@@ -41,7 +41,7 @@ def _wrap_df(df: Any) -> DataFrame | None:
     return None
 
 
-@beartype
+@checked
 def clean(
     df: DataFrame | Any,
     rename_cols: bool = True,

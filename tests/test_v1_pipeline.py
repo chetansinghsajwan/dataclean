@@ -4,13 +4,13 @@ from typing import cast
 
 import pandas as pd
 import pytest
+from dataclean_pandas import PandasDataFrame
 
 from dataclean.cleaners.address_cleaner import AddressCleaner
 from dataclean.cleaners.cleaner import Cleaner
 from dataclean.cleaners.country_cleaner import CountryCleaner
 from dataclean.cleaners.phone_cleaner import PhoneCleaner
 from dataclean.col_renamer import ColRenamer
-from dataclean.engine.pandas import PandasDataFrame
 from dataclean.pipeline import Assignment, Pipeline
 from dataclean.pipeline.cleaner_resolver import Resolver
 from dataclean.pipeline.dependency_resolver import DependencyResolver

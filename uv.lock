@@ -55,8 +55,15 @@ dependencies = [
     { name = "zstandard" },
 ]
 
+[package.optional-dependencies]
+test-contracts = [
+    { name = "pytest" },
+]
+
 [package.dev-dependencies]
 dev = [
+    { name = "dataclean-pandas" },
+    { name = "dataclean-pyspark" },
     { name = "mike" },
     { name = "mkdocs" },
     { name = "mkdocs-autoapi" },
@@ -75,18 +82,32 @@ requires-dist = [
     { name = "pyarrow", specifier = ">=24.0.0" },
     { name = "pycountry", specifier = ">=26.2.16" },
     { name = "pyspark", specifier = ">=4.1.2" },
+    { name = "pytest", marker = "extra == 'test-contracts'", specifier = ">=9.0.3" },
     { name = "wordninja", specifier = ">=2.0.0" },
     { name = "zstandard", specifier = ">=0.25.0" },
 ]
+provides-extras = ["test-contracts"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "dataclean-pandas", editable = "plugins/dataclean-pandas" },
+    { name = "dataclean-pyspark", editable = "plugins/dataclean-pyspark" },
     { name = "mike", specifier = ">=2.2.0" },
     { name = "mkdocs", specifier = ">=1.5.0,<2.0.0" },
     { name = "mkdocs-autoapi", specifier = ">=0.4.1" },
     { name = "mkdocstrings", extras = ["python"], specifier = ">=0.24.0" },
     { name = "pytest", specifier = ">=9.0.3" },
 ]
+
+[[package]]
+name = "dataclean-pandas"
+version = "0.1.0"
+source = { editable = "plugins/dataclean-pandas" }
+
+[[package]]
+name = "dataclean-pyspark"
+version = "0.1.0"
+source = { editable = "plugins/dataclean-pyspark" }
 
 [[package]]
 name = "ghp-import"
