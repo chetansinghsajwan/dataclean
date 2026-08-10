@@ -7,7 +7,13 @@ authors = [
     { name = "Chetan Singh Sajwan", email = "76040441+chetansinghsajwan@users.noreply.github.com" },
 ]
 requires-python = ">=3.12.13"
-dependencies = []
+dependencies = [
+    "pyspark>=4.2.0",
+    "pyarrow>=24.0.0",
+    "grpcio>=1.81.0",
+    "grpcio-status>=1.81.0",
+    "zstandard>=0.25.0",
+]
 
 [build-system]
 requires = ["uv_build>=0.11.25,<0.12.0"]

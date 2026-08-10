@@ -4,13 +4,10 @@
     "editor.rulers": [100],
 
     "customLocalFormatters.formatters": [
-        { "command": "task fmt:python:stdio", "languages": ["python"] },
+        { "command": "task fmt:py:stdio", "languages": ["python"] },
         { "command": "task fmt:toml:stdio", "languages": ["toml"] },
         { "command": "task fmt:json:stdio", "languages": ["json", "jsonc"] },
-        {
-            "command": "task fmt:shellscript:stdio",
-            "languages": ["shellscript"],
-        },
+        { "command": "task fmt:sh:stdio", "languages": ["shellscript"] },
         { "command": "task fmt:markdown:stdio", "languages": ["markdown"] },
         { "command": "task fmt:yaml:stdio", "languages": ["yaml"] },
         { "command": "task fmt:nix:stdio", "languages": ["nix"] },
@@ -43,4 +40,6 @@
     "[nix]": {
         "editor.defaultFormatter": "jkillian.custom-local-formatters",
     },
+    "jupyter.interactiveWindow.cellMarker.codeRegex": "^# COMMAND ----------|^# Databricks notebook source|^(#\\s*%%|#\\s*\\<codecell\\>|#\\s*In\\[\\d*?\\]|#\\s*In\\[ \\])",
+    "jupyter.interactiveWindow.cellMarker.default": "# COMMAND ----------",
 }
