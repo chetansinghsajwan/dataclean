@@ -7,8 +7,6 @@ from dataclean.cleaners.cleaner import Cleaner
 from dataclean.col_renamer import ColRenamer
 from dataclean.config import config
 from dataclean.engine.dataframe import DataFrame, DataWriter
-from dataclean.engine.pandas import PandasDataFrame
-from dataclean.engine.pyspark import PySparkDataFrame
 from dataclean.pipeline.assignments import Assignment
 from dataclean.pipeline.cleaner_resolver import Resolver
 from dataclean.pipeline.dependency_resolver import DependencyResolver
@@ -62,13 +60,6 @@ class Pipeline:
             if api.supports(df):
                 # API classes are expected to be callables that construct a wrapper when given df=df
                 return api(df=df)
-
-        # Fallback to built-in adapters so callers don't need to register them manually
-        # (convenience for common engines like pandas/pyspark).
-        if PandasDataFrame.supports(df):
-            return PandasDataFrame(df=df)
-        if PySparkDataFrame.supports(df):
-            return PySparkDataFrame(df=df)
 
         raise TypeError(f"Unsupported dataframe type: {type(df)}")
 

@@ -5,7 +5,6 @@ from typing import Any, override
 import numpy as np
 import pandas as pd
 
-from dataclean.config import register_dataframe_api
 from dataclean.engine.dataframe import DataFrame, DataReader, DataType, DataWriter
 from dataclean.types import checked
 
@@ -146,6 +145,3 @@ class PandasDataFrame(DataFrame):
         elif "bool" in dtype_str:
             return DataType.BOOL
         return DataType.STR
-
-
-register_dataframe_api(PandasDataFrame)
