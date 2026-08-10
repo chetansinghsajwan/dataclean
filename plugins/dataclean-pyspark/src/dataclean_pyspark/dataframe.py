@@ -4,14 +4,12 @@ from typing import Any, cast, override
 
 import pandas as pd
 import pyspark.sql as sp
-import pyspark.sql.connect.dataframe as spc
 import pyspark.sql.functions as spf
 import pyspark.sql.types as spt
 
 from dataclean.engine.dataframe import DataFrame, DataReader, DataType, DataWriter
 from dataclean.types import checked
-
-SparkDataFrame = sp.DataFrame | spc.DataFrame
+from dataclean_pyspark.types import SparkDataFrame
 
 
 @checked
