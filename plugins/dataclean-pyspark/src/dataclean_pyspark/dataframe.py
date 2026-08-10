@@ -8,7 +8,6 @@ import pyspark.sql.connect.dataframe as spc
 import pyspark.sql.functions as spf
 import pyspark.sql.types as spt
 
-from dataclean.config import register_dataframe_api
 from dataclean.engine.dataframe import DataFrame, DataReader, DataType, DataWriter
 from dataclean.types import checked
 
@@ -235,6 +234,3 @@ class PySparkDataFrame(DataFrame):
             return DataType.DOUBLE
 
         return DataType.STR
-
-
-register_dataframe_api(PySparkDataFrame)
