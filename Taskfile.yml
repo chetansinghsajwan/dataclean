@@ -367,16 +367,13 @@ tasks:
         desc: Run the test suite
         cmds:
             - uv run pytest tests/
+            - task: test:pandas
+            - task: test:pyspark
 
     test:cleaners:
         desc: Run tests for the cleaners
         cmds:
             - uv run pytest tests/cleaners/
-
-    test:engines:
-        desc: Run tests for the engines
-        cmds:
-            - uv run pytest tests/engine/
 
     test:phone:
         desc: Run tests for the phone cleaner
@@ -426,9 +423,9 @@ tasks:
     test:pandas:
         desc: Run tests for the pandas engine
         cmds:
-            - uv run pytest tests/engine/test_pandas.py
+            - uv run pytest plugins/dataclean-pandas/tests/
 
     test:pyspark:
         desc: Run tests for the pyspark engine
         cmds:
-            - uv run pytest tests/engine/test_pyspark.py
+            - uv run pytest plugins/dataclean-pyspark/tests/
