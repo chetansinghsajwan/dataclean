@@ -1,10 +1,8 @@
-from typing import Any
-
 import pandas as pd
 import pytest
-from dataframe import RAW_TEST_DATA, BaseDataFrameTests
+from dataclean_pandas.dataframe import PandasDataFrame
 
-from dataclean.engine.pandas import PandasDataFrame
+from dataclean.testing.engine_contracts import RAW_TEST_DATA, BaseDataFrameTests
 
 
 class TestPandasDataFrame(BaseDataFrameTests):
@@ -13,6 +11,6 @@ class TestPandasDataFrame(BaseDataFrameTests):
     """
 
     @pytest.fixture(autouse=True)
-    def wrapper(self) -> Any:
+    def wrapper(self) -> PandasDataFrame:
         pd_df = pd.DataFrame(RAW_TEST_DATA)
         return PandasDataFrame(df=pd_df)

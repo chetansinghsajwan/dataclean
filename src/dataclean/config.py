@@ -47,3 +47,14 @@ def register_dataframe_api(api: Any) -> None:
     """
     if api not in config.dataframe_apis:
         config.dataframe_apis.append(api)
+
+
+def register_cleaner_api(api: Any) -> None:
+    """Register a cleaner API adapter globally.
+
+    Engines should call this at import time to make themselves available to
+    consumers without requiring manual registration. Duplicate registrations
+    are ignored.
+    """
+    if api not in config.cleaners:
+        config.cleaners.append(api)

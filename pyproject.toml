@@ -18,6 +18,9 @@ dependencies = [
     "beartype>=0.22.9",
 ]
 
+[project.optional-dependencies]
+test-contracts = ["pytest>=9.0.3"]
+
 [dependency-groups]
 dev = [
     "mike>=2.2.0",
@@ -25,7 +28,13 @@ dev = [
     "mkdocs-autoapi>=0.4.1",
     "mkdocstrings[python]>=0.24.0",
     "pytest>=9.0.3",
+    "dataclean-pyspark",
+    "dataclean-pandas",
 ]
+
+[tool.uv.sources]
+dataclean-pyspark = { path = "plugins/dataclean-pyspark", editable = true }
+dataclean-pandas = { path = "plugins/dataclean-pandas", editable = true }
 
 [build-system]
 requires = ["uv_build>=0.11.18,<0.12.0"]

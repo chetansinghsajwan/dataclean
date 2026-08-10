@@ -2,10 +2,10 @@ from collections.abc import Generator
 
 import pandas as pd
 import pytest
-from dataframe import RAW_TEST_DATA, BaseDataFrameTests
+from dataclean_pyspark.dataframe import PySparkDataFrame
 from pyspark.sql import SparkSession
 
-from dataclean.engine.pyspark import PySparkDataFrame
+from dataclean.testing.engine_contracts import RAW_TEST_DATA, BaseDataFrameTests
 
 
 @pytest.fixture(scope="session")
