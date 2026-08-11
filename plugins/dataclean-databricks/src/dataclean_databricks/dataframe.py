@@ -9,12 +9,12 @@ import pyspark.sql.types as spt
 
 from dataclean.engine.dataframe import DataFrame, DataReader, DataType, DataWriter
 from dataclean.types import checked
-from dataclean_pyspark.types import SparkDataFrame
+from dataclean_databricks.types import SparkDataFrame
 
 
 @checked
 @dataclass
-class PySparkDataFrame(DataFrame):
+class PysparkDataFrame(DataFrame):
     df: SparkDataFrame
     _cols: tuple[tuple[str, DataType], ...] = ()
 
