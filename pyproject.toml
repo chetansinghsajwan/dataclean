@@ -21,12 +21,12 @@ dev = [
     "mkdocs-autoapi>=0.4.1",
     "mkdocstrings[python]>=0.24.0",
     "pytest>=9.0.3",
-    "dataclean-pyspark",
+    "dataclean-databricks",
     "dataclean-pandas",
 ]
 
 [tool.uv.sources]
-dataclean-pyspark = { path = "plugins/dataclean-pyspark", editable = true }
+dataclean-databricks = { path = "plugins/dataclean-databricks", editable = true }
 dataclean-pandas = { path = "plugins/dataclean-pandas", editable = true }
 
 [build-system]

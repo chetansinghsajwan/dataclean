@@ -56,7 +56,7 @@ test-contracts = [
 [package.dev-dependencies]
 dev = [
     { name = "dataclean-pandas" },
-    { name = "dataclean-pyspark" },
+    { name = "dataclean-databricks" },
     { name = "mike" },
     { name = "mkdocs" },
     { name = "mkdocs-autoapi" },
@@ -77,7 +77,7 @@ provides-extras = ["test-contracts"]
 [package.metadata.requires-dev]
 dev = [
     { name = "dataclean-pandas", editable = "plugins/dataclean-pandas" },
-    { name = "dataclean-pyspark", editable = "plugins/dataclean-pyspark" },
+    { name = "dataclean-databricks", editable = "plugins/dataclean-databricks" },
     { name = "mike", specifier = ">=2.2.0" },
     { name = "mkdocs", specifier = ">=1.5.0,<2.0.0" },
     { name = "mkdocs-autoapi", specifier = ">=0.4.1" },
@@ -101,9 +101,9 @@ requires-dist = [
 ]
 
 [[package]]
-name = "dataclean-pyspark"
+name = "dataclean-databricks"
 version = "0.1.0"
-source = { editable = "plugins/dataclean-pyspark" }
+source = { editable = "plugins/dataclean-databricks" }
 dependencies = [
     { name = "grpcio" },
     { name = "grpcio-status" },
