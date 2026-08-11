@@ -1,21 +1,21 @@
 import fnmatch
-import subprocess
+import os
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Self, override
 
-import pyspark.sql.session
+from databricks.connect import DatabricksSession
 
 from dataclean.engine.catalog import Catalog
 from dataclean.engine.dataframe import DataFrame
 from dataclean.types import checked
-from dataclean_pyspark.dataframe import PySparkDataFrame
-from dataclean_pyspark.types import SparkSession
+from dataclean_databricks.dataframe import PysparkDataFrame
+from dataclean_databricks.types import SparkSession
 
 
 @checked
 @dataclass
-class PySparkCatalog(Catalog):
+class UnityCatalog(Catalog):
     spark: SparkSession
     write_options: dict[str, str] = field(default_factory=dict)
 
@@ -23,22 +23,22 @@ class PySparkCatalog(Catalog):
     @override
     def supports_env(cls) -> bool:
 
-        try:
-            subprocess.run(
-                ["java", "-version"], capture_output=True, timeout=5, check=True
-            )
+        if os.environ.get("DATABRICKS_RUNTIME_VERSION") is not None:
             return True
-        except (
-            FileNotFoundError,
-            subprocess.CalledProcessError,
-            subprocess.TimeoutExpired,
+
+        if (
+            os.environ.get("DATABRICKS_HOST") is not None
+            and os.environ.get("DATABRICKS_TOKEN") is not None
+            and os.environ.get("DATABRICKS_CLUSTER_ID") is not None
         ):
-            return False
+            return True
+
+        return False
 
     @classmethod
     @override
     def instantiate(cls) -> Self | None:
-        spark = pyspark.sql.session.SparkSession.builder.getOrCreate()
+        spark = DatabricksSession.builder.getOrCreate()
         return cls(spark=spark)
 
     @override
@@ -46,13 +46,13 @@ class PySparkCatalog(Catalog):
         return self._expand_paths(paths=paths, spark=self.spark)
 
     @override
-    def read_df(self, path: str) -> PySparkDataFrame:
+    def read_df(self, path: str) -> PysparkDataFrame:
         sdf = self.spark.read.table(path)
-        return PySparkDataFrame(df=sdf)
+        return PysparkDataFrame(df=sdf)
 
     @override
     def write_df(self, df: DataFrame, path: str) -> None:
-        assert isinstance(df, PySparkDataFrame)
+        assert isinstance(df, PysparkDataFrame)
 
         df.df.write.options(**self.write_options).saveAsTable(path)
 
@@ -188,7 +188,7 @@ class PySparkCatalog(Catalog):
 
         # 1. BATCH PRE-FETCH: Resolve ALL source patterns simultaneously in exactly one network round-trip
         all_src_patterns = list(paths.keys())
-        all_expanded_sources = PySparkCatalog._expand_paths(
+        all_expanded_sources = UnityCatalog._expand_paths(
             paths=all_src_patterns, spark=spark
         )
 
@@ -223,7 +223,7 @@ class PySparkCatalog(Catalog):
 
             # Route matching components into the isolated, encapsulated private transformer function
             dest_pattern = paths[matched_src_pattern]
-            unified_tables_map[src_table] = PySparkCatalog._expand_path_to(
+            unified_tables_map[src_table] = UnityCatalog._expand_path_to(
                 src_table, dest_pattern
             )
 
