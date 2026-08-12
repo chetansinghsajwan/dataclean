@@ -425,6 +425,11 @@ tasks:
         cmds:
             - uv run pytest tests/cleaners/test_uuid_cleaner.py
 
+    test:paths:
+        desc: Run tests for the paths
+        cmds:
+            - uv run pytest tests/test_paths.py
+
     test:pandas:
         desc: Run tests for the pandas engine
         cmds:
