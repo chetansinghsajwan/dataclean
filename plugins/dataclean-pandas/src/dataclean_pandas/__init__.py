@@ -1,4 +1,4 @@
-from dataclean.plugins.info import PluginInfo
+from dataclean import PluginInfo
 from dataclean_pandas.catalog import PandasCatalog
 from dataclean_pandas.dataframe import PandasDataFrame
 

@@ -1,11 +1,24 @@
 """dataclean - Data cleaning library with automatic column detection."""
 
+from dataclean.engine import (
+    Catalog,
+    CatalogPriority,
+    DataFrame,
+    DataReader,
+    DataType,
+    DataWriter,
+)
 from dataclean.pipeline import Pipeline
-from dataclean.pipeline.catalog import Catalog, DefaultCatalog
+from dataclean.pipeline.catalog import (
+    Catalog as PipelineCatalog,
+    DefaultCatalog as PipelineDefaultCatalog,
+)
 from dataclean.pipeline.exceptions import (
     DatacleanError,
     PipelineConfigError,
 )
+from dataclean.plugins import PluginInfo, PluginLoader
+from dataclean.types import checked
 
 __version__ = "1.0.0"
 
@@ -22,7 +35,7 @@ __all__ = [
 def clean(
     df,
     auto_detect: bool = True,
-    catalog: Catalog | None = None,
+    catalog: PipelineCatalog | None = None,
 ):
     """
     Clean a dataframe with automatic cleaner detection.
@@ -42,7 +55,7 @@ def clean(
         >>> cleaned = clean(df)
     """
     if catalog is None:
-        catalog = DefaultCatalog()
+        catalog = PipelineDefaultCatalog()
 
     pipeline = Pipeline(
         cleaners=catalog.get_cleaners(),
