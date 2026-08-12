@@ -3,9 +3,10 @@
 import logging
 from collections.abc import Mapping, Sequence
 
-from dataclean.cleaners.cleaner import PRIMARY, Cleaner, ColumnRole
-from dataclean.engine.dataframe import DataFrame
-from dataclean.pipeline.assignments import Assignment
+from dataclean.cleaners import PRIMARY, Cleaner, ColumnRole
+from dataclean.engine import DataFrame
+
+from .assignments import Assignment
 
 logger = logging.getLogger(__name__)
 

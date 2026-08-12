@@ -1,1 +1,1 @@
-from dataclean.utils.noop_logger import NoopLogger, noop_logger
+from .debug import _log_args

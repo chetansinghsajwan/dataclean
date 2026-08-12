@@ -1,2 +1,2 @@
-from dataclean.plugins.info import PluginInfo
-from dataclean.plugins.loader import PluginLoader
+from .info import PluginInfo
+from .loader import PluginLoader

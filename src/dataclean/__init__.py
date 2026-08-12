@@ -1,6 +1,23 @@
 """dataclean - Data cleaning library with automatic column detection."""
 
-from dataclean.engine import (
+from .clean import clean
+from .cleaners import (
+    PRIMARY,
+    AddressCleaner,
+    BoolCleaner,
+    Cleaner,
+    ColumnRole,
+    CountryCleaner,
+    DateTimeCleaner,
+    EmailCleaner,
+    GenderCleaner,
+    NumericCleaner,
+    PhoneCleaner,
+    TextCleaner,
+    UuidCleaner,
+)
+from .config import config
+from .engine import (
     Catalog,
     CatalogPriority,
     DataFrame,
@@ -8,57 +25,13 @@ from dataclean.engine import (
     DataType,
     DataWriter,
 )
-from dataclean.pipeline import Pipeline
-from dataclean.pipeline.catalog import (
-    Catalog as PipelineCatalog,
-    DefaultCatalog as PipelineDefaultCatalog,
-)
-from dataclean.pipeline.exceptions import (
+from .logs import LogLevel
+from .pipeline import Pipeline
+from .pipeline.exceptions import (
     DatacleanError,
     PipelineConfigError,
 )
-from dataclean.plugins import PluginInfo, PluginLoader
-from dataclean.types import checked
+from .plugins import PluginInfo, PluginLoader
+from .types import checked
 
 __version__ = "1.0.0"
-
-__all__ = [
-    "Pipeline",
-    "Catalog",
-    "DefaultCatalog",
-    "DatacleanError",
-    "PipelineConfigError",
-    "clean",
-]
-
-
-def clean(
-    df,
-    auto_detect: bool = True,
-    catalog: PipelineCatalog | None = None,
-):
-    """
-    Clean a dataframe with automatic cleaner detection.
-
-    Args:
-        df: DataFrame to clean (pandas, pyspark, or DataFrame-compatible).
-        auto_detect: If True, auto-detect cleaners for columns.
-        catalog: Catalog to use for cleaner registration (defaults to DefaultCatalog).
-
-    Returns:
-        Cleaned DataFrame.
-
-    Example:
-        >>> import pandas as pd
-        >>> from dataclean import clean
-        >>> df = pd.DataFrame({"email": ["john.doe@example.com"]})
-        >>> cleaned = clean(df)
-    """
-    if catalog is None:
-        catalog = PipelineDefaultCatalog()
-
-    pipeline = Pipeline(
-        cleaners=catalog.get_cleaners(),
-        auto_detect=auto_detect,
-    )
-    return pipeline.fit_transform(df)

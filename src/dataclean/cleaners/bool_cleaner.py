@@ -3,9 +3,10 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import ClassVar, override
 
-from dataclean.cleaners.cleaner import Cleaner
-from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean.engine import DataFrame, DataType
 from dataclean.types import checked
+
+from .cleaner import Cleaner
 
 
 @checked

@@ -3,14 +3,15 @@
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from dataclean.cleaners.cleaner import Cleaner
+from dataclean.cleaners import Cleaner
 from dataclean.col_renamer import ColRenamer
 from dataclean.config import config
-from dataclean.engine.dataframe import DataFrame, DataWriter
-from dataclean.pipeline.assignments import Assignment
-from dataclean.pipeline.cleaner_resolver import Resolver
-from dataclean.pipeline.dependency_resolver import DependencyResolver
-from dataclean.pipeline.entity_extractor import EntityExtractor
+from dataclean.engine import DataFrame, DataWriter
+
+from .assignments import Assignment
+from .cleaner_resolver import Resolver
+from .dependency_resolver import DependencyResolver
+from .entity_extractor import EntityExtractor
 
 PRIMARY = "value"
 

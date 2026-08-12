@@ -4,8 +4,9 @@ from dataclasses import dataclass
 from enum import IntEnum
 from typing import ClassVar, Self
 
-from dataclean.engine.dataframe import DataFrame
 from dataclean.types import checked
+
+from .dataframe import DataFrame
 
 
 @checked

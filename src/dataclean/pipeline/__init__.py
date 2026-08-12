@@ -1,8 +1,12 @@
 """Pipeline module for orchestrating data cleaning."""
 
-from dataclean.pipeline.assignments import Assignment, ExecutionPlan
-from dataclean.pipeline.entity_extractor import EntityExtractor
-from dataclean.pipeline.exceptions import (
+from .assignments import Assignment, ExecutionPlan
+from .catalog import (
+    Catalog as PipelineCatalog,
+    DefaultCatalog as PipelineDefaultCatalog,
+)
+from .entity_extractor import EntityExtractor
+from .exceptions import (
     AmbiguousRoleError,
     CycleDetectedError,
     DatacleanError,
@@ -10,17 +14,4 @@ from dataclean.pipeline.exceptions import (
     MissingRequiredRoleError,
     PipelineConfigError,
 )
-from dataclean.pipeline.pipeline import Pipeline
-
-__all__ = [
-    "Assignment",
-    "ExecutionPlan",
-    "EntityExtractor",
-    "DatacleanError",
-    "PipelineConfigError",
-    "DependencyResolutionError",
-    "CycleDetectedError",
-    "MissingRequiredRoleError",
-    "AmbiguousRoleError",
-    "Pipeline",
-]
+from .pipeline import Pipeline
