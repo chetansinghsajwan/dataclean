@@ -56,7 +56,7 @@ class Config:
         else:
             logger = logs.default_logger_provider(name)
 
-        logger.setLevel(self.log_level)
+        logger.setLevel(self.log_level.value)
 
         if self.log_format is not None:
             formatter = logging.Formatter(self.log_format)
