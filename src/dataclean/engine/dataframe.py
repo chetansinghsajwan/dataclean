@@ -14,6 +14,9 @@ class DataType(StrEnum):
     FLOAT = "float"
     DOUBLE = "double"
 
+    def __repr__(self):
+        return str(self.value)
+
 
 @checked
 @dataclass

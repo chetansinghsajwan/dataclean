@@ -5,9 +5,10 @@ from typing import ClassVar, override
 
 import pycountry
 
-from dataclean.cleaners.cleaner import Cleaner
-from dataclean.engine.dataframe import DataFrame
+from dataclean.engine import DataFrame
 from dataclean.types import checked
+
+from .cleaner import Cleaner
 
 
 @checked

@@ -82,7 +82,7 @@ class PandasDataFrame(DataFrame):
                     unpacked_df = pd.DataFrame(
                         list(computed_series),
                         index=self.df.index,
-                        columns=dest_col_names,
+                        columns=pd.Index(dest_col_names),
                     )
                     for col_name in dest_col_names:
                         self.df[col_name] = unpacked_df[col_name]
