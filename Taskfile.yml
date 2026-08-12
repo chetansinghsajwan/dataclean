@@ -428,4 +428,4 @@ tasks:
     test:pyspark:
         desc: Run tests for the pyspark engine
         cmds:
-            - uv run pytest plugins/dataclean-pyspark/tests/
+            - uv run pytest plugins/dataclean-databricks/tests/

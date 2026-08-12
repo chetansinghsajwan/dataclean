@@ -2,7 +2,7 @@ from collections.abc import Generator
 
 import pandas as pd
 import pytest
-from dataclean_pyspark.dataframe import PySparkDataFrame
+from dataclean_databricks.dataframe import PysparkDataFrame
 from pyspark.sql import SparkSession
 
 from dataclean.testing.engine_contracts import RAW_TEST_DATA, BaseDataFrameTests
@@ -21,12 +21,12 @@ def spark() -> Generator[SparkSession, None, None]:
     session.stop()
 
 
-class TestPySparkDataFrame(BaseDataFrameTests):
+class TestDatabricksDataFrame(BaseDataFrameTests):
     """
-    Invokes the entire reusable test suite specifically for PySpark.
+    Invokes the entire reusable test suite specifically for Databricks.
     """
 
     @pytest.fixture(autouse=True)
-    def wrapper(self, spark: SparkSession) -> PySparkDataFrame:
+    def wrapper(self, spark: SparkSession) -> PysparkDataFrame:
         sp_df = spark.createDataFrame(pd.DataFrame(RAW_TEST_DATA))
-        return PySparkDataFrame(df=sp_df)
+        return PysparkDataFrame(df=sp_df)
