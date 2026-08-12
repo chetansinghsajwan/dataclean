@@ -2,6 +2,7 @@ from collections.abc import Generator
 
 import pandas as pd
 import pytest
+from databricks.connect import DatabricksEnv, DatabricksSession
 from dataclean_databricks import PysparkDataFrame
 from pyspark.sql import SparkSession
 
@@ -10,12 +11,8 @@ from dataclean.testing import RAW_TEST_DATA, BaseDataFrameTests
 
 @pytest.fixture(scope="session")
 def spark() -> Generator[SparkSession, None, None]:
-    session = (
-        SparkSession.builder.master("local[2]")
-        .appName("WrapperTesting")
-        .config("spark.sql.execution.arrow.pyspark.enabled", "true")
-        .getOrCreate()
-    )
+    spark_env = DatabricksEnv().withAutoDependencies(upload_local=True)
+    session = DatabricksSession.builder.withEnvironment(spark_env).getOrCreate()
 
     yield session
     session.stop()

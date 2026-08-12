@@ -42,12 +42,12 @@ def map_path(path: str, to: str, sep: str) -> str:
     return sep.join(result)
 
 
-def map_paths(paths: Iterable[str], to: str) -> list[str]:
+def map_paths(paths: Iterable[str], to: str) -> dict[str, str]:
     if "/" in to:
         sep = "/"
     elif "." in to:
         sep = "."
     else:
-        return [to for _ in paths]
+        return dict.fromkeys(paths, to)
 
-    return [map_path(path, to, sep) for path in paths]
+    return {path: map_path(path, to, sep) for path in paths}

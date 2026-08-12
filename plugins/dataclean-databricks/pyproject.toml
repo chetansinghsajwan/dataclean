@@ -7,7 +7,7 @@ authors = [
     { name = "Chetan Singh Sajwan", email = "76040441+chetansinghsajwan@users.noreply.github.com" },
 ]
 requires-python = ">=3.12.13"
-dependencies = ["databricks-connect==18"]
+dependencies = ["databricks-connect==18.3.0"]
 
 [build-system]
 requires = ["uv_build>=0.11.25,<0.12.0"]

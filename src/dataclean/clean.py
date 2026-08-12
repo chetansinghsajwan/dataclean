@@ -1,8 +1,29 @@
+import logging
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
+
+from dataclean.col_renamer import ColRenamer
+from dataclean.config import config
+from dataclean.engine import Catalog, DataFrame
+from dataclean.types import checked
+from dataclean.utils.paths import map_paths
+
 from .pipeline import (
     Pipeline,
     PipelineCatalog,
     PipelineDefaultCatalog,
 )
+from .utils import _log_args
+
+
+def _catalog_name(catalog: Catalog | type[Catalog] | None) -> str:
+    if catalog is None:
+        return "None"
+
+    if isinstance(catalog, type):
+        return catalog.__name__
+
+    return catalog.__class__.__name__
 
 
 def clean(
@@ -35,3 +56,176 @@ def clean(
         auto_detect=auto_detect,
     )
     return pipeline.fit_transform(df)
+
+
+@checked
+@dataclass
+class CleanPathResult:
+    """Result of cleaning a path."""
+
+    pass
+
+
+def _clean_df(df: DataFrame) -> DataFrame:
+
+    catalog = PipelineDefaultCatalog()
+
+    pipeline = Pipeline(
+        cleaners=catalog.get_cleaners(),
+        auto_detect=True,
+    )
+    return pipeline.fit_transform(df)
+
+
+@checked
+def clean_paths(
+    paths: Iterable[str],
+    write_path: str | None = None,
+    catalog: Catalog | None = None,
+    rename_cols: bool = True,
+    rename_col_map: Mapping[str, str] | None = None,
+    col_renamer: ColRenamer | None = None,
+    clean_cols: bool = True,
+    ignore_cols: Iterable[str] | None = None,
+    use_global_config: bool = True,
+    inplace: bool | None = None,
+    cleaners: Iterable[str] | None = None,
+    dry_run: bool = False,
+) -> CleanPathResult:
+
+    logger = config.get_logger("clean_paths")
+
+    _log_args(
+        logger,
+        "DEBUG",
+        paths=paths,
+        write_path=write_path,
+        rename_cols=rename_cols,
+        rename_col_map=rename_col_map,
+        col_renamer=col_renamer,
+        clean_cols=clean_cols,
+        ignore_cols=ignore_cols,
+        inplace=inplace,
+        use_global_config=use_global_config,
+        cleaners=cleaners,
+        dry_run=dry_run,
+    )
+
+    if config.auto_load_plugins and config.plugin_loader is not None:
+        logger.info("Loading plugins...")
+        config.plugin_loader.load_plugins()
+
+    if catalog is None:
+        if use_global_config and config.catalog is not None:
+            logger.info("No catalog provided, using global config...")
+            catalog = config.catalog
+
+        else:
+            logger.info("No catalog provided, trying to load from environment...")
+
+            catalog_types_len = len(config.catalog_types)
+            width = len(str(catalog_types_len))
+            for count, catalog_type in enumerate(config.catalog_types, start=1):
+                logger.debug(
+                    "[%0*d/%d] Checking if catalog type %s supports environment...",
+                    width,
+                    count,
+                    catalog_types_len,
+                    _catalog_name(catalog_type),
+                )
+
+                if catalog_type.supports_env():
+                    logger.debug(
+                        "Instantiating catalog %s...", _catalog_name(catalog_type)
+                    )
+                    catalog = catalog_type.instantiate()
+
+                    if catalog is None:
+                        logger.warning(
+                            "Catalog type %s supports environment variables, but instantiation failed.",
+                            _catalog_name(catalog_type),
+                        )
+                        continue
+
+                    logger.debug(
+                        "Instantiating catalog %s done.", _catalog_name(catalog_type)
+                    )
+                    break
+
+            if catalog is None:
+                raise ValueError("catalog must be provided")
+
+    logger.info("Expanding paths...")
+    expanded_paths = catalog.expand_paths(paths)
+    expanded_paths_len = len(expanded_paths)
+    expanded_paths_width = len(str(expanded_paths_len))
+
+    logger.debug("Expanded paths: %d", expanded_paths_len)
+    if logger.isEnabledFor(logging.DEBUG):
+        for count, path in enumerate(expanded_paths, start=1):
+            logger.debug(
+                "[%0*d/%d]\t%s",
+                expanded_paths_width,
+                count,
+                expanded_paths_len,
+                path,
+            )
+
+    if write_path is not None:
+        logger.info("Mapping expanded paths to write paths...")
+        write_paths = map_paths(expanded_paths, write_path)
+        write_paths_len = len(write_paths)
+        write_paths_width = len(str(write_paths_len))
+
+        logger.debug("Write paths: %d", write_paths_len)
+        if logger.isEnabledFor(logging.DEBUG):
+            for count, (path, write_path) in enumerate(write_paths.items(), start=1):
+                logger.debug(
+                    "[%0*d/%d]\t%s -> %s",
+                    write_paths_width,
+                    count,
+                    write_paths_len,
+                    path,
+                    write_path,
+                )
+
+    dfs: dict[str, DataFrame] = {}
+    for count, path in enumerate(expanded_paths, start=1):
+        logger.info(
+            "[%0*d/%d] Reading path as dataframe: %s",
+            expanded_paths_width,
+            count,
+            expanded_paths_len,
+            path,
+        )
+        df = catalog.read_df(path)
+
+        logger.debug("Dataframe '%s': %s", path, df.cols())
+        dfs[path] = df
+
+    cleaned_dfs: dict[str, DataFrame] = {}
+    for count, (path, df) in enumerate(dfs.items(), start=1):
+        logger.info(
+            "[%0*d/%d] Cleaning dataframe '%s'...",
+            width,
+            count,
+            expanded_paths_len,
+            path,
+        )
+
+        cleaned_dfs[path] = _clean_df(df)
+
+        write_path = write_paths[path]
+
+        logger.info(
+            "[%0*d/%d] Writing dataframe to '%s'...",
+            width,
+            count,
+            expanded_paths_len,
+            write_path,
+        )
+
+        if not dry_run:
+            catalog.write_df(cleaned_dfs[path], write_path)
+
+    return CleanPathResult()

@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import ClassVar, Self, override
 
-from databricks.connect import DatabricksSession
+from databricks.connect import DatabricksEnv, DatabricksSession
 
 from dataclean import Catalog, CatalogPriority, DataFrame, checked
 from dataclean_databricks.dataframe import PysparkDataFrame
@@ -38,7 +38,9 @@ class UnityCatalog(Catalog):
     @classmethod
     @override
     def instantiate(cls) -> Self | None:
-        spark = DatabricksSession.builder.getOrCreate()
+        spark_env = DatabricksEnv().withAutoDependencies(upload_local=True)
+        spark = DatabricksSession.builder.withEnvironment(spark_env).getOrCreate()
+
         return cls(spark=spark)
 
     @override
