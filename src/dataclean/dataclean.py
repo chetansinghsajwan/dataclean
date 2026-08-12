@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Mapping
-from logging import Logger, getLogger
 from typing import Any
 
+from dataclean import logs
 from dataclean.cleaners.cleaner import Cleaner
 from dataclean.col_renamer import ColRenamer
 from dataclean.config import config
@@ -50,14 +50,13 @@ def clean(
     clean_cols: bool = True,
     ignore_cols: Iterable[str] | None = None,
     use_global_config: bool = True,
-    logger: Logger | None = None,
     inplace: bool | None = None,
     cleaners: Iterable[str] | None = None,
 ) -> DataFrame:
 
+    logger = logs.get_logger(__name__)
     col_renamer = col_renamer or config.col_renamer
-    if logger is None:
-        logger = getLogger(__name__)
+
     wrapped_df = _wrap_df(df)
     if wrapped_df is None:
         e = TypeError(
