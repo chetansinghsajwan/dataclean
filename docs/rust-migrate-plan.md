@@ -20,7 +20,7 @@ Status: Approved direction. Rust core + Python API redesign.
 | Custom cleaners | Two paths — Python (easy, subclass) and Rust (advanced, implement trait) |
 | Config schema | Rust `#[pyclass]` structs for built-in cleaner configs (no Pydantic, single source of truth); Pydantic retained only for orchestration-level config and Python-path custom cleaners |
 | Error handling | `None` for uncleanable *values* (expected, not exceptional); typed `DatacleanError` hierarchy raised as Python exceptions for real failures (bad config, schema mismatch, engine errors) |
-| PySpark engine | Rust core invoked inside existing `pandas_udf` (executor-side Python + Arrow) — no JNI, no gRPC service |
+| Databricks engine | Rust core invoked inside existing `pandas_udf` (executor-side Python + Arrow) — no JNI, no gRPC service |
 | Top-level API | sklearn-style `Pipeline` class as the OOP core |
 | Table I/O | Pluggable `Catalog` registry (auto-detects platform via env vars, override via `DATACLEAN_PLATFORM`) |
 | Convenience API | `dataclean.clean(str, dest=...)` — thin sugar over `Catalog.read → Pipeline.fit_transform → Catalog.write` |
