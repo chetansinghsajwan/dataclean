@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 
-from dataclean.cleaners.cleaner import Cleaner
+from dataclean.cleaners import Cleaner
 
 
 class Catalog(ABC):

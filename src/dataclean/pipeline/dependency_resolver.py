@@ -4,10 +4,11 @@ from collections import defaultdict, deque
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
 
-from dataclean.cleaners.cleaner import PRIMARY
-from dataclean.pipeline.assignments import Assignment
-from dataclean.pipeline.entity_extractor import EntityExtractor
-from dataclean.pipeline.exceptions import (
+from dataclean.cleaners import PRIMARY
+
+from .assignments import Assignment
+from .entity_extractor import EntityExtractor
+from .exceptions import (
     AmbiguousRoleError,
     CycleDetectedError,
     MissingRequiredRoleError,

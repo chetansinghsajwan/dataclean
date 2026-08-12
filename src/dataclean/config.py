@@ -3,11 +3,11 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+from dataclean import logs
 from dataclean.cleaners.cleaner import Cleaner
 from dataclean.col_renamer import ColRenamer
 from dataclean.engine.catalog import Catalog
 from dataclean.engine.dataframe import DataFrame
-from dataclean.logs import LogLevel
 from dataclean.plugins.loader import PluginLoader
 from dataclean.types import checked
 
@@ -27,7 +27,7 @@ class Config:
     catalog: Catalog | None = None
     inplace: bool = True
 
-    log_level: LogLevel = LogLevel.INFO
+    log_level: logs.LogLevel = logs.LogLevel.INFO
     log_format: str | None = None
     log_handlers: list[logging.Handler] | None = None
     logger_provider: LoggerProvider | None = None
@@ -47,7 +47,29 @@ class Config:
         import bisect
 
         if catalog not in self.catalog_types:
-            bisect.insort_right(self.catalog_types, catalog, key=lambda c: c.priority)
+            bisect.insort_right(self.catalog_types, catalog, key=lambda c: -c.priority)
+
+    def get_logger(self, name: str) -> logging.Logger:
+
+        if self.logger_provider is not None:
+            logger = self.logger_provider(name)
+        else:
+            logger = logs.default_logger_provider(name)
+
+        logger.setLevel(self.log_level.value)
+
+        if self.log_format is not None:
+            formatter = logging.Formatter(self.log_format)
+            handler = logging.StreamHandler()
+            handler.setFormatter(formatter)
+
+            logger.addHandler(handler)
+
+        if self.log_handlers is not None:
+            for handler in self.log_handlers:
+                logger.addHandler(handler)
+
+        return logger
 
 
 config = Config()

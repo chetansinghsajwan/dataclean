@@ -111,6 +111,11 @@ tasks:
             - task: check:md
             - task: check:gha
 
+    ck:
+        desc: Alias to check
+        cmds:
+            - task: check
+
     fix:
         desc: Lint and auto-fix all file sets across the project — safe fixes only
         cmds:
@@ -419,6 +424,11 @@ tasks:
         desc: Run tests for the uuid cleaner
         cmds:
             - uv run pytest tests/cleaners/test_uuid_cleaner.py
+
+    test:paths:
+        desc: Run tests for the paths
+        cmds:
+            - uv run pytest tests/test_paths.py
 
     test:pandas:
         desc: Run tests for the pandas engine
