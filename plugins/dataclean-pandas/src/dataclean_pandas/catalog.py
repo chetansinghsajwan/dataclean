@@ -5,9 +5,7 @@ from typing import Self, override
 
 import pandas as pd
 
-from dataclean.engine.catalog import Catalog
-from dataclean.engine.dataframe import DataFrame
-from dataclean.types import checked
+from dataclean import Catalog, DataFrame, checked
 from dataclean_pandas.dataframe import PandasDataFrame
 
 

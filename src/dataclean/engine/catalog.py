@@ -1,19 +1,30 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Self
+from enum import IntEnum
+from typing import ClassVar, Self
 
 from dataclean.engine.dataframe import DataFrame
 from dataclean.types import checked
 
 
 @checked
+class CatalogPriority(IntEnum):
+    GENERIC = 0
+    ENV_DEPENDENT = 50
+
+
+@checked
 @dataclass
 class Catalog(ABC):
-    def supports_env() -> bool:
+    priority: ClassVar[int] = CatalogPriority.GENERIC
+
+    @classmethod
+    def supports_env(cls) -> bool:
         return False
 
-    def instantiate() -> Self | None:
+    @classmethod
+    def instantiate(cls) -> Self | None:
         return None
 
     @abstractmethod
