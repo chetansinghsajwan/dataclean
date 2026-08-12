@@ -1,6 +1,6 @@
 """dataclean - Data cleaning library with automatic column detection."""
 
-from .clean import clean
+from .clean import clean, clean_paths
 from .cleaners import (
     PRIMARY,
     AddressCleaner,
