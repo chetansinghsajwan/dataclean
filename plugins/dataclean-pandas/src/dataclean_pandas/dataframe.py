@@ -5,7 +5,7 @@ from typing import Any, override
 import numpy as np
 import pandas as pd
 
-from dataclean.engine.dataframe import DataFrame, DataReader, DataType, DataWriter
+from dataclean import DataFrame, DataReader, DataType, DataWriter
 from dataclean.types import checked
 
 

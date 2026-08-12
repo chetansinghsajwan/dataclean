@@ -31,11 +31,7 @@ class PluginLoader:
 
     def load_plugin(self, package_name: str) -> None:
 
-        from dataclean.config import (
-            register_catalog,
-            register_cleaner,
-            register_dataframe,
-        )
+        from dataclean.config import config
 
         package_name = package_name.replace("-", "_")
         module = importlib.import_module(package_name)
@@ -49,15 +45,15 @@ class PluginLoader:
 
         self._logger.debug("\tRegistering dataframes...")
         for dataframe_type in plugin.dataframe_types:
-            register_dataframe(dataframe_type)
+            config.register_dataframe(dataframe_type)
 
         self._logger.debug("\tRegistering cleaners...")
         for cleaner_type in plugin.cleaner_types:
-            register_cleaner(cleaner_type)
+            config.register_cleaner(cleaner_type)
 
         self._logger.debug("\tRegistering catalogs...")
         for catalog_type in plugin.catalog_types:
-            register_catalog(catalog_type)
+            config.register_catalog(catalog_type)
 
     def load_plugins(self) -> None:
         self._logger.info("Finding plugins...")

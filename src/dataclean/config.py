@@ -23,7 +23,7 @@ class Config:
     plugin_loader: PluginLoader | None = field(default_factory=PluginLoader)
     dataframe_apis: list[Any] = field(default_factory=list)
     auto_load_plugins: bool = True
-    catalog_types: set[type[Catalog]] = field(default_factory=set)
+    catalog_types: list[type[Catalog]] = field(default_factory=list)
     catalog: Catalog | None = None
     inplace: bool = True
 
@@ -32,44 +32,22 @@ class Config:
     log_handlers: list[logging.Handler] | None = None
     logger_provider: LoggerProvider | None = None
 
+    def register_dataframe(self, api: type[DataFrame]) -> None:
+
+        if api not in self.dataframe_apis:
+            self.dataframe_apis.append(api)
+
+    def register_cleaner(self, api: Cleaner) -> None:
+
+        if api not in self.cleaners:
+            self.cleaners.append(api)
+
+    def register_catalog(self, catalog: type[Catalog]) -> None:
+
+        import bisect
+
+        if catalog not in self.catalog_types:
+            bisect.insort_right(self.catalog_types, catalog, key=lambda c: c.priority)
+
 
 config = Config()
-
-
-@checked
-def register_dataframe(api: type[DataFrame]) -> None:
-    """Register a dataframe API adapter globally.
-
-    Engines should call this at import time to make themselves available to
-    consumers without requiring manual registration. Duplicate registrations
-    are ignored.
-    """
-
-    if api not in config.dataframe_apis:
-        config.dataframe_apis.append(api)
-
-
-@checked
-def register_cleaner(api: Cleaner) -> None:
-    """Register a cleaner API adapter globally.
-
-    Engines should call this at import time to make themselves available to
-    consumers without requiring manual registration. Duplicate registrations
-    are ignored.
-    """
-
-    if api not in config.cleaners:
-        config.cleaners.append(api)
-
-
-@checked
-def register_catalog(api: type[Catalog]) -> None:
-    """Register a catalog API adapter globally.
-
-    Engines should call this at import time to make themselves available to
-    consumers without requiring manual registration. Duplicate registrations
-    are ignored.
-    """
-
-    if api not in config.catalog_types:
-        config.catalog_types.add(api)

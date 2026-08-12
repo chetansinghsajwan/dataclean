@@ -7,8 +7,7 @@ import pyspark.sql as sp
 import pyspark.sql.functions as spf
 import pyspark.sql.types as spt
 
-from dataclean.engine.dataframe import DataFrame, DataReader, DataType, DataWriter
-from dataclean.types import checked
+from dataclean import DataFrame, DataReader, DataType, DataWriter, checked
 from dataclean_databricks.types import SparkDataFrame
 
 

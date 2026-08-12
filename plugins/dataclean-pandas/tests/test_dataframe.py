@@ -1,8 +1,8 @@
 import pandas as pd
 import pytest
-from dataclean_pandas.dataframe import PandasDataFrame
+from dataclean_pandas import PandasDataFrame
 
-from dataclean.testing.engine_contracts import RAW_TEST_DATA, BaseDataFrameTests
+from dataclean.testing import RAW_TEST_DATA, BaseDataFrameTests
 
 
 class TestPandasDataFrame(BaseDataFrameTests):

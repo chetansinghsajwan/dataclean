@@ -6,9 +6,7 @@ from typing import Self, override
 
 from databricks.connect import DatabricksSession
 
-from dataclean.engine.catalog import Catalog
-from dataclean.engine.dataframe import DataFrame
-from dataclean.types import checked
+from dataclean import Catalog, CatalogPriority, DataFrame, checked
 from dataclean_databricks.dataframe import PysparkDataFrame
 from dataclean_databricks.types import SparkSession
 
@@ -18,6 +16,11 @@ from dataclean_databricks.types import SparkSession
 class UnityCatalog(Catalog):
     spark: SparkSession
     write_options: dict[str, str] = field(default_factory=dict)
+
+    @classmethod
+    @override
+    def priority(cls) -> int:
+        return CatalogPriority.ENV_DEPENDENT
 
     @classmethod
     @override
