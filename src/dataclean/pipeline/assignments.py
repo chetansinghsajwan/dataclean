@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 
-from dataclean.cleaners.cleaner import Cleaner
+from dataclean.cleaners import Cleaner
 from dataclean.types import checked
 
 

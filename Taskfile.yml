@@ -111,6 +111,11 @@ tasks:
             - task: check:md
             - task: check:gha
 
+    ck:
+        desc: Alias to check
+        cmds:
+            - task: check
+
     fix:
         desc: Lint and auto-fix all file sets across the project — safe fixes only
         cmds:

@@ -1,12 +1,12 @@
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from dataclean import logs
-from dataclean.cleaners.cleaner import Cleaner
-from dataclean.col_renamer import ColRenamer
-from dataclean.config import config
-from dataclean.engine.dataframe import DataFrame, DataWriter
-from dataclean.types import checked
+from .cleaners.cleaner import Cleaner
+from .col_renamer import ColRenamer
+from .config import config
+from .engine.dataframe import DataFrame, DataWriter
+from .types import checked
+from .utils import _log_args
 
 
 def get_cleaner(df: DataFrame, cols: Iterable[str]) -> tuple[Cleaner | None, float]:
@@ -35,7 +35,6 @@ def _wrap_df(df: Any) -> DataFrame | None:
 
     for api in config.dataframe_apis:
         if api.supports(df):
-            # API classes are expected to be callables that construct a wrapper when given df=df
             return api(df=df)
 
     return None
@@ -54,7 +53,7 @@ def clean(
     cleaners: Iterable[str] | None = None,
 ) -> DataFrame:
 
-    logger = logs.get_logger(__name__)
+    logger = config.get_logger(__name__)
     col_renamer = col_renamer or config.col_renamer
 
     wrapped_df = _wrap_df(df)
@@ -67,15 +66,22 @@ def clean(
 
     df = wrapped_df
 
+    _log_args(
+        logger,
+        "DEBUG",
+        df=df,
+        rename_cols=rename_cols,
+        rename_col_map=rename_col_map,
+        col_renamer=col_renamer,
+        clean_cols=clean_cols,
+        ignore_cols=ignore_cols,
+        inplace=inplace,
+        use_global_config=use_global_config,
+        logger=logger,
+        cleaners=cleaners,
+    )
+
     logger.debug("Cleaning data...")
-    logger.debug(f"df: {df.cols()}")
-    logger.debug(f"{rename_cols=}")
-    logger.debug(f"{rename_col_map=}")
-    logger.debug(f"{col_renamer=}")
-    logger.debug(f"{clean_cols=}")
-    logger.debug(f"{ignore_cols=}, {config.ignore_cols=}")
-    logger.debug(f"{inplace=}, {config.inplace=}")
-    logger.debug(f"{use_global_config=}")
 
     if ignore_cols is None:
         ignore_cols = []

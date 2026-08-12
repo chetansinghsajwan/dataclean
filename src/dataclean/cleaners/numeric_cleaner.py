@@ -5,9 +5,10 @@ from decimal import ROUND_HALF_UP, Decimal
 from enum import StrEnum
 from typing import override
 
-from dataclean.cleaners.cleaner import Cleaner
-from dataclean.engine.dataframe import DataFrame, DataReader, DataType
+from dataclean.engine import DataFrame, DataReader, DataType
 from dataclean.types import checked
+
+from .cleaner import Cleaner
 
 
 @checked

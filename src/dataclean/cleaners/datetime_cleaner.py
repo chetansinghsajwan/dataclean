@@ -4,9 +4,10 @@ from datetime import date, datetime, time
 from enum import StrEnum
 from typing import override
 
-from dataclean.cleaners.cleaner import Cleaner
-from dataclean.engine.dataframe import DataFrame
+from dataclean.engine import DataFrame
 from dataclean.types import checked
+
+from .cleaner import Cleaner
 
 
 @checked
