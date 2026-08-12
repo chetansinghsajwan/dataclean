@@ -115,7 +115,6 @@ class NumericCleaner(Cleaner):
                 self.valid = 0
 
             def __call__(self, val: str | bool | int | float | None) -> None:
-                # Early exit to prevent processing billions of rows in PySpark
                 if self.total >= self.limit or val is None:
                     return
 
