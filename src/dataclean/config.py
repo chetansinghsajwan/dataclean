@@ -1,3 +1,5 @@
+import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -5,8 +7,11 @@ from dataclean.cleaners.cleaner import Cleaner
 from dataclean.col_renamer import ColRenamer
 from dataclean.engine.catalog import Catalog
 from dataclean.engine.dataframe import DataFrame
+from dataclean.logs import LogLevel
 from dataclean.plugins.loader import PluginLoader
 from dataclean.types import checked
+
+LoggerProvider = Callable[[str], logging.Logger]
 
 
 @checked
@@ -21,6 +26,11 @@ class Config:
     catalog_types: set[type[Catalog]] = field(default_factory=set)
     catalog: Catalog | None = None
     inplace: bool = True
+
+    log_level: LogLevel = LogLevel.INFO
+    log_format: str | None = None
+    log_handlers: list[logging.Handler] | None = None
+    logger_provider: LoggerProvider | None = None
 
 
 config = Config()
