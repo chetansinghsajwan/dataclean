@@ -3,8 +3,9 @@
 from dataclasses import dataclass
 from typing import override
 
-from dataclean.cleaners.cleaner import Cleaner
 from dataclean.types import checked
+
+from .cleaner import Cleaner
 
 
 @checked

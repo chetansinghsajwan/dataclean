@@ -2,7 +2,7 @@ import fnmatch
 import os
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Self, override
+from typing import ClassVar, Self, override
 
 from databricks.connect import DatabricksSession
 
@@ -17,10 +17,7 @@ class UnityCatalog(Catalog):
     spark: SparkSession
     write_options: dict[str, str] = field(default_factory=dict)
 
-    @classmethod
-    @override
-    def priority(cls) -> int:
-        return CatalogPriority.ENV_DEPENDENT
+    priority: ClassVar[int] = CatalogPriority.ENV_DEPENDENT
 
     @classmethod
     @override

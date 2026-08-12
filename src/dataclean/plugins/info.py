@@ -1,8 +1,7 @@
 from dataclasses import dataclass, field
 
 from dataclean.cleaners import Cleaner
-from dataclean.engine.catalog import Catalog
-from dataclean.engine.dataframe import DataFrame
+from dataclean.engine import Catalog, DataFrame
 from dataclean.types import checked
 
 
