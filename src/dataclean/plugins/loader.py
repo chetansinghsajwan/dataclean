@@ -1,20 +1,19 @@
 import importlib.metadata
-import logging
-from dataclasses import dataclass
-from logging import Logger, getLogger
+from dataclasses import dataclass, field
+from logging import Logger
 
+from dataclean import logs
 from dataclean.plugins.info import PluginInfo
 from dataclean.types import checked
-
-logging.basicConfig(level=logging.INFO)
-pluginLogger = getLogger("PluginLoader")
-pluginLogger.setLevel("DEBUG")
 
 
 @checked
 @dataclass
 class PluginLoader:
-    logger: Logger = pluginLogger
+    _logger: Logger = field(init=False)
+
+    def __post_init__(self) -> None:
+        self._logger = logs.get_logger("PluginLoader")
 
     def find_plugins(self) -> set[str]:
 
@@ -48,22 +47,22 @@ class PluginLoader:
                 "Plugin %s does not have a valid info object", package_name
             )
 
-        self.logger.debug("\tRegistering dataframes...")
+        self._logger.debug("\tRegistering dataframes...")
         for dataframe_type in plugin.dataframe_types:
             register_dataframe(dataframe_type)
 
-        self.logger.debug("\tRegistering cleaners...")
+        self._logger.debug("\tRegistering cleaners...")
         for cleaner_type in plugin.cleaner_types:
             register_cleaner(cleaner_type)
 
-        self.logger.debug("\tRegistering catalogs...")
+        self._logger.debug("\tRegistering catalogs...")
         for catalog_type in plugin.catalog_types:
             register_catalog(catalog_type)
 
     def load_plugins(self) -> None:
-        self.logger.info("Finding plugins...")
+        self._logger.info("Finding plugins...")
         plugins = self.find_plugins()
 
         for package_name in plugins:
-            self.logger.info("Loading plugin: %s", package_name)
+            self._logger.info("Loading plugin: %s", package_name)
             self.load_plugin(package_name)
