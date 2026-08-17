@@ -1,6 +1,8 @@
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from dataclean.logs.log_level import LogLevel
+
 from .cleaners.cleaner import Cleaner
 from .col_renamer import ColRenamer
 from .config import config
@@ -68,7 +70,7 @@ def clean(
 
     _log_args(
         logger,
-        "DEBUG",
+        LogLevel.DEBUG,
         df=df,
         rename_cols=rename_cols,
         rename_col_map=rename_col_map,
@@ -77,7 +79,6 @@ def clean(
         ignore_cols=ignore_cols,
         inplace=inplace,
         use_global_config=use_global_config,
-        logger=logger,
         cleaners=cleaners,
     )
 

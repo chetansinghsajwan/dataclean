@@ -2,9 +2,10 @@
 
 from collections import defaultdict, deque
 from collections.abc import Mapping, Sequence
-from dataclasses import replace
+from dataclasses import dataclass, replace
 
 from dataclean.cleaners import PRIMARY
+from dataclean.types import checked
 
 from .assignments import Assignment
 from .entity_extractor import EntityExtractor
@@ -15,18 +16,24 @@ from .exceptions import (
 )
 
 
+@checked
+@dataclass(kw_only=True)
 class DependencyResolver:
-    """Resolve context providers and topologically sort assignments into waves."""
+    """
+    Resolve context providers and topologically sort assignments into waves.
+    """
 
-    def __init__(self, entity_extractor: EntityExtractor) -> None:
-        self._entity_extractor = entity_extractor
+    entity_extractor: EntityExtractor
 
     def resolve(
         self,
         assignments: Sequence[Assignment],
         context_overrides: Mapping[str, Mapping[str, str]] | None = None,
     ) -> tuple[tuple[Assignment, ...], ...]:
-        """Resolve context roles and return execution waves."""
+        """
+        Resolve context roles and return execution waves.
+        """
+
         overrides = context_overrides or {}
         assignment_list = tuple(assignments)
         producers: dict[str, list[int]] = defaultdict(list)
@@ -75,6 +82,7 @@ class DependencyResolver:
         overrides: Mapping[str, Mapping[str, str]],
     ) -> int | None:
         candidates = producers.get(role, [])
+
         if consumer_column is not None and role in overrides.get(consumer_column, {}):
             requested_column = overrides[consumer_column][role]
             for candidate in candidates:
@@ -83,14 +91,17 @@ class DependencyResolver:
             raise MissingRequiredRoleError(
                 f"Context override for role '{role}' references no matching producer"
             )
+
         if not candidates:
             if required:
                 raise MissingRequiredRoleError(
                     f"Required context role '{role}' has no producer"
                 )
             return None
+
         if len(candidates) == 1:
             return candidates[0]
+
         if consumer_column is None:
             if required:
                 raise AmbiguousRoleError(
@@ -102,20 +113,23 @@ class DependencyResolver:
         candidate_columns = [
             self._producer_identity(assignments[candidate]) for candidate in candidates
         ]
+
         if not all(role_token in column.lower() for column in candidate_columns):
             if required:
                 raise AmbiguousRoleError(
                     f"Role '{role}' has producers without namespace signals"
                 )
             return None
-        consumer_entities = self._entity_extractor.extract(consumer_column, role)
+
+        consumer_entities = self.entity_extractor.extract(consumer_column, role)
         scores = [
-            self._entity_extractor.entity_overlap(
-                consumer_entities, self._entity_extractor.extract(column, role)
+            self.entity_extractor.overlap(
+                consumer_entities, self.entity_extractor.extract(column, role)
             )
             for column in candidate_columns
         ]
         best_score = max(scores)
+
         if best_score == 0.0 or scores.count(best_score) != 1:
             if required:
                 raise AmbiguousRoleError(
@@ -132,6 +146,7 @@ class DependencyResolver:
     def _output_column(self, assignment: Assignment, role: str) -> str:
         outputs = getattr(assignment.cleaner, "outputs", None)
         cols = outputs.cols if outputs is not None else ()
+
         for col in cols:
             if role in col.roles:
                 # If the cleaner declares an explicit output column name, use it.
@@ -141,6 +156,7 @@ class DependencyResolver:
                 return assignment.role_columns.get(
                     PRIMARY, next(iter(assignment.role_columns.values()))
                 )
+
         # Default fallback: producer's primary input column
         return assignment.role_columns.get(
             PRIMARY, next(iter(assignment.role_columns.values()))
@@ -149,12 +165,14 @@ class DependencyResolver:
     def _topological_waves(
         self, assignments: Sequence[Assignment], dependencies: Mapping[int, set[int]]
     ) -> tuple[tuple[Assignment, ...], ...]:
+
         in_degree = [0] * len(assignments)
         dependents: dict[int, list[int]] = defaultdict(list)
         for assignment_index, producers in dependencies.items():
             for producer in producers:
                 in_degree[assignment_index] += 1
                 dependents[producer].append(assignment_index)
+
         queue = deque(index for index, degree in enumerate(in_degree) if degree == 0)
         waves: list[tuple[Assignment, ...]] = []
         visited = 0
@@ -163,11 +181,14 @@ class DependencyResolver:
             queue.clear()
             waves.append(tuple(assignments[index] for index in current_indices))
             visited += len(current_indices)
+
             for index in current_indices:
                 for dependent in dependents[index]:
                     in_degree[dependent] -= 1
                     if in_degree[dependent] == 0:
                         queue.append(dependent)
+
         if visited != len(assignments):
             raise CycleDetectedError("Cycle detected in cleaner dependency graph")
+
         return tuple(waves)

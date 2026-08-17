@@ -7,6 +7,7 @@ from dataclean.cleaners import Cleaner
 from dataclean.col_renamer import ColRenamer
 from dataclean.config import config
 from dataclean.engine import DataFrame, DataWriter
+from dataclean.types import checked
 
 from .assignments import Assignment
 from .cleaner_resolver import Resolver
@@ -16,6 +17,7 @@ from .entity_extractor import EntityExtractor
 PRIMARY = "value"
 
 
+@checked
 class Pipeline:
     """Resolve unified cleaners and execute them in dependency-safe waves."""
 
@@ -30,26 +32,30 @@ class Pipeline:
         self._column_cleaners = column_cleaners or {}
         self._context_overrides = context_overrides or {}
         self._auto_detect = auto_detect
-        extractor = EntityExtractor(ColRenamer()._get_words)
-        self._resolver = Resolver(self._cleaners)
-        self._dependency_resolver = DependencyResolver(extractor)
+        extractor = EntityExtractor(words_fn=ColRenamer()._get_words)
+        self._resolver = Resolver(cleaners=self._cleaners)
+        self._dependency_resolver = DependencyResolver(entity_extractor=extractor)
 
     def fit_transform(self, df: DataFrame | object) -> DataFrame:
         """Clean a DataFrame through the engine abstraction."""
+
         df = self._wrap_df(df)
         assignments = self._resolver.resolve(
             df,
             set(df.col_names()),
             self._column_cleaners,
         )
+
         if not self._auto_detect:
             assignments = tuple(
                 assignment for assignment in assignments if assignment.confidence == 1.0
             )
+
         waves = self._dependency_resolver.resolve(assignments, self._context_overrides)
         for wave in waves:
             writers = tuple(self._writer_for(assignment) for assignment in wave)
             df.write_cols(writers)
+
         return df
 
     def _wrap_df(self, df: Any) -> DataFrame:

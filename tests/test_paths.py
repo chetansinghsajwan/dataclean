@@ -78,4 +78,4 @@ def test_map_path(path: str, to: str, expected: str) -> None:
     ],
 )
 def test_map_paths(path: str, to: str, expected: str) -> None:
-    assert map_paths([path], to) == [expected]
+    assert map_paths([path], to) == {path: expected}

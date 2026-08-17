@@ -5,14 +5,11 @@ from dataclasses import dataclass
 from dataclean.col_renamer import ColRenamer
 from dataclean.config import config
 from dataclean.engine import Catalog, DataFrame
+from dataclean.logs.log_level import LogLevel
 from dataclean.types import checked
 from dataclean.utils.paths import map_paths
 
-from .pipeline import (
-    Pipeline,
-    PipelineCatalog,
-    PipelineDefaultCatalog,
-)
+from .pipeline import Pipeline
 from .utils import _log_args
 
 
@@ -26,11 +23,7 @@ def _catalog_name(catalog: Catalog | type[Catalog] | None) -> str:
     return catalog.__class__.__name__
 
 
-def clean(
-    df,
-    auto_detect: bool = True,
-    catalog: PipelineCatalog | None = None,
-):
+def clean(df, auto_detect: bool = True):
     """
     Clean a dataframe with automatic cleaner detection.
 
@@ -48,11 +41,9 @@ def clean(
         >>> df = pd.DataFrame({"email": ["john.doe@example.com"]})
         >>> cleaned = clean(df)
     """
-    if catalog is None:
-        catalog = PipelineDefaultCatalog()
 
     pipeline = Pipeline(
-        cleaners=catalog.get_cleaners(),
+        cleaners=config.cleaners,
         auto_detect=auto_detect,
     )
     return pipeline.fit_transform(df)
@@ -68,10 +59,8 @@ class CleanPathResult:
 
 def _clean_df(df: DataFrame) -> DataFrame:
 
-    catalog = PipelineDefaultCatalog()
-
     pipeline = Pipeline(
-        cleaners=catalog.get_cleaners(),
+        cleaners=config.cleaners,
         auto_detect=True,
     )
     return pipeline.fit_transform(df)
@@ -97,7 +86,7 @@ def clean_paths(
 
     _log_args(
         logger,
-        "DEBUG",
+        LogLevel.DEBUG,
         paths=paths,
         write_path=write_path,
         rename_cols=rename_cols,
@@ -198,10 +187,12 @@ def clean_paths(
             expanded_paths_len,
             path,
         )
-        df = catalog.read_df(path)
 
-        logger.debug("Dataframe '%s': %s", path, df.cols())
-        dfs[path] = df
+        if not dry_run:
+            df = catalog.read_df(path)
+
+            logger.debug("Dataframe '%s': %s", path, df.cols())
+            dfs[path] = df
 
     cleaned_dfs: dict[str, DataFrame] = {}
     for count, (path, df) in enumerate(dfs.items(), start=1):
