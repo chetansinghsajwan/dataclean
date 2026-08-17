@@ -1,22 +1,22 @@
 """Entity extraction for disambiguating column roles."""
 
 from collections.abc import Callable
+from dataclasses import dataclass
+
+from dataclean.types import checked
 
 
+@checked
+@dataclass(kw_only=True)
 class EntityExtractor:
     """
     Extracts entity tokens from column names to disambiguate between
     multiple producer candidates (e.g., client_phone vs manager_phone).
     """
 
-    def __init__(self, words_fn: Callable[[str], tuple[str, ...]]) -> None:
-        """
-        Initialize with a word tokenizer function.
+    WordFn = Callable[[str], tuple[str, ...]]
 
-        Args:
-            words_fn: Function that splits a string into word tokens.
-        """
-        self._words = words_fn
+    words_fn: WordFn
 
     def extract(self, column: str, role: str) -> tuple[str, ...]:
         """
@@ -29,10 +29,13 @@ class EntityExtractor:
         Returns:
             Tuple of entity tokens (e.g., ("client",)).
         """
-        role_tokens = set(self._words(role))
-        return tuple(t for t in self._words(column) if t.lower() not in role_tokens)
 
-    def entity_overlap(
+        role_tokens = set(self.words_fn(role))
+        return tuple(
+            word for word in self.words_fn(column) if word.lower() not in role_tokens
+        )
+
+    def overlap(
         self,
         column_entities: tuple[str, ...],
         producer_column_entities: tuple[str, ...],
@@ -47,6 +50,7 @@ class EntityExtractor:
         Returns:
             Overlap score (0.0 to 1.0).
         """
+
         if not column_entities:
             return 1.0 if not producer_column_entities else 0.0
 

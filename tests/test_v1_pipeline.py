@@ -49,7 +49,7 @@ def test_resolver_handles_primary_and_group_cleaners() -> None:
             }
         )
     )
-    resolver = Resolver((AddressCleaner(), CountryCleaner(), PhoneCleaner()))
+    resolver = Resolver(cleaners=(AddressCleaner(), CountryCleaner(), PhoneCleaner()))
     assignments = resolver.resolve(df, set(df.col_names()))
     assert any(
         assignment.cleaner.name == "AddressCleaner" for assignment in assignments
@@ -69,7 +69,9 @@ def test_dependency_resolver_uses_entity_matching_for_context() -> None:
         Assignment(country, {"value": "manager_country"}, 1.0),
     )
     phone_assignment = Assignment(phone, {"value": "client_phone"}, 1.0)
-    resolver = DependencyResolver(EntityExtractor(ColRenamer()._get_words))
+    resolver = DependencyResolver(
+        entity_extractor=EntityExtractor(words_fn=ColRenamer()._get_words)
+    )
     waves = resolver.resolve((*countries, phone_assignment))
     assert len(waves) == 2
     resolved_phone = next(item for item in waves[1] if item.cleaner is phone)
