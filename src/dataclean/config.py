@@ -3,6 +3,17 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+from dataclean.cleaners.address_cleaner import AddressCleaner
+from dataclean.cleaners.bool_cleaner import BoolCleaner
+from dataclean.cleaners.country_cleaner import CountryCleaner
+from dataclean.cleaners.datetime_cleaner import DateTimeCleaner
+from dataclean.cleaners.email_cleaner import EmailCleaner
+from dataclean.cleaners.gender_cleaner import GenderCleaner
+from dataclean.cleaners.numeric_cleaner import NumericCleaner
+from dataclean.cleaners.phone_cleaner import PhoneCleaner
+from dataclean.cleaners.text_cleaner import TextCleaner
+from dataclean.cleaners.uuid_cleaner import UuidCleaner
+
 from . import logs
 from .cleaners import Cleaner
 from .col_renamer import ColRenamer
@@ -32,6 +43,18 @@ class Config:
     log_format: str | None = None
     log_handlers: list[logging.Handler] | None = None
     logger_provider: LoggerProvider | None = None
+
+    def __post_init__(self) -> None:
+        self.register_cleaner(AddressCleaner())
+        self.register_cleaner(BoolCleaner())
+        self.register_cleaner(CountryCleaner())
+        self.register_cleaner(DateTimeCleaner())
+        self.register_cleaner(EmailCleaner())
+        self.register_cleaner(GenderCleaner())
+        self.register_cleaner(NumericCleaner())
+        self.register_cleaner(PhoneCleaner())
+        self.register_cleaner(TextCleaner())
+        self.register_cleaner(UuidCleaner())
 
     def register_dataframe(self, api: type[DataFrame]) -> None:
 
