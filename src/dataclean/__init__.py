@@ -33,6 +33,7 @@ from .pipeline.exceptions import (
     PipelineConfigError,
 )
 from .plugins import PluginInfo, PluginLoader
+from .preset import Preset
 from .types import checked
 
 __version__ = "1.0.0"

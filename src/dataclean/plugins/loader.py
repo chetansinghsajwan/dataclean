@@ -49,17 +49,25 @@ class PluginLoader:
                 "Plugin %s does not have a valid info object", package_name
             )
 
-        self.logger.debug("\tRegistering dataframes...")
+        dataframe_count = len(plugin.dataframe_types)
+        self.logger.debug("\tRegistering %s dataframes...", dataframe_count)
         for dataframe_type in plugin.dataframe_types:
             config.register_dataframe(dataframe_type)
 
-        self.logger.debug("\tRegistering cleaners...")
+        cleaner_count = len(plugin.cleaner_types)
+        self.logger.debug("\tRegistering %s cleaners...", cleaner_count)
         for cleaner_type in plugin.cleaner_types:
             config.register_cleaner(cleaner_type)
 
-        self.logger.debug("\tRegistering catalogs...")
+        catalog_count = len(plugin.catalog_types)
+        self.logger.debug("\tRegistering %s catalogs...", catalog_count)
         for catalog_type in plugin.catalog_types:
             config.register_catalog(catalog_type)
+
+        preset_count = len(plugin.presets)
+        self.logger.debug("\tRegistering %s presets...", preset_count)
+        for preset in plugin.presets:
+            config.register_preset(preset)
 
     def load_plugins(self) -> None:
         self.logger.info("Finding plugins...")

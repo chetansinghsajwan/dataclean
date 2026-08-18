@@ -183,6 +183,7 @@ test-contracts = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "dataclean-cch-crm" },
     { name = "dataclean-databricks" },
     { name = "dataclean-pandas" },
     { name = "mike" },
@@ -204,6 +205,7 @@ provides-extras = ["test-contracts"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "dataclean-cch-crm", editable = "plugins/dataclean-cch-crm" },
     { name = "dataclean-databricks", editable = "plugins/dataclean-databricks" },
     { name = "dataclean-pandas", editable = "plugins/dataclean-pandas" },
     { name = "mike", specifier = ">=2.2.0" },
@@ -212,6 +214,11 @@ dev = [
     { name = "mkdocstrings", extras = ["python"], specifier = ">=0.24.0" },
     { name = "pytest", specifier = ">=9.0.3" },
 ]
+
+[[package]]
+name = "dataclean-cch-crm"
+version = "0.1.0"
+source = { editable = "plugins/dataclean-cch-crm" }
 
 [[package]]
 name = "dataclean-databricks"
