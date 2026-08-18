@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from dataclean.col_renamer import ColRenamer
+from dataclean import ColRenamer
 
 
 @dataclass

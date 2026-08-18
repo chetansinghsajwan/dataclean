@@ -1,6 +1,6 @@
 """dataclean - Data cleaning library with automatic column detection."""
 
-from .clean import clean, clean_paths
+from .clean import CleanPathResult, clean, clean_paths
 from .cleaners import (
     PRIMARY,
     AddressCleaner,
@@ -16,6 +16,7 @@ from .cleaners import (
     TextCleaner,
     UuidCleaner,
 )
+from .col_renamer import ColRenamer
 from .config import config
 from .engine import (
     Catalog,

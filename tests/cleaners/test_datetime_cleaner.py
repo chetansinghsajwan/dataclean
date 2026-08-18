@@ -2,8 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from dataclean.cleaners.datetime_cleaner import DateTimeCleaner
-from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean import DataFrame, DataType, DateTimeCleaner
 
 # ==============================================================================
 # 1. METADATA & PROPERTY HEURISTICS

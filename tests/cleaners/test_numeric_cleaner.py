@@ -1,7 +1,6 @@
 import pytest
 
-from dataclean.cleaners.numeric_cleaner import NumericCleaner
-from dataclean.engine.dataframe import DataType
+from dataclean import DataType, NumericCleaner
 
 # ==============================================================================
 # 1. CORE METADATA & DATA TYPE HEURISTICS

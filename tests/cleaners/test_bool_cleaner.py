@@ -2,8 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from dataclean.cleaners.bool_cleaner import BoolCleaner
-from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean import BoolCleaner, DataFrame, DataType
 
 # ==============================================================================
 # 1. CORE METADATA & DATA TYPE HEURISTICS

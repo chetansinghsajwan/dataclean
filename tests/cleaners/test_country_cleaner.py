@@ -2,8 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from dataclean.cleaners.country_cleaner import CountryCleaner
-from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean import CountryCleaner, DataFrame, DataType
 
 # ==============================================================================
 # 1. CORE PROPERTY TESTS
