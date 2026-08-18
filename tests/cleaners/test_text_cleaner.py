@@ -2,8 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from dataclean.cleaners.text_cleaner import TextCleaner
-from dataclean.engine.dataframe import DataFrame
+from dataclean import DataFrame, TextCleaner
 
 # ==============================================================================
 # 1. CORE PROPERTIES & SCHEMA VERIFICATION

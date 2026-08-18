@@ -2,8 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from dataclean.cleaners.phone_cleaner import PhoneCleaner
-from dataclean.engine.dataframe import DataFrame
+from dataclean import DataFrame, PhoneCleaner
 
 # ==============================================================================
 # 1. CORE PROPERTIES & HEURISTICS

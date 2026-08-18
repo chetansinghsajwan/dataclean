@@ -2,9 +2,7 @@ from collections.abc import Iterable
 
 import pytest
 
-from dataclean.clean import CleanPathResult, clean_paths
-from dataclean.config import config
-from dataclean.engine import Catalog, DataFrame
+from dataclean import Catalog, CleanPathResult, DataFrame, clean_paths, config
 
 
 class DryRunCatalog(Catalog):

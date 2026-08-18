@@ -2,8 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from dataclean.cleaners.gender_cleaner import GenderCleaner
-from dataclean.engine.dataframe import DataFrame, DataType
+from dataclean import DataFrame, DataType, GenderCleaner
 
 # ==============================================================================
 # 1. CORE PROPERTY TESTS

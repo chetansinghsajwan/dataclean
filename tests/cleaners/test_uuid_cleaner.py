@@ -1,6 +1,6 @@
 import pytest
 
-from dataclean.cleaners.uuid_cleaner import UuidCleaner
+from dataclean import UuidCleaner
 
 # ------------------------------------------------------------------------------
 # CORE PROPERTIES & SCHEMA VERIFICATION

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from dataclean.cleaners.email_cleaner import EmailCleaner
+from dataclean import EmailCleaner
 
 
 @dataclass
