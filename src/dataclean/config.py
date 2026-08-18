@@ -8,6 +8,7 @@ from .cleaners import Cleaner
 from .col_renamer import ColRenamer
 from .engine import Catalog, DataFrame
 from .plugins import PluginLoader
+from .preset import Preset
 from .types import checked
 
 LoggerProvider = Callable[[str], logging.Logger]
@@ -23,6 +24,7 @@ class Config:
     dataframe_apis: list[Any] = field(default_factory=list)
     auto_load_plugins: bool = True
     catalog_types: list[type[Catalog]] = field(default_factory=list)
+    presets: list[Preset] = field(default_factory=list)
     catalog: Catalog | None = None
     inplace: bool = True
 
@@ -47,6 +49,10 @@ class Config:
 
         if catalog not in self.catalog_types:
             bisect.insort_right(self.catalog_types, catalog, key=lambda c: -c.priority)
+
+    def register_preset(self, preset: Preset) -> None:
+        if preset not in self.presets:
+            self.presets.append(preset)
 
     def get_logger(self, name: str) -> logging.Logger:
 
