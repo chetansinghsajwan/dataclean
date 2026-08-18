@@ -103,7 +103,7 @@ class PysparkDataFrame(DataFrame):
                 self.df = self.df.withColumn(
                     write_col,
                     create_single_output_udf(writer, write_type)(
-                        *[spf.col(c) for c in writer.read_cols]
+                        *[spf.col(c).cast(spt.StringType()) for c in writer.read_cols]
                     ),
                 )
 
@@ -148,7 +148,9 @@ class PysparkDataFrame(DataFrame):
 
             # Execute the Vectorized UDF on the target columns. This wraps results inside a temporary struct
             temp_struct_col = "_temp_writer_struct"
-            source_column_references = [spf.col(c) for c in writer.read_cols]
+            source_column_references = [
+                spf.col(c).cast(spt.StringType()) for c in writer.read_cols
+            ]
 
             self.df = self.df.withColumn(
                 temp_struct_col,

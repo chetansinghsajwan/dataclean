@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any, override
 
@@ -7,6 +7,17 @@ import pandas as pd
 
 from dataclean import DataFrame, DataReader, DataType, DataWriter
 from dataclean.types import checked
+
+
+def _stringify(value: Any) -> str | None:
+    """Normalize a raw pandas cell value to the str | None contract cleaners expect.
+
+    pandas represents missing data as None or float NaN depending on dtype; both
+    are treated as missing here rather than stringified into "nan"/"None".
+    """
+    if value is None or (isinstance(value, float) and value != value):
+        return None
+    return str(value)
 
 
 @checked
@@ -63,15 +74,16 @@ class PandasDataFrame(DataFrame):
 
             # --- SCENARIO B: Expression is a CALLABLE FUNCTION ---
             else:
+                expr = self._stringified_expr(writer.expr)
                 # 1. Single Input Column Tracking
                 if len(writer.read_cols) == 1:
-                    computed_series = self.df[writer.read_cols[0]].map(writer.expr)
+                    computed_series = self.df[writer.read_cols[0]].map(expr)
                 # 2. Multi Input Column Tracking via Numpy Vectorization
                 else:
                     source_arrays = [
                         self.df[col].to_numpy() for col in writer.read_cols
                     ]
-                    computed_series = np.vectorize(writer.expr)(*source_arrays)
+                    computed_series = np.vectorize(expr)(*source_arrays)
 
                 # Unpack results into destination columns depending on output count
                 if len(writer.write_cols) == 1:
@@ -94,6 +106,16 @@ class PandasDataFrame(DataFrame):
             self.df = self.df.astype(type_casting_map)
 
         self._update_cols()
+
+    @staticmethod
+    def _stringified_expr(expr: Callable[..., Any]) -> Callable[..., Any]:
+        """Wrap a cleaner callable so every argument is normalized via _stringify
+        before invocation, matching the str | None contract cleaners expect."""
+
+        def wrapped(*args: Any) -> Any:
+            return expr(*(_stringify(arg) for arg in args))
+
+        return wrapped
 
     @override
     def remove_cols(self, cols: Iterable[str]) -> None:

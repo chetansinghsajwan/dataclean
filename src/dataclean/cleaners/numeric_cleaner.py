@@ -1,7 +1,8 @@
+import math
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from enum import StrEnum
 from typing import override
 
@@ -71,14 +72,26 @@ class NumericCleaner(Cleaner):
         except ValueError:
             return None
 
+        # Reject non-finite results (inf/-inf/nan) before they reach Decimal, which
+        # cannot represent them meaningfully for quantization
+        if not math.isfinite(float_val):
+            return None
+
         # Use Decimal for strict financial base-10 rounding
         if self.precision is not None:
             # Convert the float to a string first to strip out the IEEE 754 microscopic drift
             dec_val = Decimal(str(float_val))
             # Generate the target decimal constraint (e.g., precision 2 -> Decimal('0.01'))
             quantize_format = Decimal("10") ** -self.precision
-            # Force standard Half-Up rounding
-            float_val = float(dec_val.quantize(quantize_format, rounding=ROUND_HALF_UP))
+            try:
+                # Force standard Half-Up rounding
+                float_val = float(
+                    dec_val.quantize(quantize_format, rounding=ROUND_HALF_UP)
+                )
+            except InvalidOperation:
+                # Value has too many significant digits for the decimal context
+                # (e.g. long ID-like numbers) - treat as not cleanable
+                return None
 
         match self.out_format:
             case NumericCleaner.Format.INT:
