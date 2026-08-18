@@ -17,6 +17,8 @@ from .entity_extractor import EntityExtractor
 
 PRIMARY = "value"
 
+_logger = logging.getLogger(__name__)
+
 
 @checked
 class Pipeline:
@@ -26,7 +28,6 @@ class Pipeline:
     _column_cleaners: dict[str, Cleaner]
     _context_overrides: dict[str, dict[str, str]]
     _auto_detect: bool
-    _logger: logging.Logger
     _resolver: Resolver
     _dependency_resolver: DependencyResolver
 
@@ -41,7 +42,6 @@ class Pipeline:
         self._column_cleaners = column_cleaners or {}
         self._context_overrides = context_overrides or {}
         self._auto_detect = auto_detect
-        self._logger: logging.Logger = config.get_logger("Pipeline")
         self._resolver = Resolver(cleaners=self._cleaners)
 
         extractor = EntityExtractor(words_fn=ColRenamer()._get_words)
@@ -50,12 +50,10 @@ class Pipeline:
     def fit_transform(self, df: DataFrame | object) -> DataFrame:
         """Clean a DataFrame through the engine abstraction."""
 
-        self._logger.info(
-            "Starting pipeline with %d cleaner(s)...", len(self._cleaners)
-        )
+        _logger.info("Starting pipeline with %d cleaner(s)...", len(self._cleaners))
         df = self._wrap_df(df)
         columns = set(df.col_names())
-        self._logger.debug("Resolving assignments for columns: %s", sorted(columns))
+        _logger.debug("Resolving assignments for columns: %s", sorted(columns))
         assignments = self._resolver.resolve(df, columns, self._column_cleaners)
 
         if not self._auto_detect:
@@ -63,10 +61,10 @@ class Pipeline:
                 assignment for assignment in assignments if assignment.confidence == 1.0
             )
 
-        self._logger.info("Resolved %d assignment(s).", len(assignments))
-        if self._logger.isEnabledFor(logging.DEBUG):
+        _logger.info("Resolved %d assignment(s).", len(assignments))
+        if _logger.isEnabledFor(logging.DEBUG):
             for assignment in assignments:
-                self._logger.debug(
+                _logger.debug(
                     "Assignment: cleaner=%s roles=%s confidence=%.2f",
                     assignment.cleaner.name,
                     assignment.role_columns,
@@ -74,9 +72,9 @@ class Pipeline:
                 )
 
         waves = self._dependency_resolver.resolve(assignments, self._context_overrides)
-        self._logger.info("Executing %d wave(s)...", len(waves))
+        _logger.info("Executing %d wave(s)...", len(waves))
         for wave_index, wave in enumerate(waves, start=1):
-            self._logger.debug(
+            _logger.debug(
                 "[wave %d/%d] Cleaners: %s",
                 wave_index,
                 len(waves),
@@ -85,7 +83,7 @@ class Pipeline:
             writers = tuple(self._writer_for(assignment) for assignment in wave)
             df.write_cols(writers)
 
-        self._logger.info("Pipeline finished.")
+        _logger.info("Pipeline finished.")
         return df
 
     def _wrap_df(self, df: Any) -> DataFrame:

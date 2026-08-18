@@ -5,10 +5,11 @@ from dataclasses import dataclass
 from .col_renamer import ColRenamer
 from .config import config
 from .engine import Catalog, DataFrame
-from .logs import LogLevel
 from .pipeline import Pipeline
 from .types import checked
 from .utils import _log_args, map_paths
+
+_logger = logging.getLogger(__name__)
 
 
 def _catalog_name(catalog: Catalog | type[Catalog] | None) -> str:
@@ -80,11 +81,9 @@ def clean_paths(
     dry_run: bool = False,
 ) -> CleanPathResult:
 
-    logger = config.get_logger("clean_paths")
-
     _log_args(
-        logger,
-        LogLevel.DEBUG,
+        _logger,
+        logging.DEBUG,
         paths=paths,
         write_path=write_path,
         rename_cols=rename_cols,
@@ -99,21 +98,21 @@ def clean_paths(
     )
 
     if config.auto_load_plugins and config.plugin_loader is not None:
-        logger.info("Loading plugins...")
+        _logger.info("Loading plugins...")
         config.plugin_loader.load_plugins()
 
     if catalog is None:
         if use_global_config and config.catalog is not None:
-            logger.info("No catalog provided, using global config...")
+            _logger.info("No catalog provided, using global config...")
             catalog = config.catalog
 
         else:
-            logger.info("No catalog provided, trying to load from environment...")
+            _logger.info("No catalog provided, trying to load from environment...")
 
             catalog_types_len = len(config.catalog_types)
             width = len(str(catalog_types_len))
             for count, catalog_type in enumerate(config.catalog_types, start=1):
-                logger.debug(
+                _logger.debug(
                     "[%0*d/%d] Checking if catalog type %s supports environment...",
                     width,
                     count,
@@ -122,19 +121,19 @@ def clean_paths(
                 )
 
                 if catalog_type.supports_env():
-                    logger.debug(
+                    _logger.debug(
                         "Instantiating catalog %s...", _catalog_name(catalog_type)
                     )
                     catalog = catalog_type.instantiate()
 
                     if catalog is None:
-                        logger.warning(
+                        _logger.warning(
                             "Catalog type %s supports environment variables, but instantiation failed.",
                             _catalog_name(catalog_type),
                         )
                         continue
 
-                    logger.debug(
+                    _logger.debug(
                         "Instantiating catalog %s done.", _catalog_name(catalog_type)
                     )
                     break
@@ -142,15 +141,15 @@ def clean_paths(
             if catalog is None:
                 raise ValueError("catalog must be provided")
 
-    logger.info("Expanding paths...")
+    _logger.info("Expanding paths...")
     expanded_paths = catalog.expand_paths(paths)
     expanded_paths_len = len(expanded_paths)
     expanded_paths_width = len(str(expanded_paths_len))
 
-    logger.debug("Expanded paths: %d", expanded_paths_len)
-    if logger.isEnabledFor(logging.DEBUG):
+    _logger.debug("Expanded paths: %d", expanded_paths_len)
+    if _logger.isEnabledFor(logging.DEBUG):
         for count, path in enumerate(expanded_paths, start=1):
-            logger.debug(
+            _logger.debug(
                 "[%0*d/%d]\t%s",
                 expanded_paths_width,
                 count,
@@ -159,15 +158,15 @@ def clean_paths(
             )
 
     if write_path is not None:
-        logger.info("Mapping expanded paths to write paths...")
+        _logger.info("Mapping expanded paths to write paths...")
         write_paths = map_paths(expanded_paths, write_path)
         write_paths_len = len(write_paths)
         write_paths_width = len(str(write_paths_len))
 
-        logger.debug("Write paths: %d", write_paths_len)
-        if logger.isEnabledFor(logging.DEBUG):
+        _logger.debug("Write paths: %d", write_paths_len)
+        if _logger.isEnabledFor(logging.DEBUG):
             for count, (path, write_path) in enumerate(write_paths.items(), start=1):
-                logger.debug(
+                _logger.debug(
                     "[%0*d/%d]\t%s -> %s",
                     write_paths_width,
                     count,
@@ -178,7 +177,7 @@ def clean_paths(
 
     dfs: dict[str, DataFrame] = {}
     for count, path in enumerate(expanded_paths, start=1):
-        logger.info(
+        _logger.info(
             "[%0*d/%d] Reading path as dataframe: %s",
             expanded_paths_width,
             count,
@@ -189,12 +188,12 @@ def clean_paths(
         if not dry_run:
             df = catalog.read_df(path)
 
-            logger.debug("Dataframe '%s': %s", path, df.cols())
+            _logger.debug("Dataframe '%s': %s", path, df.cols())
             dfs[path] = df
 
     cleaned_dfs: dict[str, DataFrame] = {}
     for count, (path, df) in enumerate(dfs.items(), start=1):
-        logger.info(
+        _logger.info(
             "[%0*d/%d] Cleaning dataframe '%s'...",
             width,
             count,
@@ -206,7 +205,7 @@ def clean_paths(
 
         write_path = write_paths[path]
 
-        logger.info(
+        _logger.info(
             "[%0*d/%d] Writing dataframe to '%s'...",
             width,
             count,
