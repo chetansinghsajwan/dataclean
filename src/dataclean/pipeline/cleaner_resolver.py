@@ -2,14 +2,15 @@
 
 import logging
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from dataclean.cleaners import PRIMARY, Cleaner, ColumnRole
-from dataclean.config import config
 from dataclean.engine import DataFrame
 from dataclean.types import checked
 
 from .assignments import Assignment
+
+_logger = logging.getLogger(__name__)
 
 
 @checked
@@ -18,7 +19,6 @@ class Resolver:
     """Resolve both simple and multi-column cleaners in one constrained-first pass."""
 
     cleaners: tuple[Cleaner, ...]
-    logger: logging.Logger = field(init=False, default=config.get_logger("Resolver"))
 
     def resolve(
         self,
@@ -125,8 +125,10 @@ class Resolver:
                 return role.detector.match_score(df, (column,))
             if role.key == PRIMARY:
                 return cleaner.match_score(df, (column,))
+
         except (AttributeError, TypeError, ValueError) as error:
-            self.logger.debug("Error scoring %s on %s: %s", cleaner.name, column, error)
+            _logger.debug("Error scoring %s on %s: %s", cleaner.name, column, error)
             return 0.0
+
         hints = role.name_hints or (role.key,)
         return 0.8 if any(hint.lower() in column.lower() for hint in hints) else 0.0

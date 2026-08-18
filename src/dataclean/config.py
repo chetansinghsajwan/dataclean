@@ -1,28 +1,24 @@
-import logging
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
-from dataclean.cleaners.address_cleaner import AddressCleaner
-from dataclean.cleaners.bool_cleaner import BoolCleaner
-from dataclean.cleaners.country_cleaner import CountryCleaner
-from dataclean.cleaners.datetime_cleaner import DateTimeCleaner
-from dataclean.cleaners.email_cleaner import EmailCleaner
-from dataclean.cleaners.gender_cleaner import GenderCleaner
-from dataclean.cleaners.numeric_cleaner import NumericCleaner
-from dataclean.cleaners.phone_cleaner import PhoneCleaner
-from dataclean.cleaners.text_cleaner import TextCleaner
-from dataclean.cleaners.uuid_cleaner import UuidCleaner
-
-from . import logs
-from .cleaners import Cleaner
+from .cleaners import (
+    AddressCleaner,
+    BoolCleaner,
+    Cleaner,
+    CountryCleaner,
+    DateTimeCleaner,
+    EmailCleaner,
+    GenderCleaner,
+    NumericCleaner,
+    PhoneCleaner,
+    TextCleaner,
+    UuidCleaner,
+)
 from .col_renamer import ColRenamer
 from .engine import Catalog, DataFrame
 from .plugins import PluginLoader
 from .preset import Preset
 from .types import checked
-
-LoggerProvider = Callable[[str], logging.Logger]
 
 
 @checked
@@ -38,11 +34,6 @@ class Config:
     presets: list[Preset] = field(default_factory=list)
     catalog: Catalog | None = None
     inplace: bool = True
-
-    log_level: logs.LogLevel = logs.LogLevel.INFO
-    log_format: str | None = None
-    log_handlers: list[logging.Handler] | None = None
-    logger_provider: LoggerProvider | None = None
 
     def __post_init__(self) -> None:
         self.register_cleaner(AddressCleaner())
@@ -76,28 +67,6 @@ class Config:
     def register_preset(self, preset: Preset) -> None:
         if preset not in self.presets:
             self.presets.append(preset)
-
-    def get_logger(self, name: str) -> logging.Logger:
-
-        if self.logger_provider is not None:
-            logger = self.logger_provider(name)
-        else:
-            logger = logs.default_logger_provider(name)
-
-        logger.setLevel(self.log_level.value)
-
-        if self.log_format is not None:
-            formatter = logging.Formatter(self.log_format)
-            handler = logging.StreamHandler()
-            handler.setFormatter(formatter)
-
-            logger.addHandler(handler)
-
-        if self.log_handlers is not None:
-            for handler in self.log_handlers:
-                logger.addHandler(handler)
-
-        return logger
 
 
 config = Config()

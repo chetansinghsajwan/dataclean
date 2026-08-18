@@ -26,7 +26,6 @@ from .engine import (
     DataType,
     DataWriter,
 )
-from .logs import LogLevel
 from .pipeline import Pipeline
 from .pipeline.exceptions import (
     DatacleanError,
