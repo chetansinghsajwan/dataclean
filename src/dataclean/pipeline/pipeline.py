@@ -1,7 +1,7 @@
 """Main pipeline orchestrator for unified cleaners."""
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Any
 
 from dataclean.cleaners import Cleaner
@@ -18,6 +18,12 @@ from .entity_extractor import EntityExtractor
 PRIMARY = "value"
 
 _logger = logging.getLogger(__name__)
+
+
+def _is_missing(value: Any) -> bool:
+    """Return True for values that engines use to represent absent data: Python's
+    None, and float NaN (e.g. pandas' representation of missing cells)."""
+    return value is None or value != value  # noqa: PLR0124 (NaN != NaN by design)
 
 
 @checked
@@ -103,6 +109,11 @@ class Pipeline:
         read_columns = tuple(assignment.role_columns.values()) + tuple(
             assignment.context_columns.values()
         )
+        # Same key order as read_columns above, so position i in read_columns
+        # corresponds to position i in ordered_keys.
+        ordered_keys = tuple(assignment.role_columns.keys()) + tuple(
+            assignment.context_columns.keys()
+        )
         outputs = getattr(cleaner, "outputs", None)
         cols = outputs.cols if outputs is not None else ()
 
@@ -124,6 +135,40 @@ class Pipeline:
                 for i, col in enumerate(cols)
             )
 
-        return DataWriter(
-            expr=cleaner.clean_row, read_cols=read_columns, write_cols=write_columns
+        required_keys = {col.key for col in cleaner.inputs.cols if col.required}
+        required_positions = tuple(
+            i for i, key in enumerate(ordered_keys) if key in required_keys
         )
+        output_count = 1 if len(cols) <= 1 else len(cols)
+
+        return DataWriter(
+            expr=self._guarded_expr(
+                cleaner.clean_row, required_positions, output_count
+            ),
+            read_cols=read_columns,
+            write_cols=write_columns,
+        )
+
+    @staticmethod
+    def _guarded_expr(
+        clean_row: Callable[..., Any],
+        required_positions: tuple[int, ...],
+        output_count: int,
+    ) -> Callable[..., Any]:
+        """Wrap a cleaner's clean_row so it is never invoked when a required input is
+        missing (None or NaN, e.g. from pandas). Skipping the call keeps engines from
+        having to pass real values into cleaners that don't guarantee handling for them,
+        and avoids running cleaning logic on rows that can't produce a meaningful result
+        anyway."""
+
+        if not required_positions:
+            return clean_row
+
+        none_result: Any = None if output_count == 1 else (None,) * output_count
+
+        def guarded(*values: Any) -> Any:
+            if any(_is_missing(values[i]) for i in required_positions):
+                return none_result
+            return clean_row(*values)
+
+        return guarded
