@@ -1,5 +1,6 @@
 """Main pipeline orchestrator for unified cleaners."""
 
+import logging
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -32,6 +33,7 @@ class Pipeline:
         self._column_cleaners = column_cleaners or {}
         self._context_overrides = context_overrides or {}
         self._auto_detect = auto_detect
+        self._logger: logging.Logger = config.get_logger("Pipeline")
         extractor = EntityExtractor(words_fn=ColRenamer()._get_words)
         self._resolver = Resolver(cleaners=self._cleaners)
         self._dependency_resolver = DependencyResolver(entity_extractor=extractor)
@@ -39,10 +41,15 @@ class Pipeline:
     def fit_transform(self, df: DataFrame | object) -> DataFrame:
         """Clean a DataFrame through the engine abstraction."""
 
+        self._logger.info(
+            "Starting pipeline with %d cleaner(s)...", len(self._cleaners)
+        )
         df = self._wrap_df(df)
+        columns = set(df.col_names())
+        self._logger.debug("Resolving assignments for columns: %s", sorted(columns))
         assignments = self._resolver.resolve(
             df,
-            set(df.col_names()),
+            columns,
             self._column_cleaners,
         )
 
@@ -51,11 +58,29 @@ class Pipeline:
                 assignment for assignment in assignments if assignment.confidence == 1.0
             )
 
+        self._logger.info("Resolved %d assignment(s).", len(assignments))
+        if self._logger.isEnabledFor(logging.DEBUG):
+            for assignment in assignments:
+                self._logger.debug(
+                    "Assignment: cleaner=%s roles=%s confidence=%.2f",
+                    assignment.cleaner.name,
+                    assignment.role_columns,
+                    assignment.confidence,
+                )
+
         waves = self._dependency_resolver.resolve(assignments, self._context_overrides)
-        for wave in waves:
+        self._logger.info("Executing %d wave(s)...", len(waves))
+        for wave_index, wave in enumerate(waves, start=1):
+            self._logger.debug(
+                "[wave %d/%d] Cleaners: %s",
+                wave_index,
+                len(waves),
+                [assignment.cleaner.name for assignment in wave],
+            )
             writers = tuple(self._writer_for(assignment) for assignment in wave)
             df.write_cols(writers)
 
+        self._logger.info("Pipeline finished.")
         return df
 
     def _wrap_df(self, df: Any) -> DataFrame:
