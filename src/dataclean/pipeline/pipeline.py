@@ -1,7 +1,7 @@
 """Main pipeline orchestrator for unified cleaners."""
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import Any
 
 from dataclean.cleaners import Cleaner
@@ -22,11 +22,19 @@ PRIMARY = "value"
 class Pipeline:
     """Resolve unified cleaners and execute them in dependency-safe waves."""
 
+    _cleaners: tuple[Cleaner, ...]
+    _column_cleaners: dict[str, Cleaner]
+    _context_overrides: dict[str, dict[str, str]]
+    _auto_detect: bool
+    _logger: logging.Logger
+    _resolver: Resolver
+    _dependency_resolver: DependencyResolver
+
     def __init__(
         self,
         cleaners: Sequence[Cleaner] = (),
-        column_cleaners: Mapping[str, Cleaner] | None = None,
-        context_overrides: Mapping[str, Mapping[str, str]] | None = None,
+        column_cleaners: dict[str, Cleaner] | None = None,
+        context_overrides: dict[str, dict[str, str]] | None = None,
         auto_detect: bool = True,
     ) -> None:
         self._cleaners = tuple(cleaners)
@@ -34,8 +42,9 @@ class Pipeline:
         self._context_overrides = context_overrides or {}
         self._auto_detect = auto_detect
         self._logger: logging.Logger = config.get_logger("Pipeline")
-        extractor = EntityExtractor(words_fn=ColRenamer()._get_words)
         self._resolver = Resolver(cleaners=self._cleaners)
+
+        extractor = EntityExtractor(words_fn=ColRenamer()._get_words)
         self._dependency_resolver = DependencyResolver(entity_extractor=extractor)
 
     def fit_transform(self, df: DataFrame | object) -> DataFrame:
@@ -47,11 +56,7 @@ class Pipeline:
         df = self._wrap_df(df)
         columns = set(df.col_names())
         self._logger.debug("Resolving assignments for columns: %s", sorted(columns))
-        assignments = self._resolver.resolve(
-            df,
-            columns,
-            self._column_cleaners,
-        )
+        assignments = self._resolver.resolve(df, columns, self._column_cleaners)
 
         if not self._auto_detect:
             assignments = tuple(
