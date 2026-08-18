@@ -3,13 +3,12 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
-from dataclean import logs
-from dataclean.cleaners.cleaner import Cleaner
-from dataclean.col_renamer import ColRenamer
-from dataclean.engine.catalog import Catalog
-from dataclean.engine.dataframe import DataFrame
-from dataclean.plugins.loader import PluginLoader
-from dataclean.types import checked
+from . import logs
+from .cleaners import Cleaner
+from .col_renamer import ColRenamer
+from .engine import Catalog, DataFrame
+from .plugins import PluginLoader
+from .types import checked
 
 LoggerProvider = Callable[[str], logging.Logger]
 

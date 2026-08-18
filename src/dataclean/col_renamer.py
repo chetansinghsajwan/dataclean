@@ -4,7 +4,7 @@ from typing import ClassVar, Literal
 
 import wordninja
 
-from dataclean.types import checked
+from .types import checked
 
 
 @checked

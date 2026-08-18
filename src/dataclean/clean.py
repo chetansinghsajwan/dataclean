@@ -2,15 +2,13 @@ import logging
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
-from dataclean.col_renamer import ColRenamer
-from dataclean.config import config
-from dataclean.engine import Catalog, DataFrame
-from dataclean.logs.log_level import LogLevel
-from dataclean.types import checked
-from dataclean.utils.paths import map_paths
-
+from .col_renamer import ColRenamer
+from .config import config
+from .engine import Catalog, DataFrame
+from .logs import LogLevel
 from .pipeline import Pipeline
-from .utils import _log_args
+from .types import checked
+from .utils import _log_args, map_paths
 
 
 def _catalog_name(catalog: Catalog | type[Catalog] | None) -> str:

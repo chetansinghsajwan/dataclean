@@ -1,7 +1,7 @@
 import pandas as pd
 from dataclean_pandas import PandasDataFrame
 
-from dataclean import dataclean
+import dataclean
 from dataclean.cleaners.email_cleaner import EmailCleaner
 
 
