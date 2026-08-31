@@ -371,9 +371,14 @@ tasks:
     test:
         desc: Run the test suite
         cmds:
-            - uv run pytest tests/
+            - task: test:core
             - task: test:pandas
             - task: test:pyspark
+
+    test:core:
+        desc: Run the test suite
+        cmds:
+            - uv run pytest tests
 
     test:cleaners:
         desc: Run tests for the cleaners

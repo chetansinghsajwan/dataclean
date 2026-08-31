@@ -1,9 +1,12 @@
-from collections.abc import Callable, Iterable
+import re
+import stat
+from collections.abc import Callable
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from typing import ClassVar, override
 
 import pycountry
+from rapidfuzz import fuzz, process
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
@@ -12,7 +15,6 @@ from .cleaner import Cleaner
 
 
 @checked
-@dataclass
 class CountryCleaner(Cleaner):
     @checked
     @dataclass
@@ -22,11 +24,12 @@ class CountryCleaner(Cleaner):
         alpha3: str
 
     @checked
-    class Format(Enum):
+    class Format(StrEnum):
         AUTO = "auto"
-        NAME = "name"
         ALPHA2 = "alpha2"
         ALPHA3 = "alpha3"
+        NAME = "name"
+        NAME_FREE_TEXT = "name_free_text"
 
     _AUTO_FORMATS: ClassVar[tuple[Format, ...]] = (
         Format.ALPHA2,
@@ -34,24 +37,39 @@ class CountryCleaner(Cleaner):
         Format.NAME,
     )
 
-    in_format: Format | tuple[Format, ...] = Format.AUTO
-    out_format: Format = Format.NAME
+    _in_formats: Format | tuple[Format, ...]
+    _resolved_in_formats: tuple[Format, ...]
+    _out_format: Format
+    _find_country_pipeline: tuple[Callable[[str], Details | None], ...]
+    _output_formatter: Callable[[Details], str]
 
-    # --- PRIVATE VARS ---
+    def __init__(
+        self,
+        in_format: Format | tuple[Format, ...] = Format.AUTO,
+        out_format: Format = Format.NAME,
+        tags: tuple[str, ...] = (),
+    ) -> None:
+        super().__init__(tags=tags)
 
-    _find_country_pipeline: tuple[Callable[[str], Details | None], ...] = ()
+        self._in_formats = in_format
+        self._out_format = out_format
+        self._resolved_in_formats = self._resolve_input_format(in_format)
+        self._find_country_pipeline = self._create_find_country_pipeline(
+            resolved_formats=self._resolved_in_formats
+        )
+        self._output_formatter = self._create_output_formatter(out_format)
 
-    # ---------------------------------------------------------------------------
-    # INIT FUNCTIONS
-    # ---------------------------------------------------------------------------
+    @property
+    def in_formats(self) -> Format | tuple[Format, ...]:
+        return self._in_formats
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
-        self._find_country_pipeline = self._create_find_country_pipeline(self.in_format)
+    @property
+    def resolved_in_formats(self) -> tuple[Format, ...]:
+        return self._resolved_in_formats
 
-    # ---------------------------------------------------------------------------
-    # PUBLIC FUNCTIONS
-    # ---------------------------------------------------------------------------
+    @property
+    def out_format(self) -> Format:
+        return self._out_format
 
     @override
     def _outputs(self) -> Cleaner.OutputSchema:
@@ -67,35 +85,36 @@ class CountryCleaner(Cleaner):
     @checked
     def clean_row(self, v: str) -> str | None:
 
-        country_match = self._find_country(v)
-        return self._get_output(country_match) if country_match else None
+        assert len(v.strip()) > 0, "v must be a non-empty string"
+        assert v.strip() == v, "v must not contain leading or trailing whitespace"
 
-    @override
-    def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
-        return 1.0 if "country" in tuple(cols)[0].lower() else 0.0
-
-    # ---------------------------------------------------------------------------
-    # PRIVATE FUNCTIONS
-    # ---------------------------------------------------------------------------
-
-    def _find_country(self, v: str) -> Details | None:
         for finder in self._find_country_pipeline:
             country = finder(v)
             if country is not None:
-                return country
+                return self._output_formatter(country)
 
         return None
 
-    def _get_output(self, country: Details) -> str:
-        match self.out_format:
-            case self.Format.NAME:
-                return country.name
-            case self.Format.ALPHA2:
-                return country.alpha2
-            case self.Format.ALPHA3:
-                return country.alpha3
+    @override
+    def match_score(self, df: DataFrame, cols: tuple[str, ...]) -> float:
 
-        raise ValueError(f"Unsupported out_format: {self.out_format}")
+        assert len(cols) == 1, "cols must be a tuple of length 1"
+
+        if "country" in cols[0].lower():
+            return Cleaner.MAX_SCORE
+
+        return Cleaner.MIN_SCORE
+
+    def _create_output_formatter(self, out_format: Format) -> Callable[[Details], str]:
+        match out_format:
+            case self.Format.NAME:
+                return lambda country: country.name
+            case self.Format.ALPHA2:
+                return lambda country: country.alpha2
+            case self.Format.ALPHA3:
+                return lambda country: country.alpha3
+
+        raise ValueError(f"Unsupported out_format: {self._out_format}")
 
     @classmethod
     def _resolve_input_format(
@@ -105,68 +124,72 @@ class CountryCleaner(Cleaner):
         if fmt == CountryCleaner.Format.AUTO:
             return cls._AUTO_FORMATS
 
-        if isinstance(fmt, tuple):
-            resolved_set: set[CountryCleaner.Format] = set()
-            for f in fmt:
-                if f == CountryCleaner.Format.AUTO:
-                    resolved_set.update(cls._AUTO_FORMATS)
-                else:
-                    resolved_set.add(f)
-            return tuple(resolved_set)
+        if not isinstance(fmt, tuple):
+            return (fmt,)
 
-        return (fmt,)
+        seen: set[CountryCleaner.Format] = set()
+        result: list[CountryCleaner.Format] = []
+        for f in fmt:
+            candidates = cls._AUTO_FORMATS if f == CountryCleaner.Format.AUTO else (f,)
+            for c in candidates:
+                if c not in seen:
+                    seen.add(c)
+                    result.append(c)
+
+        return tuple(result)
 
     def _create_find_country_pipeline(
         self,
-        fmts: Format | tuple[Format, ...],
+        resolved_formats: tuple[Format, ...],
     ) -> tuple[Callable[[str], Details | None], ...]:
 
-        def find_country_name(v: str) -> CountryCleaner.Details | None:
-            try:
-                result = pycountry.countries.search_fuzzy(v)[0]
-            except (LookupError, IndexError):
-                return None
-
-            return CountryCleaner.Details(
-                name=result.name,
-                alpha2=result.alpha_2,
-                alpha3=result.alpha_3,
-            )
-
-        def find_country_alpha2(v: str) -> CountryCleaner.Details | None:
-            result = pycountry.countries.get(alpha_2=v.upper())
-
-            if result is None:
-                return None
-
-            return CountryCleaner.Details(
-                name=result.name,
-                alpha2=result.alpha_2,
-                alpha3=result.alpha_3,
-            )
-
-        def find_country_alpha3(v: str) -> CountryCleaner.Details | None:
-            result = pycountry.countries.get(alpha_3=v.upper())
-
-            if result is None:
-                return None
-
-            return CountryCleaner.Details(
-                name=result.name,
-                alpha2=result.alpha_2,
-                alpha3=result.alpha_3,
-            )
-
-        in_formats = self._resolve_input_format(fmts)
-
         pipeline = []
-        for fmt in in_formats:
+        for fmt in resolved_formats:
             match fmt:
-                case self.Format.NAME:
-                    pipeline.append(find_country_name)
                 case self.Format.ALPHA2:
-                    pipeline.append(find_country_alpha2)
+                    pipeline.append(CountryCleaner._find_country_alpha2)
                 case self.Format.ALPHA3:
-                    pipeline.append(find_country_alpha3)
+                    pipeline.append(CountryCleaner._find_country_alpha3)
+                case self.Format.NAME:
+                    pipeline.append(CountryCleaner._find_country_name)
 
         return tuple(pipeline)
+
+    @staticmethod
+    def _find_country_alpha2(v: str) -> Details | None:
+        result = pycountry.countries.get(alpha_2=v.upper())
+
+        if result is None:
+            return None
+
+        return CountryCleaner.Details(
+            name=result.name,
+            alpha2=result.alpha_2,
+            alpha3=result.alpha_3,
+        )
+
+    @staticmethod
+    def _find_country_alpha3(v: str) -> Details | None:
+        result = pycountry.countries.get(alpha_3=v.upper())
+
+        if result is None:
+            return None
+
+        return CountryCleaner.Details(
+            name=result.name,
+            alpha2=result.alpha_2,
+            alpha3=result.alpha_3,
+        )
+
+    @staticmethod
+    def _find_country_name(v: str) -> Details | None:
+        try:
+            result = pycountry.countries.search_fuzzy(v)[0]
+        except (LookupError, IndexError):
+            return None
+
+        return CountryCleaner.Details(
+            name=result.name,
+            alpha2=result.alpha_2,
+            alpha3=result.alpha_3,
+        )
