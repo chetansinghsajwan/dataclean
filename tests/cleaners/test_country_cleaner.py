@@ -46,6 +46,7 @@ def test_default_initialization_pipeline():
         CountryCleaner.Format.ALPHA2,
         CountryCleaner.Format.ALPHA3,
         CountryCleaner.Format.NAME,
+        CountryCleaner.Format.NAME_FUZZY,
     )
 
     cleaner = CountryCleaner(in_format=CountryCleaner.Format.AUTO)
@@ -53,6 +54,7 @@ def test_default_initialization_pipeline():
         CountryCleaner.Format.ALPHA2,
         CountryCleaner.Format.ALPHA3,
         CountryCleaner.Format.NAME,
+        CountryCleaner.Format.NAME_FUZZY,
     )
 
 
@@ -70,6 +72,7 @@ def test_custom_tuple_format_pipeline_deduplication():
         CountryCleaner.Format.ALPHA2,
         CountryCleaner.Format.ALPHA3,
         CountryCleaner.Format.NAME,
+        CountryCleaner.Format.NAME_FUZZY,
     )
 
     cleaner = CountryCleaner(
@@ -79,6 +82,7 @@ def test_custom_tuple_format_pipeline_deduplication():
         CountryCleaner.Format.ALPHA3,
         CountryCleaner.Format.ALPHA2,
         CountryCleaner.Format.NAME,
+        CountryCleaner.Format.NAME_FUZZY,
     )
 
 
@@ -105,6 +109,18 @@ def test_custom_tuple_format_pipeline_deduplication():
             "USA",
         ),
         ("in", CountryCleaner.Format.ALPHA2, CountryCleaner.Format.NAME, "India"),
+        (
+            "Lets go to india",
+            CountryCleaner.Format.NAME_FUZZY,
+            CountryCleaner.Format.NAME,
+            "India",
+        ),
+        (
+            "hi indIA",
+            CountryCleaner.Format.NAME_FUZZY,
+            CountryCleaner.Format.NAME,
+            "India",
+        ),
     ],
 )
 def test_clean_row_success(input_value, in_fmt, out_fmt, expected_output):

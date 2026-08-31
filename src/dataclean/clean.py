@@ -41,6 +41,10 @@ def clean(df, auto_detect: bool = True):
         >>> cleaned = clean(df)
     """
 
+    if config.auto_load_plugins and config.plugin_loader is not None:
+        _logger.info("Loading plugins...")
+        config.plugin_loader.load_plugins()
+
     pipeline = Pipeline(
         cleaners=config.cleaners,
         auto_detect=auto_detect,

@@ -9,6 +9,7 @@ dependencies = [
     "wordninja>=2.0.0",
     "phonenumbers>=9.0.34",
     "beartype>=0.22.9",
+    "rapidfuzz>=3.14.6",
 ]
 
 [project.optional-dependencies]
