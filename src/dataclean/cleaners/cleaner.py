@@ -15,6 +15,9 @@ PRIMARY: str = "value"
 class Cleaner(ABC):
     """Immutable, unified contract for single-column and multi-column cleaners."""
 
+    MAX_SCORE: float = 1.0
+    MIN_SCORE: float = 0.0
+
     @dataclass
     class InputSchema:
         @dataclass
