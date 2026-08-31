@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from dataclean import CountryCleaner, DataFrame, DataType
+from dataclean import Cleaner, CountryCleaner, DataFrame, DataType
 
 # ==============================================================================
 # 1. CORE PROPERTY TESTS
@@ -13,6 +13,7 @@ def test_cleaner_metadata():
 
     cleaner = CountryCleaner()
     assert cleaner.name == "CountryCleaner"
+    assert len(cleaner.inputs.cols) == 1
     assert len(cleaner.outputs.cols) == 1
     assert cleaner.outputs.cols[0].dtype == DataType.STR
 
@@ -20,11 +21,11 @@ def test_cleaner_metadata():
 @pytest.mark.parametrize(
     "col_name, expected_confidence",
     [
-        ("country_name", 1.0),
-        ("COUNTRY", 1.0),
-        ("user_country_code", 1.0),
-        ("email_address", 0.0),
-        ("id", 0.0),
+        ("country_name", Cleaner.MAX_SCORE),
+        ("COUNTRY", Cleaner.MAX_SCORE),
+        ("user_country_code", Cleaner.MAX_SCORE),
+        ("email_address", Cleaner.MIN_SCORE),
+        ("id", Cleaner.MIN_SCORE),
     ],
 )
 def test_match_score(col_name, expected_confidence):
@@ -39,25 +40,46 @@ def test_match_score(col_name, expected_confidence):
 
 
 def test_default_initialization_pipeline():
-    # Defaults to AUTO
+
     cleaner = CountryCleaner()
-    # Auto expands to 3 pipelines (alpha2, alpha3, name)
-    assert len(cleaner._find_country_pipeline) == 3
+    assert cleaner.resolved_in_formats == (
+        CountryCleaner.Format.ALPHA2,
+        CountryCleaner.Format.ALPHA3,
+        CountryCleaner.Format.NAME,
+    )
+
+    cleaner = CountryCleaner(in_format=CountryCleaner.Format.AUTO)
+    assert cleaner.resolved_in_formats == (
+        CountryCleaner.Format.ALPHA2,
+        CountryCleaner.Format.ALPHA3,
+        CountryCleaner.Format.NAME,
+    )
 
 
 def test_custom_single_format_pipeline():
-    cleaner = CountryCleaner(
-        in_format=CountryCleaner.Format.ALPHA2, out_format=CountryCleaner.Format.ALPHA3
-    )
-    assert len(cleaner._find_country_pipeline) == 1
+    cleaner = CountryCleaner(in_format=CountryCleaner.Format.ALPHA2)
+    assert cleaner.resolved_in_formats == (CountryCleaner.Format.ALPHA2,)
 
 
 def test_custom_tuple_format_pipeline_deduplication():
     cleaner = CountryCleaner(
         in_format=(CountryCleaner.Format.ALPHA2, CountryCleaner.Format.AUTO)
     )
-    # Deduplicates alpha2 out of auto's expansion pool
-    assert len(cleaner._find_country_pipeline) == 3
+
+    assert cleaner.resolved_in_formats == (
+        CountryCleaner.Format.ALPHA2,
+        CountryCleaner.Format.ALPHA3,
+        CountryCleaner.Format.NAME,
+    )
+
+    cleaner = CountryCleaner(
+        in_format=(CountryCleaner.Format.ALPHA3, CountryCleaner.Format.AUTO)
+    )
+    assert cleaner.resolved_in_formats == (
+        CountryCleaner.Format.ALPHA3,
+        CountryCleaner.Format.ALPHA2,
+        CountryCleaner.Format.NAME,
+    )
 
 
 # ==============================================================================
