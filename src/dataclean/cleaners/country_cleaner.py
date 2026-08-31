@@ -1,5 +1,3 @@
-import re
-import stat
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
@@ -29,30 +27,36 @@ class CountryCleaner(Cleaner):
         ALPHA2 = "alpha2"
         ALPHA3 = "alpha3"
         NAME = "name"
-        NAME_FREE_TEXT = "name_free_text"
+        NAME_FUZZY = "name_fuzzy"
 
     _AUTO_FORMATS: ClassVar[tuple[Format, ...]] = (
         Format.ALPHA2,
         Format.ALPHA3,
         Format.NAME,
+        Format.NAME_FUZZY,
     )
+
+    _PYCOUNTRY_COUNTRIES = {c.name.lower(): c for c in pycountry.countries}
 
     _in_formats: Format | tuple[Format, ...]
     _resolved_in_formats: tuple[Format, ...]
     _out_format: Format
     _find_country_pipeline: tuple[Callable[[str], Details | None], ...]
     _output_formatter: Callable[[Details], str]
+    _fuzzy_match_thresold: float
 
     def __init__(
         self,
         in_format: Format | tuple[Format, ...] = Format.AUTO,
         out_format: Format = Format.NAME,
+        fuzzy_match_thresold: float = 0.9,
         tags: tuple[str, ...] = (),
     ) -> None:
         super().__init__(tags=tags)
 
         self._in_formats = in_format
         self._out_format = out_format
+        self._fuzzy_match_thresold = fuzzy_match_thresold
         self._resolved_in_formats = self._resolve_input_format(in_format)
         self._find_country_pipeline = self._create_find_country_pipeline(
             resolved_formats=self._resolved_in_formats
@@ -87,6 +91,8 @@ class CountryCleaner(Cleaner):
 
         assert len(v.strip()) > 0, "v must be a non-empty string"
         assert v.strip() == v, "v must not contain leading or trailing whitespace"
+
+        v = v.lower()
 
         for finder in self._find_country_pipeline:
             country = finder(v)
@@ -152,6 +158,12 @@ class CountryCleaner(Cleaner):
                     pipeline.append(CountryCleaner._find_country_alpha3)
                 case self.Format.NAME:
                     pipeline.append(CountryCleaner._find_country_name)
+                case self.Format.NAME_FUZZY:
+                    pipeline.append(
+                        lambda v: CountryCleaner._find_country_name_fuzzy(
+                            v, self._fuzzy_match_thresold
+                        )
+                    )
 
         return tuple(pipeline)
 
@@ -192,4 +204,23 @@ class CountryCleaner(Cleaner):
             name=result.name,
             alpha2=result.alpha_2,
             alpha3=result.alpha_3,
+        )
+
+    @staticmethod
+    def _find_country_name_fuzzy(v: str, threshold: float) -> Details | None:
+        name, score, _ = process.extractOne(
+            v,
+            CountryCleaner._PYCOUNTRY_COUNTRIES.keys(),
+            scorer=fuzz.WRatio,
+        )
+
+        if score < (threshold * 100):
+            return None
+
+        country = CountryCleaner._PYCOUNTRY_COUNTRIES[name]
+
+        return CountryCleaner.Details(
+            name=country.name,
+            alpha2=country.alpha_2,
+            alpha3=country.alpha_3,
         )
