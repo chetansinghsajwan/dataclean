@@ -7,6 +7,8 @@
 
 ## TODO
 
+- match_score should get col names with words separated
+- Cleaners should recieve words for match score as input during initialization
 - The BusinessCleaner (Corporate Entity Normalizer)
 - The ScaleCleaner / CategoricalNormalizer
 - The UrlCleaner / DomainNormalizer
