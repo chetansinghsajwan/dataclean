@@ -117,7 +117,7 @@ class Cleaner(ABC):
 
     def match_score(self, df: DataFrame, cols: tuple[str, ...]) -> float:
         """Score confidence (0.0-1.0) that this cleaner matches the given columns."""
-        return 0.0
+        return Cleaner.MIN_SCORE
 
 
 ColumnRole = Cleaner.InputSchema.Column

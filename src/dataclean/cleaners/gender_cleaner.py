@@ -1,17 +1,16 @@
-from collections.abc import Iterable
-from dataclasses import dataclass
+import logging
+from collections.abc import Iterable, Mapping
 from enum import StrEnum
-from typing import ClassVar, override
 
-from dataclean.engine import DataFrame
 from dataclean.types import checked
 
-from .cleaner import Cleaner
+from .enum_cleaner import EnumCleaner
+
+_logger = logging.getLogger(__name__)
 
 
 @checked
-@dataclass
-class GenderCleaner(Cleaner):
+class GenderCleaner(EnumCleaner):
     class Format(StrEnum):
         FULL = "full"  # "Male" / "Female" / "Other"
         CHAR = "char"  # "M" / "F" / "O"
@@ -19,39 +18,49 @@ class GenderCleaner(Cleaner):
 
     out_format: Format = Format.FULL
 
-    # Shared static mapping configuration matrix
-    _MAPPING: ClassVar = {
-        "male": {Format.FULL: "Male", Format.CHAR: "M", Format.BINARY: "1"},
-        "m": {Format.FULL: "Male", Format.CHAR: "M", Format.BINARY: "1"},
-        "man": {Format.FULL: "Male", Format.CHAR: "M", Format.BINARY: "1"},
-        "boy": {Format.FULL: "Male", Format.CHAR: "M", Format.BINARY: "1"},
-        "female": {Format.FULL: "Female", Format.CHAR: "F", Format.BINARY: "0"},
-        "f": {Format.FULL: "Female", Format.CHAR: "F", Format.BINARY: "0"},
-        "woman": {Format.FULL: "Female", Format.CHAR: "F", Format.BINARY: "0"},
-        "girl": {Format.FULL: "Female", Format.CHAR: "F", Format.BINARY: "0"},
-        "other": {Format.FULL: "Other", Format.CHAR: "O", Format.BINARY: "-1"},
-        "o": {Format.FULL: "Other", Format.CHAR: "O", Format.BINARY: "-1"},
-        "non-binary": {Format.FULL: "Other", Format.CHAR: "O", Format.BINARY: "-1"},
+    DEFAULT_CLEANER_MATCHING_WORDS = ["gender", "sex"]
+    DEFAULT_FUZZY_THRESHOLD = 0.9
+
+    GENDERS = {
+        "male": ["male", "man", "m", "boy", "1"],
+        "female": ["female", "woman", "f", "girl", "0"],
+        "other": ["other", "non-binary", "prefer not to say", "o", "-1"],
     }
 
-    @override
-    def clean_row(self, v: str) -> str | None:  # type: ignore
+    def __init__(
+        self,
+        genders: Mapping[str, Iterable[str]] = GENDERS,
+        extra_genders: Mapping[str, Iterable[str]] = {},
+        tags: tuple[str, ...] = (),
+        fuzzy_threshold: float = DEFAULT_FUZZY_THRESHOLD,
+        cleaner_matching_words: Iterable[str] = DEFAULT_CLEANER_MATCHING_WORDS,
+    ):
+        self._match_words = frozenset(cleaner_matching_words)
 
-        match_details = self._MAPPING.get(v.lower())
+        _logger.info("Building cases for gender cleaner...")
+        cases = self._build_cases(genders, extra_genders, fuzzy_threshold)
 
-        if match_details is None:
-            return None
+        super().__init__(
+            cases=cases,
+            cleaner_matching_words=GenderCleaner.DEFAULT_CLEANER_MATCHING_WORDS,
+            tags=tags,
+        )
 
-        return match_details[self.out_format]
+    def _build_cases(
+        self,
+        genders: Mapping[str, Iterable[str]],
+        extra_genders: Mapping[str, Iterable[str]],
+        fuzzy_threshold: float,
+    ) -> dict[str, EnumCleaner.Matcher]:
+        all_genders = {**genders, **extra_genders}
 
-    @override
-    def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
-        cols_tuple = tuple(cols)
-        if not cols_tuple:
-            return 0.0
+        cases: dict[str, EnumCleaner.Matcher] = {
+            gender: EnumCleaner.FuzzyMatcher(
+                variants=variants,
+                case_sensitive=False,
+                threshold=fuzzy_threshold,
+            )
+            for gender, variants in all_genders.items()
+        }
 
-        col_name = cols_tuple[0].lower()
-        if "gender" in col_name or "sex" in col_name:
-            return 1.0
-
-        return 0.0
+        return cases
