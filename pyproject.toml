@@ -4,6 +4,9 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = "==3.12.13"
+authors = [
+    { name = "Chetan Singh Sajwan", email = "76040441+chetansinghsajwan@users.noreply.github.com" },
+]
 dependencies = [
     "pycountry>=26.2.16",
     "wordninja>=2.0.0",
@@ -14,6 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test-contracts = ["pytest>=9.0.3"]
+cli = ["typer>=0.27.2"]
 
 [dependency-groups]
 dev = [
@@ -26,6 +30,9 @@ dev = [
     "dataclean-pandas",
     "dataclean-cch-crm",
 ]
+
+[project.scripts]
+dataclean = "dataclean_cli.main:main"
 
 [tool.uv.sources]
 dataclean-databricks = { path = "plugins/dataclean-databricks", editable = true }
