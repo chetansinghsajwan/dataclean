@@ -71,8 +71,6 @@ class GenderCleaner(EnumCleaner):
     ) -> dict[str, EnumCleanerMatcher]:
         all_genders = {**genders, **extra_genders}
 
-        print(all_genders)
-
         all_genders = {
             (
                 GenderCleaner._FORMATS[n][format]
@@ -82,15 +80,11 @@ class GenderCleaner(EnumCleaner):
             for n, variants in all_genders.items()
         }
 
-        print(all_genders)
-
         if format != GenderCleaner.Format.BINARY:
             all_genders = {
                 convert_to_case(n, case): variants
                 for n, variants in all_genders.items()
             }
-
-        print(all_genders)
 
         cases: dict[str, EnumCleanerMatcher] = {
             gender: EnumCleaner.ExactMatcher(
