@@ -10,6 +10,7 @@ from .cleaners import (
     CountryCleaner,
     DateTimeCleaner,
     EmailCleaner,
+    EnumCleaner,
     GenderCleaner,
     NumericCleaner,
     PhoneCleaner,
