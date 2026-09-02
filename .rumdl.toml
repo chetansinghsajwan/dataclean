@@ -1,4 +1,4 @@
-#:schema https://raw.githubusercontent.com/schemastore/schemastore/master/src/schemas/json/rumdl.json
+##:schema https://raw.githubusercontent.com/schemastore/schemastore/master/src/schemas/json/rumdl.json
 [global]
 line-length = 100
 
