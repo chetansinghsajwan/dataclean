@@ -102,14 +102,17 @@ class EnumCleaner(Cleaner):
                 for variant in self.variants
             )
 
-    _cases: dict[str, EnumCleanerMatcher]
+    CaseKey = str | bool | int | float
+
+    _cases: dict[CaseKey, EnumCleanerMatcher]
     _cleaner_matching_prefixes: frozenset[str]
     _cleaner_matching_suffixes: frozenset[str]
     _cleaner_matching_words: frozenset[str]
 
     def __init__(
         self,
-        cases: Iterable[str] | Mapping[str, str | Iterable[str] | EnumCleanerMatcher],
+        cases: Iterable[str]
+        | Mapping[CaseKey, str | Iterable[str] | EnumCleanerMatcher],
         cleaner_matching_prefixes: Iterable[str] = (),
         cleaner_matching_suffixes: Iterable[str] = (),
         cleaner_matching_words: Iterable[str] = (),
@@ -125,7 +128,7 @@ class EnumCleaner(Cleaner):
         super().__init__(tags=tags)
 
     @property
-    def cases(self) -> dict[str, EnumCleanerMatcher]:
+    def cases(self) -> dict[CaseKey, EnumCleanerMatcher]:
         return self._cases
 
     @property
@@ -142,13 +145,14 @@ class EnumCleaner(Cleaner):
 
     @staticmethod
     def _compile_cases(
-        cases: Iterable[str] | Mapping[str, str | Iterable[str] | EnumCleanerMatcher],
-    ) -> dict[str, EnumCleanerMatcher]:
+        cases: Iterable[str]
+        | Mapping[CaseKey, str | Iterable[str] | EnumCleanerMatcher],
+    ) -> dict[CaseKey, EnumCleanerMatcher]:
         Matcher = EnumCleanerMatcher
-        compiled_cases: dict[str, Matcher] = {}
+        compiled_cases: dict[EnumCleaner.CaseKey, Matcher] = {}
 
         if isinstance(cases, Mapping):
-            cases = cast(Mapping[str, Matcher], cases)
+            cases = cast(Mapping[EnumCleaner.CaseKey, Matcher], cases)
 
             matcher: Matcher
             for case, matcher in cases.items():
@@ -174,7 +178,7 @@ class EnumCleaner(Cleaner):
         return compiled_cases
 
     @override
-    def clean_row(self, v: str) -> str | None:  # type: ignore
+    def clean_row(self, v: str) -> CaseKey | None:  # type: ignore
 
         assert len(v.strip()) > 0, "v must be a non-empty string"
         assert v.strip() == v, "v must not contain leading or trailing whitespace"
