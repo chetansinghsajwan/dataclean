@@ -63,7 +63,7 @@ def test_gender_cleaner_confidence_heuristics(col_name, expected_confidence):
     ],
 )
 def test_clean_value_format_translations(input_value, target_format, expected_output):
-    cleaner = GenderCleaner(out_format=target_format)
+    cleaner = GenderCleaner(format=target_format)
     assert cleaner.clean_row(input_value) == expected_output
 
 
@@ -77,7 +77,7 @@ def test_clean_value_format_translations(input_value, target_format, expected_ou
     ["MALE", "Male", "mAlE", "F", "Female", "OTHER", "Non-Binary"],
 )
 def test_clean_value_handles_mixed_casing(cased_input):
-    cleaner = GenderCleaner(out_format=GenderCleaner.Format.FULL)
+    cleaner = GenderCleaner(format=GenderCleaner.Format.FULL)
     # Even with random data entry casing variations, mapping lookup should be successful
     assert cleaner.clean_row(cased_input) in ["Male", "Female", "Other"]
 
