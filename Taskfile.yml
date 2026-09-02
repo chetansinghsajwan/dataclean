@@ -400,6 +400,11 @@ tasks:
         cmds:
             - uv run pytest tests/cleaners/test_bool_cleaner.py
 
+    test:enum:
+        desc: Run tests for the enum cleaner
+        cmds:
+            - uv run pytest tests/cleaners/test_enum_cleaner.py
+
     test:gender:
         desc: Run tests for the gender cleaner
         cmds:

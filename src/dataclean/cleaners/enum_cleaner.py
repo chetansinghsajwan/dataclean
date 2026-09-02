@@ -39,9 +39,9 @@ class EnumCleaner(Cleaner):
 
         def __init__(self, variants: Iterable[str], case_sensitive: bool = True):
             self.variants = (
-                frozenset(v.lower() for v in variants)
+                frozenset(variants)
                 if case_sensitive
-                else frozenset(variants)
+                else frozenset(v.lower() for v in variants)
             )
             self.case_sensitive = case_sensitive
 
@@ -86,9 +86,9 @@ class EnumCleaner(Cleaner):
                 raise ValueError("threshold must be between 0.0 and 1.0")
 
             self.variants = (
-                frozenset(v.lower() for v in variants)
+                frozenset(variants)
                 if case_sensitive
-                else frozenset(variants)
+                else frozenset(v.lower() for v in variants)
             )
             self.threshold = threshold
             self.case_sensitive = case_sensitive
