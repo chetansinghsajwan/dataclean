@@ -20,10 +20,10 @@ class PandasCatalog(Catalog):
     }
 
     WRITERS = {
-        ".csv": lambda df, p: df.to_csv(p),
-        ".parquet": lambda df, p: df.to_parquet(p),
-        ".xlsx": lambda df, p: df.to_excel(p, engine="openpyxl"),
-        ".xls": lambda df, p: df.to_excel(p, engine="xlrd"),
+        ".csv": lambda df, p: df.df.to_csv(p),
+        ".parquet": lambda df, p: df.df.to_parquet(p),
+        ".xlsx": lambda df, p: df.df.to_excel(p, engine="openpyxl"),
+        ".xls": lambda df, p: df.df.to_excel(p, engine="xlrd"),
     }
 
     @override
