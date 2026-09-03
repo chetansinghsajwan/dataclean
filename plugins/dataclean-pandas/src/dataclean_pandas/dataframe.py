@@ -167,3 +167,105 @@ class PandasDataFrame(DataFrame):
         elif "bool" in dtype_str:
             return DataType.BOOL
         return DataType.STR
+
+    @override
+    def group_by(self, cols: Iterable[str]) -> "PandasDataFrame":
+        cols_list = list(cols)
+        result_df = self.df.groupby(cols_list, as_index=False).first()
+        return PandasDataFrame(df=result_df)
+
+    @override
+    def agg(
+        self, cols: Mapping[str, Callable] | Iterable[Callable] | Callable
+    ) -> "PandasDataFrame":
+        if isinstance(cols, Mapping):
+            # Convert mapped aggregators to apply to selected columns
+            result_df = self.df.agg(cols)
+        else:
+            result_df = self.df.agg(cols)
+        # Ensure result is a DataFrame
+        if not isinstance(result_df, pd.DataFrame):
+            result_df = pd.DataFrame([result_df])
+        return PandasDataFrame(df=result_df)
+
+    @override
+    def distinct(self, cols: Iterable[str] | None = None) -> "PandasDataFrame":
+        if cols is None:
+            result_df = self.df.drop_duplicates()
+        else:
+            cols_list = list(cols)
+            result_df = self.df.drop_duplicates(subset=cols_list)
+        return PandasDataFrame(df=result_df.reset_index(drop=True))
+
+    @override
+    def count(self) -> int:
+        return len(self.df)
+
+    @override
+    def collect(self) -> list[tuple[Any, ...]]:
+        return [tuple(row) for row in self.df.values]
+
+    @override
+    def select(self, cols: str | Iterable[str]) -> "PandasDataFrame":
+        if isinstance(cols, str):
+            cols_list = [cols]
+        else:
+            cols_list = list(cols)
+        result_df = self.df[cols_list]
+        return PandasDataFrame(df=result_df)
+
+    @override
+    def strip(self, cols: str | Iterable[str] | None = None) -> "PandasDataFrame":
+        result_df = self.df.copy()
+        if cols is None:
+            cols_to_strip = result_df.columns
+        else:
+            cols_to_strip = [cols] if isinstance(cols, str) else list(cols)
+
+        for col in cols_to_strip:
+            if col in result_df.columns:
+                result_df[col] = result_df[col].apply(
+                    lambda x: x.strip() if isinstance(x, str) else x
+                )
+        return PandasDataFrame(df=result_df)
+
+    @override
+    def nullif(self, cols: str | Iterable[str] | None = None) -> "PandasDataFrame":
+        result_df = self.df.copy()
+        if cols is None:
+            cols_to_nullif = result_df.columns
+        else:
+            cols_to_nullif = [cols] if isinstance(cols, str) else list(cols)
+
+        for col in cols_to_nullif:
+            if col in result_df.columns:
+                result_df[col] = result_df[col].apply(
+                    lambda x: None if isinstance(x, str) and x == "" else x
+                )
+        return PandasDataFrame(df=result_df)
+
+    @override
+    def order_by(
+        self, cols: str | Iterable[str], desc: bool = False
+    ) -> "PandasDataFrame":
+        if isinstance(cols, str):
+            cols_list = [cols]
+        else:
+            cols_list = list(cols)
+        result_df = self.df.sort_values(by=cols_list, ascending=not desc)
+        return PandasDataFrame(df=result_df.reset_index(drop=True))
+
+    @override
+    def limit(self, n: int) -> "PandasDataFrame":
+        result_df = self.df.head(n)
+        return PandasDataFrame(df=result_df.reset_index(drop=True))
+
+    @override
+    def filter_null(self, cols: str | Iterable[str] | None = None) -> "PandasDataFrame":
+        result_df = self.df.copy()
+        if cols is None:
+            result_df = result_df.dropna()
+        else:
+            cols_to_filter = [cols] if isinstance(cols, str) else list(cols)
+            result_df = result_df.dropna(subset=cols_to_filter)
+        return PandasDataFrame(df=result_df.reset_index(drop=True))
