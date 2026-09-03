@@ -10,6 +10,7 @@ dependencies = [
     "phonenumbers>=9.0.34",
     "beartype>=0.22.9",
     "rapidfuzz>=3.14.6",
+    "ibis-framework[duckdb,examples]>=12.0.0",
 ]
 
 [project.optional-dependencies]

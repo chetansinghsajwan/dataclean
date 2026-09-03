@@ -1,5 +1,7 @@
 import logging
 
+import ibis
+
 
 def setup_logging() -> None:
 
@@ -29,5 +31,4 @@ def setup_logging() -> None:
 
 setup_logging()
 
-
-setup_logging()
+ibis.Table
