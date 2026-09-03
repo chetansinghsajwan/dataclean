@@ -18,6 +18,9 @@ class DataType(StrEnum):
         return str(self.value)
 
 
+DataTypeValues = str | bool | int | float | None
+
+
 @checked
 @dataclass
 class DataReader:
@@ -48,6 +51,16 @@ class DataWriter:
     )
     read_cols: tuple[str, ...]
     write_cols: tuple[tuple[str, DataType], ...]
+
+
+Aggregator = Callable
+
+
+class Aggregators:
+    def _count(*args, **kwargs) -> int:
+        return len(args)
+
+    count: Aggregator = _count
 
 
 @checked
@@ -87,4 +100,55 @@ class DataFrame(ABC):
 
     @abstractmethod
     def cast_cols(self, cols: Mapping[str, DataType]):
+        pass
+
+    @abstractmethod
+    def group_by(self, cols: Iterable[str]) -> "DataFrame":
+        pass
+
+    @abstractmethod
+    def agg(
+        self, cols: Mapping[str, Aggregator] | Iterable[Aggregator] | Aggregator
+    ) -> "DataFrame":
+        pass
+
+    @abstractmethod
+    def distinct(self, cols: Iterable[str] | None = None) -> "DataFrame":
+        pass
+
+    @abstractmethod
+    def count(self) -> int:
+        pass
+
+    @abstractmethod
+    def collect(self) -> list[tuple[DataTypeValues, ...]]:
+        pass
+
+    @abstractmethod
+    def select(self, cols: str | Iterable[str]) -> "DataFrame":
+        "Single column or list of columns to select."
+        pass
+
+    @abstractmethod
+    def strip(self, cols: str | Iterable[str] | None = None) -> "DataFrame":
+        "Single column or list of columns to strip whitespace from."
+        pass
+
+    @abstractmethod
+    def nullif(self, cols: str | Iterable[str] | None = None) -> "DataFrame":
+        "Replace the value with null if the value is empty. If cols is None, apply to all string columns."
+        pass
+
+    @abstractmethod
+    def order_by(self, cols: str | Iterable[str], desc: bool = False) -> "DataFrame":
+        "If cols is None, apply to all columns."
+        pass
+
+    @abstractmethod
+    def limit(self, n: int) -> "DataFrame":
+        pass
+
+    @abstractmethod
+    def filter_null(self, cols: str | Iterable[str] | None = None) -> "DataFrame":
+        "If cols is None, apply to all columns."
         pass
