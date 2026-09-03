@@ -7,7 +7,7 @@ from typing import Protocol, cast, override, runtime_checkable
 
 from rapidfuzz import fuzz
 
-from dataclean.engine.dataframe import DataFrame
+from dataclean.engine.dataframe import Aggregators, DataFrame
 from dataclean.types import checked
 
 from .cleaner import Cleaner
@@ -194,15 +194,71 @@ class EnumCleaner(Cleaner):
 
         assert len(cols) == 1, "cols must be a tuple of length 1"
 
+        logger = _logger.getChild("match_score")
+
         col = cols[0].lower()
+        logger.debug("col: %s", col)
 
-        if any(col.startswith(prefix) for prefix in self._cleaner_matching_prefixes):
-            return Cleaner.MAX_SCORE
+        logger.debug("cleaner_matching_prefixes: %s", self._cleaner_matching_prefixes)
+        logger.debug("cleaner_matching_suffixes: %s", self._cleaner_matching_suffixes)
+        logger.debug("cleaner_matching_words: %s", self._cleaner_matching_words)
 
-        if any(col.endswith(suffix) for suffix in self._cleaner_matching_suffixes):
-            return Cleaner.MAX_SCORE
+        for prefix in self._cleaner_matching_prefixes:
+            if col.startswith(prefix):
+                logger.debug("Matched prefix: %s", prefix)
+                return Cleaner.MAX_SCORE
 
-        if any(w in col for w in self._cleaner_matching_words):
-            return Cleaner.MAX_SCORE
+        for suffix in self._cleaner_matching_suffixes:
+            if col.endswith(suffix):
+                logger.debug("Matched suffix: %s", suffix)
+                return Cleaner.MAX_SCORE
 
-        return Cleaner.MIN_SCORE
+        for word in self._cleaner_matching_words:
+            if word in col:
+                logger.debug("Matched word: %s", word)
+                return Cleaner.MAX_SCORE
+
+        logger.debug("Matching with values...")
+
+        rows = (
+            df.select(cols[0])
+            .strip()
+            .nullif()
+            .filter_null()
+            .group_by([cols[0]])
+            .agg(Aggregators.count)
+            .order_by(cols[0], desc=True)
+            .limit(100)
+            .collect()
+        )
+
+        total_count = 0
+        match_count = 0
+
+        rows_len = len(rows)
+        rows_len_width = len(str(rows_len))
+
+        for i, (v_in, count_in) in enumerate(rows, start=1):
+            logger.debug(
+                "[%0*d/%d] Checking %s (%s)",
+                rows_len_width,
+                i,
+                rows_len,
+                v_in,
+                count_in,
+            )
+
+            assert count_in is not None, "count must be a parseable int"
+            count = int(count_in)
+
+            v = str(v_in)
+
+            total_count += count
+
+            for _, matcher in self._cases.items():
+                if matcher(v):
+                    match_count += count
+                    break
+
+        match_ratio = match_count / total_count if total_count > 0.0 else 0.0
+        return match_ratio
