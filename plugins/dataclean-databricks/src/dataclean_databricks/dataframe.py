@@ -233,3 +233,131 @@ class PysparkDataFrame(DataFrame):
             return DataType.DOUBLE
 
         return DataType.STR
+
+    @override
+    def group_by(self, cols: Iterable[str]) -> "PysparkDataFrame":
+        cols_list = list(cols)
+        result_df = self.df.groupBy(*cols_list).agg(
+            {col: "first" for col in self.df.columns if col not in cols_list}
+        )
+        return PysparkDataFrame(df=result_df)
+
+    @override
+    def agg(
+        self,
+        cols: Mapping[str, Callable[[str], sp.Column] | sp.Column]
+        | Iterable[Callable[[str], sp.Column] | sp.Column]
+        | Callable[[str], sp.Column]
+        | sp.Column,
+    ) -> "PysparkDataFrame":
+        def to_expr(
+            col_name: str, aggregator: Callable[[str], sp.Column] | sp.Column
+        ) -> sp.Column:
+            # Callables build the aggregate expression from the column name;
+            # Column values (e.g. F.sum("col")) are used as-is.
+            if isinstance(aggregator, sp.Column):
+                return aggregator.alias(col_name)
+            return aggregator(col_name).alias(col_name)
+
+        if isinstance(cols, Mapping):
+            mapping_cols = cast(
+                Mapping[str, Callable[[str], sp.Column] | sp.Column], cols
+            )
+            exprs = [
+                to_expr(name, aggregator) for name, aggregator in mapping_cols.items()
+            ]
+            result_df = self.df.agg(*exprs)
+        elif isinstance(cols, sp.Column):
+            result_df = self.df.agg(cols)
+        else:
+            # Callable applied to the whole DataFrame, or an iterable of
+            # already-built Column expressions.
+            result_df = self.df.agg(cols)  # type: ignore
+        return PysparkDataFrame(df=result_df)
+
+    @override
+    def distinct(self, cols: Iterable[str] | None = None) -> "PysparkDataFrame":
+        if cols is None:
+            result_df = self.df.distinct()
+        else:
+            cols_list = list(cols)
+            result_df = self.df.dropDuplicates(subset=cols_list)
+        return PysparkDataFrame(df=result_df)
+
+    @override
+    def count(self) -> int:
+        return self.df.count()
+
+    @override
+    def collect(self) -> list[tuple[Any, ...]]:
+        return [tuple(row) for row in self.df.collect()]
+
+    @override
+    def select(self, cols: str | Iterable[str]) -> "PysparkDataFrame":
+        if isinstance(cols, str):
+            cols_list = [cols]
+        else:
+            cols_list = list(cols)
+        result_df = self.df.select(*cols_list)
+        return PysparkDataFrame(df=result_df)
+
+    @override
+    def strip(self, cols: str | Iterable[str] | None = None) -> "PysparkDataFrame":
+        if cols is None:
+            cols_to_strip = self.df.columns
+        else:
+            cols_to_strip = [cols] if isinstance(cols, str) else list(cols)
+
+        result_df = self.df
+        for col in cols_to_strip:
+            if col in result_df.columns:
+                result_df = result_df.withColumn(col, spf.trim(spf.col(col)))
+        return PysparkDataFrame(df=result_df)
+
+    @override
+    def nullif(self, cols: str | Iterable[str] | None = None) -> "PysparkDataFrame":
+        if cols is None:
+            cols_to_nullif = self.df.columns
+        else:
+            cols_to_nullif = [cols] if isinstance(cols, str) else list(cols)
+
+        result_df = self.df
+        for col in cols_to_nullif:
+            if col in result_df.columns:
+                result_df = result_df.withColumn(
+                    col, spf.when(spf.col(col) == "", None).otherwise(spf.col(col))
+                )
+        return PysparkDataFrame(df=result_df)
+
+    @override
+    def order_by(
+        self, cols: str | Iterable[str], desc: bool = False
+    ) -> "PysparkDataFrame":
+        if isinstance(cols, str):
+            cols_list = [cols]
+        else:
+            cols_list = list(cols)
+
+        order_cols = (
+            [spf.col(c).desc() for c in cols_list]
+            if desc
+            else [spf.col(c).asc() for c in cols_list]
+        )
+        result_df = self.df.orderBy(*order_cols)
+        return PysparkDataFrame(df=result_df)
+
+    @override
+    def limit(self, n: int) -> "PysparkDataFrame":
+        result_df = self.df.limit(n)
+        return PysparkDataFrame(df=result_df)
+
+    @override
+    def filter_null(
+        self, cols: str | Iterable[str] | None = None
+    ) -> "PysparkDataFrame":
+        if cols is None:
+            result_df = self.df.dropna()
+        else:
+            cols_to_filter = [cols] if isinstance(cols, str) else list(cols)
+            result_df = self.df.dropna(subset=cols_to_filter)
+        return PysparkDataFrame(df=result_df)
