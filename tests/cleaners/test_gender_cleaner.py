@@ -1,8 +1,6 @@
-from unittest.mock import MagicMock
-
 import pytest
 
-from dataclean import DataFrame, DataType, GenderCleaner
+from dataclean import DataType, GenderCleaner
 
 # ==============================================================================
 # 1. CORE PROPERTY TESTS
@@ -26,10 +24,49 @@ def test_gender_cleaner_metadata():
         ("country", 0.0),
     ],
 )
-def test_gender_cleaner_confidence_heuristics(col_name, expected_confidence):
+def test_gender_cleaner_confidence_heuristics(
+    col_name, expected_confidence, mock_df_with_value_counts
+):
     cleaner = GenderCleaner()
-    mock_df = MagicMock(spec=DataFrame)
+    # Name-based matching (matching word) short-circuits before value-based
+    # auto matching, so an empty collect() is fine for all cases here.
+    mock_df = mock_df_with_value_counts([])
     assert cleaner.match_score(mock_df, (col_name,)) == expected_confidence
+
+
+# ==============================================================================
+# 1b. MATCH SCORE: VALUE-BASED AUTO MATCHING (inherited from EnumCleaner)
+# ==============================================================================
+
+
+def test_gender_cleaner_auto_matches_by_value_when_name_does_not_match(
+    mock_df_with_value_counts,
+):
+    # "identity" hits neither the "gender"/"sex" match words nor any prefix/suffix
+    cleaner = GenderCleaner()
+    mock_df = mock_df_with_value_counts([("male", 6), ("female", 4)])
+    assert cleaner.match_score(mock_df, ("identity",)) == GenderCleaner.MAX_SCORE
+
+
+def test_gender_cleaner_auto_matching_partial_ratio(mock_df_with_value_counts):
+    cleaner = GenderCleaner()
+    mock_df = mock_df_with_value_counts(
+        [("male", 3), ("female", 3), ("unknown", 4)],
+    )
+    # 3 + 3 matched out of 10 total occurrences
+    assert cleaner.match_score(mock_df, ("identity",)) == pytest.approx(0.6)
+
+
+def test_gender_cleaner_auto_matching_no_values_match(mock_df_with_value_counts):
+    cleaner = GenderCleaner()
+    mock_df = mock_df_with_value_counts([("north", 1), ("south", 1)])
+    assert cleaner.match_score(mock_df, ("identity",)) == GenderCleaner.MIN_SCORE
+
+
+def test_gender_cleaner_auto_matching_case_insensitive(mock_df_with_value_counts):
+    cleaner = GenderCleaner()
+    mock_df = mock_df_with_value_counts([("MALE", 1), ("Female", 1)])
+    assert cleaner.match_score(mock_df, ("identity",)) == GenderCleaner.MAX_SCORE
 
 
 # ==============================================================================
