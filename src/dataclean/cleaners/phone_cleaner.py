@@ -1,3 +1,5 @@
+"""Cleaner for parsing and normalizing phone numbers."""
+
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -15,7 +17,24 @@ from .cleaner import Cleaner
 @checked
 @dataclass
 class PhoneCleaner(Cleaner):
+    """Parses messy phone number strings and renders them in a canonical format.
+
+    Delegates parsing and validation to the ``phonenumbers`` library. A
+    number is accepted only if ``phonenumbers`` considers it valid for one
+    of the tried regions. Self-contained international formats (e.g.
+    "+91...") are also accepted even when ``default_regions`` is empty.
+
+    Attributes:
+        out_format: The output layout to render valid numbers as.
+        default_regions: ISO region codes (e.g. "IN", "US") to try, in
+            order, when the input doesn't carry its own country code. If
+            empty, parsing is attempted with no default region, relying on
+            the number being self-contained (e.g. E.164 with a "+" prefix).
+    """
+
     class Format(StrEnum):
+        """Output layouts supported for cleaned phone numbers."""
+
         E164 = "e164"
         INTERNATIONAL = "international"
         NATIONAL = "national"
@@ -26,12 +45,27 @@ class PhoneCleaner(Cleaner):
 
     @override
     def _outputs(self) -> Cleaner.OutputSchema:
+        """Return the output schema, tagging the single output column with the "phone" role."""
         return Cleaner.OutputSchema(
             cols=(Cleaner.OutputSchema.Column(roles=("phone",)),)
         )
 
     @override
     def clean_row(self, v: str | None, country: str | None = None) -> str | None:  # type: ignore
+        """Parse ``v`` as a phone number and render it in ``out_format``.
+
+        Tries each region in ``default_regions`` (or no region, if empty)
+        until ``phonenumbers`` parses ``v`` into a valid number.
+
+        Args:
+            v: The raw phone number string to clean, or None.
+            country: Unused; accepted for signature compatibility.
+
+        Returns:
+            The cleaned number rendered per ``out_format``, or None if ``v``
+            is None or does not parse into a valid number under any tried
+            region.
+        """
 
         if v is None:
             return None
@@ -79,6 +113,17 @@ class PhoneCleaner(Cleaner):
 
     @override
     def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
+        """Score confidence based on the column name looking phone-related.
+
+        Args:
+            df: The dataframe being inspected (unused; scoring here is
+                name-based only).
+            cols: Candidate column name(s); only the first is considered.
+
+        Returns:
+            1.0 if the column name contains a phone-related token,
+            otherwise 0.0.
+        """
         cols_tuple = tuple(cols)
         if not cols_tuple:
             return 0.0

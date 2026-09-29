@@ -28,6 +28,3 @@ def setup_logging() -> None:
 
 
 setup_logging()
-
-
-setup_logging()

@@ -1,3 +1,10 @@
+"""Public entrypoints for cleaning dataframes and cataloged data paths.
+
+Provides :func:`clean` (clean a single in-memory dataframe) and
+:func:`clean_paths` (discover, read, clean, and write one or more dataframes
+via a :class:`~dataclean.engine.Catalog`).
+"""
+
 import logging
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
@@ -13,6 +20,7 @@ _logger = logging.getLogger(__name__)
 
 
 def _catalog_name(catalog: Catalog | type[Catalog] | None) -> str:
+    """Return a human-readable name for ``catalog``, for logging purposes."""
     if catalog is None:
         return "None"
 
@@ -26,10 +34,12 @@ def clean(df, auto_detect: bool = True):
     """
     Clean a dataframe with automatic cleaner detection.
 
+    If plugin auto-loading is enabled in the global config, installed
+    plugins are loaded before building the cleaning pipeline.
+
     Args:
         df: DataFrame to clean (pandas, pyspark, or DataFrame-compatible).
         auto_detect: If True, auto-detect cleaners for columns.
-        catalog: Catalog to use for cleaner registration (defaults to DefaultCatalog).
 
     Returns:
         Cleaned DataFrame.
@@ -61,6 +71,7 @@ class CleanPathResult:
 
 
 def _clean_df(df: DataFrame) -> DataFrame:
+    """Clean ``df`` using the globally configured cleaners, with auto-detection enabled."""
 
     pipeline = Pipeline(
         cleaners=config.cleaners,
@@ -84,6 +95,52 @@ def clean_paths(
     cleaners: Iterable[str] | None = None,
     dry_run: bool = False,
 ) -> CleanPathResult:
+    """Discover, clean, and write dataframes for a set of catalog paths.
+
+    Expands ``paths`` (e.g. glob-style patterns) via ``catalog``, reads each
+    resulting path as a :class:`~dataclean.engine.DataFrame`, cleans it
+    (using the globally configured cleaners, with auto-detection enabled),
+    and writes the cleaned result to the path(s) derived from
+    ``write_path``. If ``catalog`` is not given, uses the global config's
+    catalog (when ``use_global_config`` is True) or auto-detects one from
+    the environment via the registered catalog types, trying them in
+    priority order.
+
+    Note:
+        ``rename_cols``, ``rename_col_map``, ``col_renamer``, ``clean_cols``,
+        ``ignore_cols``, ``inplace``, and ``cleaners`` are accepted and
+        logged for diagnostics but are not yet threaded into the cleaning
+        pipeline in this implementation; cleaning currently always uses the
+        global config's cleaners with auto-detection.
+
+    Args:
+        paths: Path patterns to expand via the catalog.
+        write_path: Template path (may contain ``*`` wildcards, see
+            :func:`~dataclean.utils.paths.map_paths`) that each expanded
+            path is mapped onto for writing the cleaned result. If
+            ``None``, cleaned dataframes are not written.
+        catalog: Catalog to use for expanding/reading/writing paths. If
+            ``None``, resolved from the global config or the environment.
+        rename_cols: Whether to rename columns.
+        rename_col_map: Explicit column rename mapping.
+        col_renamer: :class:`ColRenamer` to use for renaming columns.
+        clean_cols: Whether to clean columns.
+        ignore_cols: Columns to exclude from cleaning.
+        use_global_config: If True, fall back to the global config's
+            catalog when ``catalog`` is not given.
+        inplace: Whether to clean dataframes in place.
+        cleaners: Names of cleaners to restrict cleaning to.
+        dry_run: If True, skip reading and writing dataframes (path
+            expansion/mapping and logging still occur, but no cleaning
+            actually happens).
+
+    Returns:
+        A :class:`CleanPathResult` describing the outcome.
+
+    Raises:
+        ValueError: If no catalog is given and none can be resolved from
+            the global config or the environment.
+    """
 
     _log_args(
         _logger,

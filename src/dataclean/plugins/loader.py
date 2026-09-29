@@ -1,3 +1,12 @@
+"""Discovers and loads installed dataclean plugin packages.
+
+A plugin is any installed Python distribution whose name starts with
+``dataclean-``. Each such package is expected to expose a module-level
+``info`` attribute (a :class:`~dataclean.plugins.info.PluginInfo`) that this
+loader reads and registers into the global
+:class:`~dataclean.config.Config`.
+"""
+
 import importlib.metadata
 import logging
 from dataclasses import dataclass
@@ -12,7 +21,10 @@ _logger = logging.getLogger(__name__)
 @checked
 @dataclass
 class PluginLoader:
+    """Discovers installed ``dataclean-*`` packages and registers their contents."""
+
     def find_plugins(self) -> set[str]:
+        """Return the distribution names of all installed ``dataclean-*`` packages."""
 
         # Get all installed distributions
         installed_packages = importlib.metadata.distributions()
@@ -27,6 +39,21 @@ class PluginLoader:
         return dataclean_packages
 
     def load_plugin(self, package_name: str) -> None:
+        """Import a plugin package and register its contents into the global config.
+
+        Imports ``package_name`` (with hyphens replaced by underscores, per
+        Python module naming), reads its module-level ``info`` attribute,
+        and registers every dataframe type, cleaner, catalog, and preset it
+        declares with :data:`dataclean.config.config`.
+
+        Args:
+            package_name: Distribution name of the plugin (e.g.
+                ``"dataclean-foo"``), as returned by :meth:`find_plugins`.
+
+        Raises:
+            RuntimeError: If the imported module's ``info`` attribute is not
+                a :class:`~dataclean.plugins.info.PluginInfo` instance.
+        """
 
         from dataclean.config import config
 
@@ -61,6 +88,7 @@ class PluginLoader:
             config.register_preset(preset)
 
     def load_plugins(self) -> None:
+        """Discover all installed plugins via :meth:`find_plugins` and load each one."""
         _logger.info("Finding plugins...")
         plugins = self.find_plugins()
 

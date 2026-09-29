@@ -1,3 +1,5 @@
+"""Country cleaner for normalizing country names and codes to a canonical format."""
+
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
@@ -14,15 +16,34 @@ from .cleaner import Cleaner
 
 @checked
 class CountryCleaner(Cleaner):
+    """Cleans and normalizes country names, alpha-2, and alpha-3 codes.
+
+    Attempts to resolve each input value against pycountry's country
+    database using a configurable pipeline of lookup strategies (exact
+    alpha-2/alpha-3 code lookup, exact name lookup, and fuzzy name
+    matching), then formats the resolved country according to
+    ``out_format``.
+    """
+
     @checked
     @dataclass
     class Details:
+        """Resolved details for a single matched country.
+
+        Attributes:
+            name: The country's name.
+            alpha2: The ISO 3166-1 alpha-2 code.
+            alpha3: The ISO 3166-1 alpha-3 code.
+        """
+
         name: str
         alpha2: str
         alpha3: str
 
     @checked
     class Format(StrEnum):
+        """Input/output country representations supported by CountryCleaner."""
+
         AUTO = "auto"
         ALPHA2 = "alpha2"
         ALPHA3 = "alpha3"
@@ -52,6 +73,21 @@ class CountryCleaner(Cleaner):
         fuzzy_match_thresold: float = 0.9,
         tags: tuple[str, ...] = (),
     ) -> None:
+        """Initialize a CountryCleaner.
+
+        Args:
+            in_format: The input format(s) to attempt when resolving a
+                value, tried in order. Format.AUTO expands to the full
+                lookup pipeline (alpha2, alpha3, name, name_fuzzy). Defaults
+                to Format.AUTO.
+            out_format: The format used to render a resolved country.
+                Defaults to Format.NAME.
+            fuzzy_match_thresold: Minimum similarity ratio (0.0-1.0)
+                required for a fuzzy name match to be accepted. Defaults to
+                0.9.
+            tags: Optional labels distinguishing multiple CountryCleaner
+                instances.
+        """
         super().__init__(tags=tags)
 
         self._in_formats = in_format
@@ -65,18 +101,22 @@ class CountryCleaner(Cleaner):
 
     @property
     def in_formats(self) -> Format | tuple[Format, ...]:
+        """Return the configured input format(s), as passed to __init__."""
         return self._in_formats
 
     @property
     def resolved_in_formats(self) -> tuple[Format, ...]:
+        """Return the expanded, deduplicated input formats used for lookup."""
         return self._resolved_in_formats
 
     @property
     def out_format(self) -> Format:
+        """Return the configured output format."""
         return self._out_format
 
     @override
     def _outputs(self) -> Cleaner.OutputSchema:
+        """Return the output schema: a single column with the "country" role."""
         return Cleaner.OutputSchema(
             cols=(
                 Cleaner.OutputSchema.Column(
@@ -88,6 +128,16 @@ class CountryCleaner(Cleaner):
     @override
     @checked
     def clean_row(self, v: str) -> str | None:
+        """Clean a single country value.
+
+        Args:
+            v: The raw country value. Must be non-empty and have no leading
+                or trailing whitespace.
+
+        Returns:
+            The formatted country (per out_format) if a lookup strategy in
+            the resolved pipeline matches it, otherwise None.
+        """
 
         assert len(v.strip()) > 0, "v must be a non-empty string"
         assert v.strip() == v, "v must not contain leading or trailing whitespace"
@@ -103,6 +153,16 @@ class CountryCleaner(Cleaner):
 
     @override
     def match_score(self, df: DataFrame, cols: tuple[str, ...]) -> float:
+        """Score confidence based on whether the column name contains "country".
+
+        Args:
+            df: The dataframe containing the candidate column (unused).
+            cols: A single-element tuple with the candidate column name.
+
+        Returns:
+            MAX_SCORE if "country" appears in the column name (case
+            insensitive), otherwise MIN_SCORE.
+        """
 
         assert len(cols) == 1, "cols must be a tuple of length 1"
 
@@ -112,6 +172,12 @@ class CountryCleaner(Cleaner):
         return Cleaner.MIN_SCORE
 
     def _create_output_formatter(self, out_format: Format) -> Callable[[Details], str]:
+        """Build the function that renders a resolved Details as out_format.
+
+        Raises:
+            ValueError: If out_format is not a supported output format
+                (i.e. not NAME, ALPHA2, or ALPHA3).
+        """
         match out_format:
             case self.Format.NAME:
                 return lambda country: country.name
@@ -127,6 +193,16 @@ class CountryCleaner(Cleaner):
         cls,
         fmt: Format | tuple[Format, ...],
     ) -> tuple[Format, ...]:
+        """Expand AUTO and de-duplicate a requested input format.
+
+        Args:
+            fmt: A single format, or a tuple of formats (each of which may
+                itself be AUTO), in the order they should be tried.
+
+        Returns:
+            A tuple of concrete (non-AUTO) formats, in first-seen order,
+            with duplicates removed.
+        """
         if fmt == CountryCleaner.Format.AUTO:
             return cls._AUTO_FORMATS
 
@@ -148,6 +224,16 @@ class CountryCleaner(Cleaner):
         self,
         resolved_formats: tuple[Format, ...],
     ) -> tuple[Callable[[str], Details | None], ...]:
+        """Build the ordered lookup pipeline for resolved_formats.
+
+        Args:
+            resolved_formats: The concrete (non-AUTO) formats to attempt,
+                in order.
+
+        Returns:
+            A tuple of lookup functions, each taking a lowercased value and
+            returning matched Details or None.
+        """
 
         pipeline = []
         for fmt in resolved_formats:
@@ -169,6 +255,7 @@ class CountryCleaner(Cleaner):
 
     @staticmethod
     def _find_country_alpha2(v: str) -> Details | None:
+        """Look up a country by exact ISO 3166-1 alpha-2 code (case-insensitive)."""
         result = pycountry.countries.get(alpha_2=v.upper())
 
         if result is None:
@@ -182,6 +269,7 @@ class CountryCleaner(Cleaner):
 
     @staticmethod
     def _find_country_alpha3(v: str) -> Details | None:
+        """Look up a country by exact ISO 3166-1 alpha-3 code (case-insensitive)."""
         result = pycountry.countries.get(alpha_3=v.upper())
 
         if result is None:
@@ -195,6 +283,10 @@ class CountryCleaner(Cleaner):
 
     @staticmethod
     def _find_country_name(v: str) -> Details | None:
+        """Look up a country via pycountry's built-in fuzzy name search.
+
+        Returns None if no match is found.
+        """
         try:
             result = pycountry.countries.search_fuzzy(v)[0]
         except (LookupError, IndexError):
@@ -208,6 +300,17 @@ class CountryCleaner(Cleaner):
 
     @staticmethod
     def _find_country_name_fuzzy(v: str, threshold: float) -> Details | None:
+        """Look up a country by fuzzy string matching against known country names.
+
+        Args:
+            v: The value to match.
+            threshold: Minimum similarity ratio (0.0-1.0) required to
+                accept the best match.
+
+        Returns:
+            The best-matching country's Details if its similarity score
+            meets threshold, otherwise None.
+        """
         name, score, _ = process.extractOne(
             v,
             CountryCleaner._PYCOUNTRY_COUNTRIES.keys(),

@@ -21,14 +21,40 @@ _logger = logging.getLogger(__name__)
 
 
 def _is_missing(value: Any) -> bool:
-    """Return True for values that engines use to represent absent data: Python's
-    None, and float NaN (e.g. pandas' representation of missing cells)."""
+    """Return whether a value represents absent data.
+
+    Args:
+        value: The value to check.
+
+    Returns:
+        True for values that engines use to represent absent data: Python's
+        None, and float NaN (e.g. pandas' representation of missing cells).
+    """
     return value is None or value != value  # noqa: PLR0124 (NaN != NaN by design)
 
 
 @checked
 class Pipeline:
-    """Resolve unified cleaners and execute them in dependency-safe waves."""
+    """Resolve unified cleaners and execute them in dependency-safe waves.
+
+    Given a set of `Cleaner` instances, a `Pipeline` matches them to a
+    dataframe's columns (via `Resolver`), resolves any cross-cleaner context
+    dependencies and orders execution into waves (via `DependencyResolver`),
+    and then runs each wave against the dataframe in turn.
+
+    Attributes:
+        _cleaners: The candidate cleaners available to the pipeline.
+        _column_cleaners: Explicit column name to cleaner overrides that
+            bypass automatic matching for that column.
+        _context_overrides: Explicit consumer column to (role name to
+            producer column) mappings that disambiguate context role
+            resolution.
+        _auto_detect: Whether to keep assignments that were auto-matched
+            (confidence < 1.0) rather than only explicit ones.
+        _resolver: Resolves dataframe columns to cleaner assignments.
+        _dependency_resolver: Resolves context dependencies between
+            assignments and orders them into execution waves.
+    """
 
     _cleaners: tuple[Cleaner, ...]
     _column_cleaners: dict[str, Cleaner]
@@ -44,6 +70,23 @@ class Pipeline:
         context_overrides: dict[str, dict[str, str]] | None = None,
         auto_detect: bool = True,
     ) -> None:
+        """Initialize the pipeline with its candidate cleaners and options.
+
+        Args:
+            cleaners: Candidate cleaners to match against dataframe columns.
+                Defaults to an empty tuple.
+            column_cleaners: Explicit mapping of column name to the cleaner
+                that must handle it, bypassing automatic matching for that
+                column. Defaults to None (no explicit overrides).
+            context_overrides: Explicit mapping of consumer column name to a
+                mapping of context role name to the producer column name that
+                should supply it, used to disambiguate automatic context
+                resolution. Defaults to None (no explicit overrides).
+            auto_detect: Whether to keep automatically matched assignments
+                (confidence < 1.0) in addition to explicit ones. When False,
+                only explicit (confidence == 1.0) assignments are executed.
+                Defaults to True.
+        """
         self._cleaners = tuple(cleaners)
         self._column_cleaners = column_cleaners or {}
         self._context_overrides = context_overrides or {}
@@ -54,7 +97,33 @@ class Pipeline:
         self._dependency_resolver = DependencyResolver(entity_extractor=extractor)
 
     def fit_transform(self, df: DataFrame | object) -> DataFrame:
-        """Clean a DataFrame through the engine abstraction."""
+        """Clean a DataFrame through the engine abstraction.
+
+        Wraps `df` in a `DataFrame` implementation if needed, resolves
+        cleaner assignments for its columns, resolves context dependencies
+        and execution order, then executes each resulting wave of cleaners
+        against the dataframe in sequence.
+
+        Args:
+            df: The dataframe to clean. May be an already-wrapped `DataFrame`
+                or a raw dataframe object supported by one of the configured
+                engine APIs (see `config.dataframe_apis`).
+
+        Returns:
+            The dataframe (wrapped as a `DataFrame`) after all resolved
+            cleaners have been applied.
+
+        Raises:
+            TypeError: If `df` is not a `DataFrame` and no configured engine
+                API supports its raw type.
+            MissingRequiredRoleError: If a required context role has no
+                producer, or a context override references a column no
+                producer of that role writes.
+            AmbiguousRoleError: If a required context role has multiple
+                producers that cannot be disambiguated.
+            CycleDetectedError: If the resolved cleaner dependencies contain
+                a cycle.
+        """
 
         _logger.info("Starting pipeline with %d cleaner(s)...", len(self._cleaners))
         df = self._wrap_df(df)
@@ -93,6 +162,19 @@ class Pipeline:
         return df
 
     def _wrap_df(self, df: Any) -> DataFrame:
+        """Wrap a raw dataframe in the appropriate configured `DataFrame` API.
+
+        Args:
+            df: The dataframe to wrap. If already a `DataFrame`, it is
+                returned unchanged.
+
+        Returns:
+            A `DataFrame` wrapping `df`.
+
+        Raises:
+            TypeError: If `df` is not a `DataFrame` and none of
+                `config.dataframe_apis` reports supporting its type.
+        """
 
         if isinstance(df, DataFrame):
             return df
@@ -105,6 +187,29 @@ class Pipeline:
         raise TypeError(f"Unsupported dataframe type: {type(df)}")
 
     def _writer_for(self, assignment: Assignment) -> DataWriter:
+        """Build the `DataWriter` that executes one resolved assignment.
+
+        Determines which raw and context columns to read (in the order the
+        cleaner's `clean_row` expects them), derives the output column
+        name(s) from the assignment's primary column (overwriting it in
+        place for single-output cleaners, or deriving suffixed names for
+        multi-output cleaners), and wraps `clean_row` so it is skipped when a
+        required input is missing.
+
+        Args:
+            assignment: The resolved assignment (cleaner, role columns, and
+                context columns) to build a writer for.
+
+        Returns:
+            A `DataWriter` describing how to read the assignment's input
+            columns, invoke the (guarded) cleaner expression, and write its
+            output columns.
+
+        Raises:
+            ValueError: If the assignment has no primary ('value') input role
+                column, since scalar cleaners require one to derive output
+                column names.
+        """
         cleaner = assignment.cleaner
         read_columns = tuple(assignment.role_columns.values()) + tuple(
             assignment.context_columns.values()
@@ -155,11 +260,27 @@ class Pipeline:
         required_positions: tuple[int, ...],
         output_count: int,
     ) -> Callable[..., Any]:
-        """Wrap a cleaner's clean_row so it is never invoked when a required input is
-        missing (None or NaN, e.g. from pandas). Skipping the call keeps engines from
-        having to pass real values into cleaners that don't guarantee handling for them,
-        and avoids running cleaning logic on rows that can't produce a meaningful result
-        anyway."""
+        """Wrap a cleaner's clean_row to skip rows missing a required input.
+
+        Skipping the call keeps engines from having to pass real values into
+        cleaners that don't guarantee handling for them, and avoids running
+        cleaning logic on rows that can't produce a meaningful result anyway.
+
+        Args:
+            clean_row: The cleaner's row-cleaning function to guard.
+            required_positions: Indices into the values passed to
+                `clean_row` that must not be missing (None or NaN, e.g. from
+                pandas) for the call to proceed.
+            output_count: Number of output values `clean_row` produces, used
+                to build the correctly-shaped "missing" result when the call
+                is skipped.
+
+        Returns:
+            `clean_row` unchanged if there are no required positions to
+            check; otherwise a wrapping callable that returns None (or a
+            tuple of Nones matching `output_count`) when any required
+            position is missing, and otherwise delegates to `clean_row`.
+        """
 
         if not required_positions:
             return clean_row

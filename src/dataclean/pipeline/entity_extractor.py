@@ -9,9 +9,15 @@ from dataclean.types import checked
 @checked
 @dataclass(kw_only=True)
 class EntityExtractor:
-    """
-    Extracts entity tokens from column names to disambiguate between
-    multiple producer candidates (e.g., client_phone vs manager_phone).
+    """Extracts entity tokens from column names to disambiguate producers.
+
+    Used when multiple candidate producers exist for the same context role,
+    to compare identifying tokens in their column names (e.g., client_phone
+    vs manager_phone).
+
+    Attributes:
+        words_fn: Callable that splits a string into its constituent words
+            (e.g., tokenizing "client_phone" into ("client", "phone")).
     """
 
     WordFn = Callable[[str], tuple[str, ...]]
@@ -19,8 +25,7 @@ class EntityExtractor:
     words_fn: WordFn
 
     def extract(self, column: str, role: str) -> tuple[str, ...]:
-        """
-        Extract entity tokens from a column name by removing role tokens.
+        """Extract entity tokens from a column name by removing role tokens.
 
         Args:
             column: The column name to analyze (e.g., "client_phone").
@@ -40,8 +45,7 @@ class EntityExtractor:
         column_entities: tuple[str, ...],
         producer_column_entities: tuple[str, ...],
     ) -> float:
-        """
-        Compute entity token overlap between two sets of tokens.
+        """Compute entity token overlap between two sets of tokens.
 
         Args:
             column_entities: Entity tokens from the consumer column.
