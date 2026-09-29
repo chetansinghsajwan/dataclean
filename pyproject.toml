@@ -25,12 +25,14 @@ dev = [
     "dataclean-databricks",
     "dataclean-pandas",
     "dataclean-cch-crm",
+    "dataclean-ibis",
 ]
 
 [tool.uv.sources]
 dataclean-databricks = { path = "plugins/dataclean-databricks", editable = true }
 dataclean-pandas = { path = "plugins/dataclean-pandas", editable = true }
 dataclean-cch-crm = { path = "plugins/dataclean-cch-crm", editable = true }
+dataclean-ibis = { path = "plugins/dataclean-ibis", editable = true }
 
 [build-system]
 requires = ["uv_build>=0.11.18,<0.12.0"]
