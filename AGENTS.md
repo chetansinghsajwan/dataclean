@@ -32,6 +32,22 @@
   (`PluginInfo`). Plugins are discovered and registered at runtime by
   `src/dataclean/plugins/loader.py`. Data engine adapters and integrations
   (e.g. `dataclean-cch-crm`) are both implemented as plugins.
+- **Pipeline Orchestration:** `Pipeline` (`src/dataclean/pipeline/pipeline.py`)
+  is the orchestrator that resolves which `Cleaner` applies to which column
+  and runs them over a `DataFrame`; it composes `Resolver`
+  (`cleaner_resolver.py`), `DependencyResolver`, `EntityExtractor`, and
+  `Assignment`. It is the layer underneath the public `clean()` /
+  `clean_paths()` entrypoints (`src/dataclean/clean.py`).
+- **Presets:** `Preset` (`src/dataclean/preset/__init__.py`) is the abstract
+  base for reusable, matchable bundles of cleaners: subclasses score how well
+  they fit a dataframe's columns (`match`) and propose a cleaner assignment
+  for them (`get`).
+- **Column Renaming:** `ColRenamer` (`src/dataclean/col_renamer.py`) splits
+  and re-joins column names into a consistent casing convention (snake_case,
+  camelCase, etc.), using `wordninja` to split concatenated names.
+- **Catalogs:** `Catalog` (`src/dataclean/engine/catalog.py`) discovers,
+  reads, and writes cataloged data paths for `clean_paths`; concrete catalogs
+  live alongside each engine plugin.
 
 ## 3. Tooling & Execution Commands
 
@@ -85,6 +101,16 @@ testing—do not require asking the user for permission. Ask only before command
 that are destructive, need elevated access, or create a meaningful external
 side effect.
 
+### Git Hooks (Lefthook)
+
+- **Pre-commit:** Automatically runs the relevant `task fmt:*` for each
+  staged file's type and re-stages the fixed result. Manually running
+  `task fmt` before committing is not required, but doing so surfaces
+  issues earlier.
+- **Pre-push:** Automatically runs `task check` (all linters, including
+  `ty check`). A push is rejected if `task check` fails, so treat it as
+  a hard gate—resolve failures rather than pushing around them.
+
 ## 4. Strict Guardrails & Code Conventions
 
 ### Typing & Guardrails (Non-Negotiable)
@@ -98,6 +124,13 @@ side effect.
 - **Validation:** Always execute the strict type check command (`ty check`,
   run via `task check:py` or `task fix:py`) before marking a feature or file
   change as complete. Zero type errors are permitted.
+- **Runtime Type Checking:** Static hints alone are not enough—decorate
+  public functions, dataclasses, and ABCs with `@checked` (from
+  `dataclean.types`) so `beartype` validates arguments, return values, and
+  (for `@dataclass`) fields against their type hints at call/construction
+  time. Place `@checked` above `@dataclass` so it wraps the generated
+  `__init__`. Use `@dev_checked` instead only for checks that should be
+  compiled out in production (it is a no-op unless `APP_ENV=dev`).
 
 ### Code Quality & Refactoring
 
