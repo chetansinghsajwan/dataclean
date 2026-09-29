@@ -2,6 +2,12 @@
 
 Status: Approved direction. Rust core + Python API redesign.
 
+!!! warning "Forward-looking design proposal — not the current implementation"
+    Nothing on this page is implemented yet. The `dataclean` package shipping
+    today is pure Python, described accurately in [Concepts](concepts.md),
+    [Built-in Cleaners](cleaners.md), and the rest of these docs. Treat this
+    page as a roadmap, not a reference for current behavior.
+
 ## 1. Goals
 
 - User-friendly, beginner-friendly, unambiguous Python API

@@ -7,10 +7,25 @@ theme:
     highlightjs: true
     fail_on_warning: false
 
+markdown_extensions:
+    - admonition
+    - tables
+
 extra:
     version:
         provider: mike
         default: latest
+
+nav:
+    - Home: index.md
+    - Getting Started: getting-started.md
+    - Concepts: concepts.md
+    - Cleaners:
+          - Built-in Cleaners: cleaners.md
+          - Writing a Custom Cleaner: custom-cleaners.md
+    - Engines, Catalogs & Plugins: plugins.md
+    - Configuration: configuration.md
+    - Roadmap: rust-migrate-plan.md
 
 plugins:
     - search
