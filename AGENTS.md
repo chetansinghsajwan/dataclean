@@ -20,11 +20,18 @@
   branching overhead must be avoided as much as possible.
 - **Engine Abstraction:** Data manipulation is handled by data engines.
 - **The DataFrame Interface:** There is a base class for dataframes of engines
-  called `DataFrame`.
-- **Implementation Decoupling:** There are concrete data engine implementations
-  like `PandasDataFrame` and `PysparkDataFrame`. Never depend directly on the
-  underlying implementation; always manipulate data strictly using the
-  `DataFrame` interface.
+  called `DataFrame`, defined in `src/dataclean/engine/dataframe.py`.
+- **Implementation Decoupling:** Concrete data engine implementations (e.g.
+  `PandasDataFrame`, `PysparkDataFrame`) live in separate installable plugin
+  packages under `plugins/` (e.g. `plugins/dataclean-pandas`,
+  `plugins/dataclean-databricks`), not in `src/dataclean` itself. Never depend
+  directly on the underlying implementation; always manipulate data strictly
+  using the `DataFrame` interface.
+- **Plugins:** A plugin is any installed Python distribution named
+  `dataclean-*` that exposes a module-level `info` attribute
+  (`PluginInfo`). Plugins are discovered and registered at runtime by
+  `src/dataclean/plugins/loader.py`. Data engine adapters and integrations
+  (e.g. `dataclean-cch-crm`) are both implemented as plugins.
 
 ## 3. Tooling & Execution Commands
 
@@ -40,10 +47,11 @@ tools directly when an equivalent Taskfile task exists.
 - **Apply unsafe fixes:** `task fix:unsafe` (requires explicit user approval,
   because it may change behavior).
 - **Run all tests:** `task test`
-- **Run cleaner or engine tests:** `task test:cleaners` or `task test:engines`
+- **Run cleaner or engine tests:** `task test:cleaners` (core cleaners),
+  `task test:pandas` (pandas engine plugin), or `task test:pyspark`
+  (PySpark/Databricks engine plugin).
 - **Run a targeted test task:** use the named tasks such as `task test:phone`,
-  `task test:email`, `task test:country`, `task test:pandas`, or
-  `task test:pyspark`.
+  `task test:email`, or `task test:country`.
 - **Add Dependency:** `uv add <package_name>`
 - **Add Dev Dependency:** `uv add --dev <package_name>`
 
@@ -87,9 +95,9 @@ side effect.
 - **No Any:** Do not use `Any` types. If a type is genuinely dynamic, utilize
   structural subtyping via `Protocol`, generic type variables (`TypeVar`), or a
   clean `Union`.
-- **Validation:** Always execute the strict type check command
-  (`uv run mypy . --strict`) before marking a feature or file change as
-  complete. Zero type errors are permitted.
+- **Validation:** Always execute the strict type check command (`ty check`,
+  run via `task check:py` or `task fix:py`) before marking a feature or file
+  change as complete. Zero type errors are permitted.
 
 ### Code Quality & Refactoring
 
