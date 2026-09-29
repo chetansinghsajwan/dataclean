@@ -256,7 +256,7 @@ def clean_paths(
     for count, (path, df) in enumerate(dfs.items(), start=1):
         _logger.info(
             "[%0*d/%d] Cleaning dataframe '%s'...",
-            width,
+            expanded_paths_width,
             count,
             expanded_paths_len,
             path,
@@ -268,7 +268,7 @@ def clean_paths(
 
         _logger.info(
             "[%0*d/%d] Writing dataframe to '%s'...",
-            width,
+            expanded_paths_width,
             count,
             expanded_paths_len,
             write_path,

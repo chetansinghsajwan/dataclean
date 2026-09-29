@@ -374,6 +374,7 @@ tasks:
             - task: test:core
             - task: test:pandas
             - task: test:pyspark
+            - task: test:ibis
 
     test:core:
         desc: Run the test suite
@@ -449,3 +450,8 @@ tasks:
         desc: Run tests for the pyspark engine
         cmds:
             - uv run pytest plugins/dataclean-databricks/tests/
+
+    test:ibis:
+        desc: Run tests for the ibis engine
+        cmds:
+            - uv run pytest plugins/dataclean-ibis/tests/
