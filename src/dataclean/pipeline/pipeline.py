@@ -1,7 +1,7 @@
 """Main pipeline orchestrator for unified cleaners."""
 
 import logging
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from typing import Any
 
 from dataclean.cleaners import Cleaner
@@ -60,6 +60,7 @@ class Pipeline:
     _column_cleaners: dict[str, Cleaner]
     _context_overrides: dict[str, dict[str, str]]
     _auto_detect: bool
+    _ignore_cols: frozenset[str]
     _resolver: Resolver
     _dependency_resolver: DependencyResolver
 
@@ -69,6 +70,7 @@ class Pipeline:
         column_cleaners: dict[str, Cleaner] | None = None,
         context_overrides: dict[str, dict[str, str]] | None = None,
         auto_detect: bool = True,
+        ignore_cols: Iterable[str] | None = None,
     ) -> None:
         """Initialize the pipeline with its candidate cleaners and options.
 
@@ -86,11 +88,15 @@ class Pipeline:
                 (confidence < 1.0) in addition to explicit ones. When False,
                 only explicit (confidence == 1.0) assignments are executed.
                 Defaults to True.
+            ignore_cols: Column names to exclude from cleaner resolution
+                entirely, so no cleaner is assigned to them. Defaults to
+                None (no columns excluded).
         """
         self._cleaners = tuple(cleaners)
         self._column_cleaners = column_cleaners or {}
         self._context_overrides = context_overrides or {}
         self._auto_detect = auto_detect
+        self._ignore_cols = frozenset(ignore_cols) if ignore_cols else frozenset()
         self._resolver = Resolver(cleaners=self._cleaners)
 
         extractor = EntityExtractor(words_fn=ColRenamer()._get_words)
@@ -127,7 +133,7 @@ class Pipeline:
 
         _logger.info("Starting pipeline with %d cleaner(s)...", len(self._cleaners))
         df = self._wrap_df(df)
-        columns = set(df.col_names())
+        columns = set(df.col_names()) - self._ignore_cols
         _logger.debug("Resolving assignments for columns: %s", sorted(columns))
         assignments = self._resolver.resolve(df, columns, self._column_cleaners)
 
