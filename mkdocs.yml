@@ -21,8 +21,8 @@ nav:
     - Getting Started: getting-started.md
     - Concepts: concepts.md
     - Cleaners:
-          - Built-in Cleaners: cleaners.md
-          - Writing a Custom Cleaner: custom-cleaners.md
+        - Built-in Cleaners: cleaners.md
+        - Writing a Custom Cleaner: custom-cleaners.md
     - Engines, Catalogs & Plugins: plugins.md
     - Configuration: configuration.md
     - Roadmap: rust-migrate-plan.md
