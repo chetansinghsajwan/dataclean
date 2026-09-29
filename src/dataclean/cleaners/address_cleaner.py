@@ -11,15 +11,17 @@ from .cleaner import Cleaner
 @checked
 @dataclass
 class AddressCleaner(Cleaner):
-    """
-    Cleans address data from multiple columns.
+    """Cleans and splits address data spread across multiple columns.
 
-    Expects input roles: county, country, address_line1, address_line2, address_line3
-    Produces outputs: country, state, postcode, address_line, street, house_no
+    Consumes the input roles ``county``, ``country``, ``address_line1``,
+    ``address_line2``, and ``address_line3`` (only ``address_line1`` is
+    required), and produces ``country``, ``state``, ``postcode``,
+    ``address_line``, ``street``, and ``house_no`` outputs.
     """
 
     @override
     def _outputs(self) -> Cleaner.OutputSchema:
+        """Return the output schema: country, state, postcode, address_line, street, house_no."""
         return Cleaner.OutputSchema(
             cols=(
                 Cleaner.OutputSchema.Column(name="country", roles=("country",)),
@@ -35,6 +37,7 @@ class AddressCleaner(Cleaner):
 
     @override
     def _inputs(self) -> Cleaner.InputSchema:
+        """Return the input schema for county/country/address line columns."""
         return Cleaner.InputSchema(
             cols=(
                 Cleaner.InputSchema.Column(
@@ -71,11 +74,27 @@ class AddressCleaner(Cleaner):
         address_line2: str | None = None,
         address_line3: str | None = None,
     ) -> tuple[str | None, ...] | None:  # type: ignore
-        """
-        Clean a row of address components.
+        """Clean a row of address components.
 
-        Validates and standardizes address data.
-        Returns: (country, state, postcode, address_line, street, house_no)
+        Standardizes the country and county/state names, cleans the
+        primary address line, normalizes the postcode, and attempts to
+        split the address line into a street name and leading house
+        number.
+
+        Args:
+            county: Raw county/state value.
+            country: Raw country value.
+            address_line1: Raw primary address line, treated as the main
+                address line to derive street/house number from.
+            address_line2: Raw secondary address line. Currently unused by
+                this implementation.
+            address_line3: Raw tertiary address line, expected to hold the
+                postcode/zip.
+
+        Returns:
+            A tuple of ``(country, county, postcode, address_line, street,
+            house_no)`` with each component cleaned, using ``None`` where
+            the corresponding input was missing or could not be parsed.
         """
         # Extract and clean individual components
         country = self._clean_country(country)
@@ -91,31 +110,35 @@ class AddressCleaner(Cleaner):
     # Private helper methods
 
     def _clean_country(self, value: str | None) -> str | None:
-        """Clean country field."""
+        """Strip and title-case the country value; returns None if empty."""
         if not value:
             return None
         return str(value).strip().title()
 
     def _clean_county(self, value: str | None) -> str | None:
-        """Clean state/county field."""
+        """Strip and title-case the county/state value; returns None if empty."""
         if not value:
             return None
         return str(value).strip().title()
 
     def _clean_address_line(self, value: str | None) -> str | None:
-        """Clean main address line."""
+        """Strip the main address line; returns None if empty."""
         if not value:
             return None
         return str(value).strip()
 
     def _clean_city(self, value: str | None) -> str | None:
-        """Clean city field."""
+        """Strip and title-case the city value; returns None if empty."""
         if not value:
             return None
         return str(value).strip().title()
 
     def _clean_postcode(self, value: str | None) -> str | None:
-        """Clean postcode/zip field."""
+        """Strip, upper-case, and remove hyphens from the postcode value.
+
+        Returns None if the input is empty, or if it becomes empty after
+        cleaning.
+        """
         if not value:
             return None
         cleaned = str(value).strip().upper()
@@ -126,7 +149,14 @@ class AddressCleaner(Cleaner):
     def _extract_street_and_number(
         self, address_line: str | None
     ) -> tuple[str | None, str | None]:
-        """Extract street name and house number from address line."""
+        """Split an address line into (street, house_no).
+
+        If the first whitespace-separated token is purely numeric, it is
+        treated as the leading house number and the remaining tokens as the
+        street name. Otherwise the whole address line is returned as the
+        street with no house number. Returns ``(None, None)`` if
+        address_line is empty.
+        """
         if not address_line:
             return None, None
 

@@ -1,3 +1,5 @@
+"""Cleaner for normalizing messy date/time strings into a canonical format."""
+
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime, time
@@ -13,7 +15,21 @@ from .cleaner import Cleaner
 @checked
 @dataclass
 class DateTimeCleaner(Cleaner):
+    """Parses messy date, time, or datetime strings and re-emits them canonically.
+
+    Incoming values are matched, in order, against a fixed list of known
+    structural formats (see ``_TRY_FORMATS``). The first format that parses
+    successfully determines whether the value is treated as a date, a time,
+    or a full datetime, and that parsed value is then rendered using
+    ``out_format``.
+
+    Attributes:
+        out_format: The output layout to render the parsed value as.
+    """
+
     class Format(StrEnum):
+        """Output layouts supported for cleaned date/time values."""
+
         ISO_DATETIME = "iso_datetime"  # 2026-06-19T22:45:00
         ISO_DATE = "iso_date"  # 2026-06-19
         ISO_TIME = "iso_time"  # 22:45:00
@@ -34,6 +50,17 @@ class DateTimeCleaner(Cleaner):
 
     @override
     def clean_row(self, v: str) -> str | None:  # type: ignore
+        """Parse ``v`` against known date/time formats and render it as ``out_format``.
+
+        Args:
+            v: The raw date/time string to clean.
+
+        Returns:
+            The value rendered per ``out_format``, or None if ``v`` does not
+            match any known format, or if the parsed value's kind (date, time,
+            or datetime) is incompatible with the requested ``out_format``
+            (e.g. requesting ``ISO_DATE`` for a bare time value).
+        """
 
         # Implementation contract guarantee: v is a non-empty, stripped string
         parsed_obj: date | time | datetime | None = None
@@ -77,6 +104,17 @@ class DateTimeCleaner(Cleaner):
 
     @override
     def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
+        """Score confidence based on the column name looking date/time related.
+
+        Args:
+            df: The dataframe being inspected (unused; scoring here is
+                name-based only).
+            cols: Candidate column name(s); only the first is considered.
+
+        Returns:
+            1.0 if the column name contains a date/time-related token or
+            ends with an "_at"/"At" suffix, otherwise 0.0.
+        """
         cols_tuple = tuple(cols)
         if not cols_tuple:
             return 0.0

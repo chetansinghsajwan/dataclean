@@ -1,3 +1,5 @@
+"""Cleaner for normalizing messy numeric strings into ints or floats."""
+
 import math
 import re
 from collections.abc import Iterable
@@ -15,7 +17,26 @@ from .cleaner import Cleaner
 @checked
 @dataclass
 class NumericCleaner(Cleaner):
+    """Extracts a numeric value from a messy string and normalizes its output.
+
+    Handles optional scale suffixes ("1.2k" -> 1200), strips non-numeric
+    noise (currency symbols, thousands separators, stray characters),
+    recovers from duplicated decimal points, optionally rounds to a fixed
+    precision, and renders the result as either an int or a float string.
+
+    Attributes:
+        out_format: Whether to cast the cleaned value to ``int`` or
+            ``float``.
+        precision: Number of decimal places to round to (half-up), or None
+            to skip rounding.
+        parse_suffixes: If True, interpret a trailing "k"/"m"/"b"/"t" as a
+            metric/financial scale suffix (thousand/million/billion/
+            trillion) and multiply accordingly.
+    """
+
     class Format(StrEnum):
+        """Output numeric type for cleaned values."""
+
         INT = "int"  # Casts the cleaned value to a strict Python integer
         FLOAT = "float"  # Casts the cleaned value to a standard Python float
 
@@ -28,6 +49,7 @@ class NumericCleaner(Cleaner):
 
     @override
     def _outputs(self) -> Cleaner.OutputSchema:
+        """Return the output schema with dtype set per ``out_format``."""
         return Cleaner.OutputSchema(
             cols=(
                 Cleaner.OutputSchema.Column(
@@ -40,6 +62,18 @@ class NumericCleaner(Cleaner):
 
     @override
     def clean_row(self, v: str) -> str | None:  # type: ignore
+        """Extract and normalize a numeric value from ``v``.
+
+        Args:
+            v: The raw string to parse.
+
+        Returns:
+            The cleaned numeric value rendered as a string (per
+            ``out_format`` and ``precision``), or None if no numeric value
+            could be extracted, the extracted value is non-finite
+            (inf/-inf/nan), or it has too many significant digits to be
+            quantized to ``precision``.
+        """
 
         # Base implementation pipeline guarantees that v arrives non-empty and stripped
         normalized = v.lower()
@@ -105,6 +139,20 @@ class NumericCleaner(Cleaner):
 
     @override
     def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
+        """Score confidence via a column-name heuristic plus a data-sampling pass.
+
+        Combines a 30% weight for the column name containing a
+        numeric-sounding token (amount, price, count, etc.) with a 70%
+        weight for the fraction of up to 100 sampled values that
+        successfully clean via ``clean_row``.
+
+        Args:
+            df: The dataframe to sample values from.
+            cols: Candidate column name(s); only the first is considered.
+
+        Returns:
+            A confidence score between 0.0 and 1.0.
+        """
         cols_tuple = tuple(cols)
         if not cols_tuple:
             return 0.0
@@ -122,6 +170,8 @@ class NumericCleaner(Cleaner):
         # 2. Stateful Data-Driven Heuristic (70% Weight)
         # We create a stateful tracker to capture execution results from the abstract DataFrame API
         class NumericSampler:
+            """Stateful callback that tallies how many sampled values clean successfully."""
+
             def __init__(self, cleaner: NumericCleaner, limit: int = 100):
                 self.cleaner = cleaner
                 self.limit = limit
@@ -129,6 +179,7 @@ class NumericCleaner(Cleaner):
                 self.valid = 0
 
             def __call__(self, val: str | bool | int | float | None) -> None:
+                """Record whether one more sampled value cleans successfully."""
                 if self.total >= self.limit or val is None:
                     return
 
