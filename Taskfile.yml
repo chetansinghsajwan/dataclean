@@ -16,9 +16,9 @@ tasks:
               if: "[ \"$CI\" != \"true\" ]"
             - cmd: rm -rf .git/hooks && lefthook install
               if: "[ \"$CI\" != \"true\" ]"
-            - cmd: uv sync
+            - cmd: uv sync --all-extras
               if: "[ \"$CI\" != \"true\" ]"
-            - cmd: uv sync --frozen
+            - cmd: uv sync --frozen --all-extras
               if: "[ \"$CI\" = \"true\" ]"
 
     # =========================================================================
