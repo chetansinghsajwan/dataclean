@@ -1,4 +1,15 @@
-"""dataclean - Data cleaning library with automatic column detection."""
+"""dataclean - Data cleaning library with automatic column detection.
+
+Re-exports the library's public API: the entrypoints for cleaning a
+dataframe or a set of cataloged paths (:mod:`dataclean.clean`), the
+built-in cleaners (:mod:`dataclean.cleaners`), column renaming
+(:mod:`dataclean.col_renamer`), the global configuration object
+(:mod:`dataclean.config`), the engine-agnostic dataframe/catalog
+abstractions (:mod:`dataclean.engine`), the cleaning pipeline and its
+exceptions (:mod:`dataclean.pipeline`), the plugin system
+(:mod:`dataclean.plugins`), presets (:mod:`dataclean.preset`), and the
+``checked`` runtime type-checking decorator (:mod:`dataclean.types`).
+"""
 
 from .clean import CleanPathResult, clean, clean_paths
 from .cleaners import (
