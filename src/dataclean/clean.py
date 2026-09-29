@@ -9,6 +9,7 @@ import logging
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
+from .cleaners import Cleaner
 from .col_renamer import ColRenamer
 from .config import config
 from .engine import Catalog, DataFrame
@@ -28,6 +29,77 @@ def _catalog_name(catalog: Catalog | type[Catalog] | None) -> str:
         return catalog.__name__
 
     return catalog.__class__.__name__
+
+
+def _find_catalog_type(name: str) -> type[Catalog] | None:
+    """Find a registered catalog type matching ``name``.
+
+    Matches case-insensitively against the catalog type's class name,
+    either in full (e.g. ``"PandasCatalog"``) or with a trailing
+    ``"Catalog"`` suffix dropped (e.g. ``"Pandas"``).
+    """
+    normalized = name.strip().lower()
+    for catalog_type in config.catalog_types:
+        class_name = catalog_type.__name__.lower()
+        if class_name == normalized:
+            return catalog_type
+
+        if (
+            class_name.endswith("catalog")
+            and class_name.removesuffix("catalog") == normalized
+        ):
+            return catalog_type
+
+    return None
+
+
+def _resolve_catalog_by_name(name: str) -> Catalog:
+    """Resolve and instantiate a registered catalog type by name.
+
+    Raises:
+        ValueError: If no registered catalog type matches ``name``, or the
+            matched catalog type fails to instantiate.
+    """
+    catalog_type = _find_catalog_type(name)
+    if catalog_type is None:
+        raise ValueError(f"No registered catalog type matches {name!r}")
+
+    _logger.info(
+        "Instantiating catalog %s (matched %r)...", catalog_type.__name__, name
+    )
+    catalog = catalog_type.instantiate()
+    if catalog is None:
+        raise ValueError(f"Catalog {catalog_type.__name__} could not be instantiated")
+
+    return catalog
+
+
+def _select_cleaners(names: Iterable[str] | None) -> list[Cleaner]:
+    """Select the globally configured cleaners matching ``names``.
+
+    Cleaners are matched by their display ``name`` (class name plus any
+    tags) or plain class name. ``None`` selects every configured cleaner.
+
+    Raises:
+        ValueError: If a requested name matches no configured cleaner.
+    """
+    if names is None:
+        return list(config.cleaners)
+
+    remaining = set(names)
+    selected = [
+        cleaner
+        for cleaner in config.cleaners
+        if cleaner.name in remaining or type(cleaner).__name__ in remaining
+    ]
+    matched = {cleaner.name for cleaner in selected} | {
+        type(cleaner).__name__ for cleaner in selected
+    }
+    unknown = remaining - matched
+    if unknown:
+        raise ValueError(f"Unknown cleaner(s): {', '.join(sorted(unknown))}")
+
+    return selected
 
 
 def clean(df, auto_detect: bool = True):
@@ -70,11 +142,24 @@ class CleanPathResult:
     pass
 
 
-def _clean_df(df: DataFrame) -> DataFrame:
-    """Clean ``df`` using the globally configured cleaners, with auto-detection enabled."""
+def _clean_df(
+    df: DataFrame,
+    cleaners: Iterable[str] | None = None,
+    ignore_cols: Iterable[str] | None = None,
+) -> DataFrame:
+    """Clean ``df``, with auto-detection enabled.
+
+    Args:
+        df: The dataframe to clean.
+        cleaners: Names of cleaners to restrict cleaning to (see
+            :func:`_select_cleaners`). If None, every globally configured
+            cleaner is a candidate.
+        ignore_cols: Columns to exclude from cleaning entirely.
+    """
 
     pipeline = Pipeline(
-        cleaners=config.cleaners,
+        cleaners=_select_cleaners(cleaners),
+        ignore_cols=ignore_cols,
         auto_detect=True,
     )
     return pipeline.fit_transform(df)
@@ -84,7 +169,7 @@ def _clean_df(df: DataFrame) -> DataFrame:
 def clean_paths(
     paths: Iterable[str],
     write_path: str | None = None,
-    catalog: Catalog | None = None,
+    catalog: Catalog | str | None = None,
     rename_cols: bool = True,
     rename_col_map: Mapping[str, str] | None = None,
     col_renamer: ColRenamer | None = None,
@@ -107,11 +192,8 @@ def clean_paths(
     priority order.
 
     Note:
-        ``rename_cols``, ``rename_col_map``, ``col_renamer``, ``clean_cols``,
-        ``ignore_cols``, ``inplace``, and ``cleaners`` are accepted and
-        logged for diagnostics but are not yet threaded into the cleaning
-        pipeline in this implementation; cleaning currently always uses the
-        global config's cleaners with auto-detection.
+        ``inplace`` is accepted and logged for diagnostics but is not yet
+        threaded into the cleaning pipeline in this implementation.
 
     Args:
         paths: Path patterns to expand via the catalog.
@@ -119,17 +201,27 @@ def clean_paths(
             :func:`~dataclean.utils.paths.map_paths`) that each expanded
             path is mapped onto for writing the cleaned result. If
             ``None``, cleaned dataframes are not written.
-        catalog: Catalog to use for expanding/reading/writing paths. If
-            ``None``, resolved from the global config or the environment.
-        rename_cols: Whether to rename columns.
-        rename_col_map: Explicit column rename mapping.
-        col_renamer: :class:`ColRenamer` to use for renaming columns.
-        clean_cols: Whether to clean columns.
+        catalog: Catalog to use for expanding/reading/writing paths, or the
+            name of a registered catalog type (matched case-insensitively
+            against its class name, with or without a trailing "Catalog";
+            e.g. ``"pandas"`` or ``"PandasCatalog"``). If ``None``, resolved
+            from the global config or the environment.
+        rename_cols: Whether to auto-rename columns using ``col_renamer``.
+        rename_col_map: Explicit column rename mapping, applied after (and
+            overriding) any automatic renaming from ``rename_cols``,
+            regardless of whether ``rename_cols`` is enabled.
+        col_renamer: :class:`ColRenamer` to use for auto-renaming columns.
+            Defaults to the global config's renamer.
+        clean_cols: Whether to clean column values via the cleaning
+            pipeline. When False, dataframes are only (optionally) renamed
+            and passed through unchanged.
         ignore_cols: Columns to exclude from cleaning.
         use_global_config: If True, fall back to the global config's
             catalog when ``catalog`` is not given.
         inplace: Whether to clean dataframes in place.
-        cleaners: Names of cleaners to restrict cleaning to.
+        cleaners: Names of cleaners to restrict cleaning to (matched
+            against each cleaner's display name or class name). If
+            ``None``, every globally configured cleaner is a candidate.
         dry_run: If True, skip reading and writing dataframes (path
             expansion/mapping and logging still occur, but no cleaning
             actually happens).
@@ -139,7 +231,9 @@ def clean_paths(
 
     Raises:
         ValueError: If no catalog is given and none can be resolved from
-            the global config or the environment.
+            the global config or the environment, if ``catalog`` is a name
+            that matches no registered catalog type, or if ``cleaners``
+            names an unknown cleaner.
     """
 
     _log_args(
@@ -147,6 +241,7 @@ def clean_paths(
         logging.DEBUG,
         paths=paths,
         write_path=write_path,
+        catalog=catalog,
         rename_cols=rename_cols,
         rename_col_map=rename_col_map,
         col_renamer=col_renamer,
@@ -161,6 +256,9 @@ def clean_paths(
     if config.auto_load_plugins and config.plugin_loader is not None:
         _logger.info("Loading plugins...")
         config.plugin_loader.load_plugins()
+
+    if isinstance(catalog, str):
+        catalog = _resolve_catalog_by_name(catalog)
 
     if catalog is None:
         if use_global_config and config.catalog is not None:
@@ -218,6 +316,7 @@ def clean_paths(
                 path,
             )
 
+    write_paths: dict[str, str] = {}
     if write_path is not None:
         _logger.info("Mapping expanded paths to write paths...")
         write_paths = map_paths(expanded_paths, write_path)
@@ -226,15 +325,17 @@ def clean_paths(
 
         _logger.debug("Write paths: %d", write_paths_len)
         if _logger.isEnabledFor(logging.DEBUG):
-            for count, (path, write_path) in enumerate(write_paths.items(), start=1):
+            for count, (src_path, dest_path) in enumerate(write_paths.items(), start=1):
                 _logger.debug(
                     "[%0*d/%d]\t%s -> %s",
                     write_paths_width,
                     count,
                     write_paths_len,
-                    path,
-                    write_path,
+                    src_path,
+                    dest_path,
                 )
+
+    renamer = col_renamer or config.col_renamer
 
     dfs: dict[str, DataFrame] = {}
     for count, path in enumerate(expanded_paths, start=1):
@@ -249,32 +350,48 @@ def clean_paths(
         if not dry_run:
             df = catalog.read_df(path)
 
+            rename_map: dict[str, str] = {}
+            if rename_cols:
+                rename_map.update(renamer.rename_cols(df.col_names()))
+            if rename_col_map:
+                rename_map.update(rename_col_map)
+            if rename_map:
+                _logger.debug("Renaming columns for '%s': %s", path, rename_map)
+                df.rename_cols(rename_map)
+
             _logger.debug("Dataframe '%s': %s", path, df.cols())
             dfs[path] = df
 
     cleaned_dfs: dict[str, DataFrame] = {}
     for count, (path, df) in enumerate(dfs.items(), start=1):
-        _logger.info(
-            "[%0*d/%d] Cleaning dataframe '%s'...",
-            width,
-            count,
-            expanded_paths_len,
-            path,
-        )
+        if clean_cols:
+            _logger.info(
+                "[%0*d/%d] Cleaning dataframe '%s'...",
+                expanded_paths_width,
+                count,
+                expanded_paths_len,
+                path,
+            )
+            cleaned_dfs[path] = _clean_df(
+                df, cleaners=cleaners, ignore_cols=ignore_cols
+            )
+        else:
+            cleaned_dfs[path] = df
 
-        cleaned_dfs[path] = _clean_df(df)
+        if write_path is None:
+            continue
 
-        write_path = write_paths[path]
+        target_path = write_paths[path]
 
         _logger.info(
             "[%0*d/%d] Writing dataframe to '%s'...",
-            width,
+            expanded_paths_width,
             count,
             expanded_paths_len,
-            write_path,
+            target_path,
         )
 
         if not dry_run:
-            catalog.write_df(cleaned_dfs[path], write_path)
+            catalog.write_df(cleaned_dfs[path], target_path)
 
     return CleanPathResult()
