@@ -1,3 +1,5 @@
+"""Cleaner implementations and the base Cleaner contract, re-exported for convenient importing."""
+
 from .address_cleaner import AddressCleaner
 from .bool_cleaner import BoolCleaner
 from .cleaner import PRIMARY, Cleaner, ColumnRole

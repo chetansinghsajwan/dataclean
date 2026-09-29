@@ -1,8 +1,6 @@
-from unittest.mock import MagicMock
-
 import pytest
 
-from dataclean import BoolCleaner, DataFrame, DataType
+from dataclean import BoolCleaner, DataType
 
 # ==============================================================================
 # 1. CORE METADATA & DATA TYPE HEURISTICS
@@ -31,10 +29,49 @@ def test_boolean_cleaner_metadata():
         ("email_address", 0.0),
     ],
 )
-def test_boolean_cleaner_confidence(col_name, expected_confidence):
+def test_boolean_cleaner_confidence(
+    col_name, expected_confidence, mock_df_with_value_counts
+):
     cleaner = BoolCleaner()
-    mock_df = MagicMock(spec=DataFrame)
+    # Name-based matching (prefix/suffix) short-circuits before value-based
+    # auto matching, so an empty collect() is fine for all cases here.
+    mock_df = mock_df_with_value_counts([])
     assert cleaner.match_score(mock_df, (col_name,)) == expected_confidence
+
+
+# ==============================================================================
+# 1b. MATCH SCORE: VALUE-BASED AUTO MATCHING (inherited from EnumCleaner)
+# ==============================================================================
+
+
+def test_boolean_cleaner_auto_matches_by_value_when_name_does_not_match(
+    mock_df_with_value_counts,
+):
+    # "toggle" hits neither the default prefixes/suffixes nor any match word
+    cleaner = BoolCleaner()
+    mock_df = mock_df_with_value_counts([("true", 7), ("false", 3)])
+    assert cleaner.match_score(mock_df, ("toggle",)) == BoolCleaner.MAX_SCORE
+
+
+def test_boolean_cleaner_auto_matching_partial_ratio(mock_df_with_value_counts):
+    cleaner = BoolCleaner()
+    mock_df = mock_df_with_value_counts(
+        [("yes", 4), ("no", 4), ("maybe", 2)],
+    )
+    # 4 + 4 matched out of 10 total occurrences
+    assert cleaner.match_score(mock_df, ("toggle",)) == pytest.approx(0.8)
+
+
+def test_boolean_cleaner_auto_matching_no_values_match(mock_df_with_value_counts):
+    cleaner = BoolCleaner()
+    mock_df = mock_df_with_value_counts([("apple", 1), ("banana", 1)])
+    assert cleaner.match_score(mock_df, ("toggle",)) == BoolCleaner.MIN_SCORE
+
+
+def test_boolean_cleaner_auto_matching_case_insensitive(mock_df_with_value_counts):
+    cleaner = BoolCleaner()
+    mock_df = mock_df_with_value_counts([("YES", 1), ("NO", 1)])
+    assert cleaner.match_score(mock_df, ("toggle",)) == BoolCleaner.MAX_SCORE
 
 
 # ==============================================================================
