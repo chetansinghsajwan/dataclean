@@ -2,8 +2,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from dataclean import DataFrame
 from dataclean.cleaners.enum_cleaner import EnumCleaner
+from dataclean.engine.dataframe import DataFrame
 
 # ==============================================================================
 # 1. CORE METADATA & MATCH SCORE TESTS
@@ -15,6 +15,17 @@ def test_enum_cleaner_metadata():
     assert cleaner.name == "EnumCleaner"
 
 
+def _mock_df_with_value_counts(value_counts):
+    """Builds a mocked DataFrame whose fluent chain used by ``match_score``'s
+    value-based auto matching resolves ``.collect()`` to the given
+    ``(value, count)`` rows, bypassing any real dataframe engine.
+    """
+    mock_df = MagicMock(spec=DataFrame)
+    chain = mock_df.select.return_value.strip.return_value.nullif.return_value.filter_null.return_value.group_by.return_value.agg.return_value.order_by.return_value.limit.return_value
+    chain.collect.return_value = value_counts
+    return mock_df
+
+
 @pytest.mark.parametrize(
     "col_name, prefixes, suffixes, words, expected",
     [
@@ -24,17 +35,83 @@ def test_enum_cleaner_metadata():
         ("first_name", ("status",), ("status",), ("category",), EnumCleaner.MIN_SCORE),
     ],
 )
-def test_match_score(col_name, prefixes, suffixes, words, expected):
+def test_match_score_by_column_name(col_name, prefixes, suffixes, words, expected):
     cleaner = EnumCleaner(
         cases=["a"],
         cleaner_matching_prefixes=prefixes,
         cleaner_matching_suffixes=suffixes,
         cleaner_matching_words=words,
     )
-    mock_df = MagicMock(spec=DataFrame)
-    assert (
-        cleaner.match_score(mock_df, ("col_name" if False else col_name,)) == expected
+    # Name-based matching (prefix/suffix/word) must short-circuit before any
+    # value-based auto matching is attempted, so an empty collect() is fine.
+    mock_df = _mock_df_with_value_counts([])
+    assert cleaner.match_score(mock_df, (col_name,)) == expected
+
+
+# ==============================================================================
+# 1b. MATCH SCORE: VALUE-BASED AUTO MATCHING
+# ==============================================================================
+
+
+def test_match_score_auto_matches_by_value_when_name_does_not_match():
+    cleaner = EnumCleaner(cases=["active", "inactive"])
+    mock_df = _mock_df_with_value_counts(
+        [("active", 5), ("inactive", 3), ("unknown", 2)]
     )
+    # 5 + 3 matched out of 10 total occurrences
+    assert cleaner.match_score(mock_df, ("status",)) == pytest.approx(0.8)
+
+
+def test_match_score_auto_matching_all_values_match():
+    cleaner = EnumCleaner(cases=["active", "inactive"])
+    mock_df = _mock_df_with_value_counts([("active", 4), ("inactive", 6)])
+    assert cleaner.match_score(mock_df, ("status",)) == EnumCleaner.MAX_SCORE
+
+
+def test_match_score_auto_matching_no_values_match():
+    cleaner = EnumCleaner(cases=["active", "inactive"])
+    mock_df = _mock_df_with_value_counts([("pending", 1), ("archived", 9)])
+    assert cleaner.match_score(mock_df, ("status",)) == EnumCleaner.MIN_SCORE
+
+
+def test_match_score_auto_matching_with_no_rows_returns_min_score():
+    cleaner = EnumCleaner(cases=["active", "inactive"])
+    mock_df = _mock_df_with_value_counts([])
+    assert cleaner.match_score(mock_df, ("status",)) == EnumCleaner.MIN_SCORE
+
+
+def test_match_score_auto_matching_uses_registered_matchers():
+    # Value-based matching goes through the compiled case matchers, so
+    # non-exact matcher types (e.g. fuzzy/regex) participate too.
+    cleaner = EnumCleaner(
+        cases={
+            "male": EnumCleaner.FuzzyMatcher(variants={"male"}, threshold=0.8),
+        }
+    )
+    mock_df = _mock_df_with_value_counts([("male", 8), ("mal", 1), ("xyz123", 1)])
+    # "male" and "mal" (close fuzzy match) count, "xyz123" does not
+    assert cleaner.match_score(mock_df, ("gender",)) == pytest.approx(9 / 10)
+
+
+def test_match_score_auto_matching_queries_expected_dataframe_chain():
+    cleaner = EnumCleaner(cases=["active"])
+    mock_df = _mock_df_with_value_counts([("active", 1)])
+    cleaner.match_score(mock_df, ("status",))
+
+    mock_df.select.assert_called_once_with("status")
+    mock_df.select.return_value.strip.assert_called_once_with()
+    mock_df.select.return_value.strip.return_value.nullif.assert_called_once_with()
+    (
+        mock_df.select.return_value.strip.return_value.nullif.return_value.filter_null.assert_called_once_with()
+    )
+    (
+        mock_df.select.return_value.strip.return_value.nullif.return_value.filter_null.return_value.group_by.assert_called_once_with(
+            ["status"]
+        )
+    )
+    order_by_call = mock_df.select.return_value.strip.return_value.nullif.return_value.filter_null.return_value.group_by.return_value.agg.return_value.order_by
+    order_by_call.assert_called_once_with("status", desc=True)
+    order_by_call.return_value.limit.assert_called_once_with(100)
 
 
 # ==============================================================================
