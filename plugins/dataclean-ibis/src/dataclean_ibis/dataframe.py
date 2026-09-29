@@ -2,7 +2,7 @@
 
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
-from typing import Any, override
+from typing import Any, cast, override
 
 import ibis
 import ibis.expr.datatypes as dt
@@ -143,7 +143,9 @@ class IbisDataFrame(DataFrame):
             else:
                 output_names = tuple(name for name, _ in writer.write_cols)
                 struct_type = dt.Struct(
-                    {name: _TO_IBIS_DTYPE[dtype] for name, dtype in writer.write_cols}
+                    fields={
+                        name: _TO_IBIS_DTYPE[dtype] for name, dtype in writer.write_cols
+                    }
                 )
                 udf = _build_scalar_udf(
                     writer.expr,
@@ -182,6 +184,14 @@ class IbisDataFrame(DataFrame):
         # when agg() runs, so grouping stays purely metadata until then.
         return IbisDataFrame(df=self.df, _group_keys=tuple(cols))
 
+    def _count_aggregate(
+        self, names: Iterable[str], group_keys: list[str]
+    ) -> "IbisDataFrame":
+        by = [self.df[key] for key in group_keys]
+        metrics = [self.df.count().name(name) for name in names]
+        result = self.df.aggregate(metrics, by=by)
+        return IbisDataFrame(df=result)
+
     @override
     def agg(
         self, cols: Mapping[str, Aggregator] | Iterable[Aggregator] | Aggregator
@@ -189,23 +199,26 @@ class IbisDataFrame(DataFrame):
         group_keys = list(self._group_keys)
 
         if cols is Aggregators.count:
-            result = self.df.aggregate(by=group_keys, count=self.df.count())
-            return IbisDataFrame(df=result)
+            return self._count_aggregate(["count"], group_keys)
 
         if isinstance(cols, Mapping):
-            if cols and all(agg is Aggregators.count for agg in cols.values()):
-                metrics = {name: self.df.count() for name in cols}
-                result = self.df.aggregate(by=group_keys, **metrics)
-                return IbisDataFrame(df=result)
-            return self._agg_via_pandas_fallback(cols, group_keys)
+            # cols is a Mapping[str, Aggregator] here (checked by isinstance
+            # above); the cast works around the type checker's inability to
+            # narrow the union's structurally-overlapping Mapping/Iterable
+            # members.
+            named_aggregators = cast("dict[str, Aggregator]", dict(cols))
+            if named_aggregators and all(
+                agg is Aggregators.count for agg in named_aggregators.values()
+            ):
+                return self._count_aggregate(named_aggregators.keys(), group_keys)
+            return self._agg_via_pandas_fallback(named_aggregators, group_keys)
 
         if callable(cols):
             return self._agg_via_pandas_fallback({"agg_0": cols}, group_keys)
 
         aggregators = list(cols)
         if aggregators and all(agg is Aggregators.count for agg in aggregators):
-            result = self.df.aggregate(by=group_keys, count=self.df.count())
-            return IbisDataFrame(df=result)
+            return self._count_aggregate(["count"], group_keys)
         return self._agg_via_pandas_fallback(
             {f"agg_{i}": agg for i, agg in enumerate(aggregators)}, group_keys
         )
