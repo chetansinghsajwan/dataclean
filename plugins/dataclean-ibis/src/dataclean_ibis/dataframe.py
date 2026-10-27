@@ -51,7 +51,10 @@ def _build_scalar_udf(
     if len(output_names) == 1:
         body = f"return _expr({params})"
     else:
-        body = f"return dict(zip(_names, _expr({params}), strict=True))"
+        body = (
+            f"_r = _expr({params})\n"
+            "    return None if _r is None else dict(zip(_names, _r, strict=True))"
+        )
 
     source = f"def _wrapper({params}):\n    {body}\n"
     namespace: dict[str, Any] = {"_expr": expr, "_names": output_names}
@@ -81,7 +84,7 @@ class IbisDataFrame(DataFrame):
     _cols: tuple[tuple[str, DataType], ...] = ()
     _group_keys: tuple[str, ...] = ()
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self._update_cols()
 
     @staticmethod
@@ -261,7 +264,9 @@ class IbisDataFrame(DataFrame):
 
     def _resolve_string_cols(self, cols: str | Iterable[str] | None) -> list[str]:
         if cols is None:
-            return [name for name, dtype in self.cols() if dtype == DataType.STR]
+            return [
+                name for name, dtype in self.df.schema().items() if dtype.is_string()
+            ]
         return [cols] if isinstance(cols, str) else list(cols)
 
     @override
