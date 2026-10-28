@@ -2,9 +2,10 @@
 
 Any engine adapter implementing :class:`~dataclean.engine.dataframe.DataFrame`
 (e.g. a pandas or PySpark wrapper) can verify it satisfies the expected
-contract by subclassing :class:`BaseDataFrameTests` and providing a
-``wrapper`` fixture that yields an instance pre-loaded with
-:data:`RAW_TEST_DATA`.
+contract by subclassing :class:`BaseDataFrameTests` and providing two
+fixtures: ``wrapper``, which yields an instance pre-loaded with
+:data:`RAW_TEST_DATA`, and ``make_frame``, a factory that builds an instance
+from a ``{column: values}`` mapping.
 """
 
 from collections.abc import Callable, Mapping, Sequence
