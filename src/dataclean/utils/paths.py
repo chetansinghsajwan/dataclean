@@ -1,8 +1,25 @@
 """Helpers for mapping input paths to output paths via wildcard templates."""
 
 from collections.abc import Iterable
+from pathlib import PurePath
 
 from dataclean.types import checked
+
+_COMPRESSION_SUFFIXES = frozenset({".gz", ".bz2", ".xz", ".zip", ".zst"})
+
+
+@checked
+def file_extension(path: str) -> str:
+    """Return the lowercase data-format extension of ``path``.
+
+    A trailing compression suffix is skipped, so ``"a.csv.gz"`` gives
+    ``".csv"``; dotted names such as ``"report.2024.csv"`` give ``".csv"``.
+    Returns ``""`` when the path has no extension.
+    """
+    suffixes = [suffix.lower() for suffix in PurePath(path).suffixes]
+    if len(suffixes) > 1 and suffixes[-1] in _COMPRESSION_SUFFIXES:
+        return suffixes[-2]
+    return suffixes[-1] if suffixes else ""
 
 
 @checked

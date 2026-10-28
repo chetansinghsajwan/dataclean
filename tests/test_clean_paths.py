@@ -313,3 +313,111 @@ def test_register_catalog_rejects_duplicate_scheme(
 
     with pytest.raises(ValueError, match="already registered"):
         config.register_catalog(Other)
+
+
+def test_clean_paths_uses_global_catalog_when_none_given(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(config, "auto_load_plugins", False)
+    monkeypatch.setattr(config, "catalog_types", [])
+    catalog = InMemoryCatalog({"in.csv": pd.DataFrame({"a": ["x"]})})
+    monkeypatch.setattr(config, "catalog", catalog)
+
+    clean_paths(paths=["in.csv"], write_path="out.csv", clean_cols=False)
+
+    assert set(catalog.written) == {"out.csv"}
+
+
+def test_clean_paths_ignores_global_catalog_when_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(config, "auto_load_plugins", False)
+    monkeypatch.setattr(config, "catalog_types", [])
+    monkeypatch.setattr(
+        config, "catalog", InMemoryCatalog({"in.csv": pd.DataFrame({"a": ["x"]})})
+    )
+
+    with pytest.raises(ValueError, match="No catalog registered"):
+        clean_paths(paths=["in.csv"], use_global_config=False)
+
+
+def test_clean_paths_explicit_catalog_does_not_parse_prefixes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(config, "auto_load_plugins", False)
+    catalog = InMemoryCatalog({"C:/in.csv": pd.DataFrame({"a": ["x"]})})
+
+    clean_paths(
+        paths=["C:/in.csv"], write_path="D:/out.csv", catalog=catalog, clean_cols=False
+    )
+
+    assert set(catalog.written) == {"D:/out.csv"}
+
+
+def test_clean_paths_can_write_to_a_different_catalog(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(config, "auto_load_plugins", False)
+    source, dest = SchemeCatalog(), DefaultCatalog()
+    monkeypatch.setattr(SchemeCatalog, "instantiate", classmethod(lambda cls: source))
+    monkeypatch.setattr(DefaultCatalog, "instantiate", classmethod(lambda cls: dest))
+    monkeypatch.setattr(config, "catalog_types", [SchemeCatalog, DefaultCatalog])
+
+    clean_paths(paths=["mem:a"], write_path="out", rename_cols=False, clean_cols=False)
+
+    assert source.read == ["a"]
+    assert source.written == {}
+    assert set(dest.written) == {"out"}
+
+
+def test_clean_paths_expands_each_catalog_once_with_its_own_patterns(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(config, "auto_load_plugins", False)
+    first, second = SchemeCatalog(), DefaultCatalog()
+    monkeypatch.setattr(SchemeCatalog, "instantiate", classmethod(lambda cls: first))
+    monkeypatch.setattr(DefaultCatalog, "instantiate", classmethod(lambda cls: second))
+    monkeypatch.setattr(config, "catalog_types", [SchemeCatalog, DefaultCatalog])
+
+    clean_paths(
+        paths=["mem:a", "x", "mem:b", "y"],
+        rename_cols=False,
+        clean_cols=False,
+    )
+
+    assert sorted(first.read) == ["a", "b"]
+    assert sorted(second.read) == ["x", "y"]
+
+
+def test_clean_paths_catalog_that_cannot_instantiate_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Unavailable(SchemeCatalog):
+        schemes = ("na",)
+
+        @classmethod
+        def instantiate(cls) -> None:  # type: ignore[override]
+            return None
+
+    monkeypatch.setattr(config, "auto_load_plugins", False)
+    monkeypatch.setattr(config, "catalog_types", [Unavailable])
+
+    with pytest.raises(ValueError, match="could not be instantiated"):
+        clean_paths(paths=["na:a"])
+
+
+def test_clean_paths_logs_expanded_and_mapped_paths(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setattr(config, "auto_load_plugins", False)
+    catalog = InMemoryCatalog({"in.csv": pd.DataFrame({"a": ["x"]})})
+
+    with caplog.at_level("DEBUG", logger="dataclean.clean"):
+        clean_paths(
+            paths=["in.csv"],
+            write_path="out.csv",
+            catalog=catalog,
+            clean_cols=False,
+        )
+
+    assert "in.csv -> out.csv" in caplog.text

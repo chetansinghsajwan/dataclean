@@ -7,7 +7,7 @@ from databricks.connect import DatabricksEnv, DatabricksSession
 from dataclean_databricks import PysparkDataFrame
 from pyspark.sql import SparkSession
 
-from dataclean.testing import RAW_TEST_DATA, BaseDataFrameTests
+from dataclean.testing import RAW_TEST_DATA, BaseDataFrameTests, FrameFactory
 
 
 @pytest.fixture(scope="session")
@@ -28,6 +28,12 @@ class TestDatabricksDataFrame(BaseDataFrameTests):
     def wrapper(self, spark: SparkSession) -> PysparkDataFrame:
         sp_df = spark.createDataFrame(pd.DataFrame(RAW_TEST_DATA))
         return PysparkDataFrame(df=sp_df)
+
+    @pytest.fixture
+    def make_frame(self, spark: SparkSession) -> FrameFactory:
+        return lambda data: PysparkDataFrame(
+            df=spark.createDataFrame(pd.DataFrame(dict(data)))
+        )
 
 
 class TestDatabricksDataFrameNewMethods:

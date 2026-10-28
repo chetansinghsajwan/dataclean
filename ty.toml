@@ -1,2 +1,9 @@
 [environment]
 python = "./.venv"
+
+[[overrides]]
+# Test cleaners declare concrete clean_row parameters, as real cleaners do.
+include = ["tests/**"]
+
+[overrides.rules]
+invalid-method-override = "ignore"

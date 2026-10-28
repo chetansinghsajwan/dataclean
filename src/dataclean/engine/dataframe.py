@@ -113,6 +113,28 @@ class DataWriter:
     read_cols: tuple[str, ...]
     write_cols: tuple[tuple[str, DataType], ...]
 
+    def constant_values(self) -> tuple[DataTypeValues, ...]:
+        """Return the constant value for each write column.
+
+        A constant scalar ``expr`` is repeated for every write column; a
+        constant tuple supplies one element per write column, in order.
+
+        Raises:
+            TypeError: If ``expr`` is callable (not a constant).
+            ValueError: If ``expr`` is a tuple whose length differs from the
+                number of write columns.
+        """
+        if callable(self.expr):
+            raise TypeError("constant_values() requires a constant expr")
+        if isinstance(self.expr, tuple):
+            if len(self.expr) != len(self.write_cols):
+                raise ValueError(
+                    f"constant tuple has {len(self.expr)} value(s) for "
+                    f"{len(self.write_cols)} write column(s)"
+                )
+            return self.expr
+        return (self.expr,) * len(self.write_cols)
+
 
 Aggregator = Callable
 """A callable usable as an aggregation function with :meth:`DataFrame.agg`."""

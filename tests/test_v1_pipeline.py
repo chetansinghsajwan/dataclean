@@ -28,7 +28,7 @@ def test_explicit_roles_must_match_clean_row_signature() -> None:
         def _inputs(self) -> Cleaner.InputSchema:
             return Cleaner.InputSchema(cols=(Cleaner.InputSchema.Column(key="wrong"),))
 
-        def clean_row(self, v: str) -> str:  # type: ignore
+        def clean_row(self, v: str) -> str:
             return v
 
     with pytest.raises(TypeError, match="same keys and order"):

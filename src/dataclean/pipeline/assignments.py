@@ -18,6 +18,8 @@ class Assignment:
             `PRIMARY`) to the raw dataframe column names that fill them.
         confidence: Match score (0.0-1.0) for this assignment, as produced by
             `Resolver`. A confidence of 1.0 indicates an explicit mapping.
+        explicit: Whether the user mapped this column to the cleaner
+            directly (as opposed to it being auto-detected).
         context_columns: Mapping of the cleaner's context role keys to the
             dataframe column names that supply them, as resolved by
             `DependencyResolver`. Empty until dependency resolution runs.
@@ -27,6 +29,7 @@ class Assignment:
     role_columns: Mapping[str, str]
     confidence: float
     context_columns: Mapping[str, str] = field(default_factory=dict)
+    explicit: bool = False
 
 
 @dataclass

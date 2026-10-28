@@ -381,6 +381,11 @@ tasks:
         cmds:
             - uv run pytest tests
 
+    test:cov:
+        desc: Run the core tests with a coverage report
+        cmds:
+            - uv run pytest tests --cov=src/dataclean --cov-report=term-missing
+
     test:cleaners:
         desc: Run tests for the cleaners
         cmds:

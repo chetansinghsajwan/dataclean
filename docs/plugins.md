@@ -49,7 +49,7 @@ class TestPandasDataFrame(BaseDataFrameTests):
 ```
 
 This is copied nearly verbatim from
-`plugins/dataclean-pandas/tests/test_dataframe.py`.
+`plugins/dataclean-pandas/tests/test_pandas_dataframe.py`.
 
 !!! note "The shared suite does not cover every method"
     `group_by`, `agg`, `distinct`, `select`, `strip`, `nullif`, `order_by`,

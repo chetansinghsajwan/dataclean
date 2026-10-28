@@ -4,7 +4,7 @@ import pytest
 from dataclean_ibis import IbisDataFrame
 
 from dataclean.engine.dataframe import Aggregators, DataReader, DataType, DataWriter
-from dataclean.testing import RAW_TEST_DATA, BaseDataFrameTests
+from dataclean.testing import RAW_TEST_DATA, BaseDataFrameTests, FrameFactory
 
 
 class TestIbisDataFrame(BaseDataFrameTests):
@@ -14,6 +14,10 @@ class TestIbisDataFrame(BaseDataFrameTests):
     def wrapper(self) -> IbisDataFrame:
         table = ibis.memtable(pd.DataFrame(RAW_TEST_DATA))
         return IbisDataFrame(df=table)
+
+    @pytest.fixture
+    def make_frame(self) -> FrameFactory:
+        return lambda data: IbisDataFrame(df=ibis.memtable(pd.DataFrame(dict(data))))
 
     @pytest.fixture
     def numeric_wrapper(self) -> IbisDataFrame:

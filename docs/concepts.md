@@ -53,7 +53,7 @@ does, in order:
    columns, and a confidence score) comes back, including auto-detected
    ones.
 3. **Filter for `auto_detect=False`.** If the pipeline was built with
-   `auto_detect=False`, only assignments with `confidence == 1.0` survive —
+   `auto_detect=False`, only explicit (`column_cleaners`) assignments survive —
    i.e. only the columns you explicitly mapped via `column_cleaners`.
    Auto-matched assignments are dropped.
 4. **Resolve dependencies and execution order** via `DependencyResolver` (see

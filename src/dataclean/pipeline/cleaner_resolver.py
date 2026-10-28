@@ -60,7 +60,10 @@ class Resolver:
                 continue
             assignments.append(
                 Assignment(
-                    cleaner=cleaner, role_columns={PRIMARY: column}, confidence=1.0
+                    cleaner=cleaner,
+                    role_columns={PRIMARY: column},
+                    confidence=1.0,
+                    explicit=True,
                 )
             )
             unclaimed.remove(column)
