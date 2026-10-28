@@ -66,14 +66,16 @@ and read/write data without knowing the storage backend:
 - `expand_paths(paths) -> set[str]` — expand glob-style patterns into
   concrete paths (`@abstractmethod`).
 - `read_df(path) -> DataFrame` / `write_df(df, path)` (`@abstractmethod`).
-- `supports_env() -> bool` / `instantiate() -> Self | None` (classmethods,
-  default `False`/`None`) — override these so `clean_paths()` can
-  auto-detect and construct your catalog from the environment (e.g. an env
-  var or an active session) when no catalog is passed explicitly.
-- `priority: ClassVar[int]` — `CatalogPriority.GENERIC` (default) or
-  `ENV_DEPENDENT`. `Config.register_catalog` keeps registered catalog
-  *types* sorted by descending priority, so environment-specific catalogs
-  are tried before generic fallbacks during auto-detection.
+- `instantiate() -> Self | None` (classmethod, default `None`) — override
+  so `clean_paths()` can construct your catalog from the environment (e.g. an
+  env var or an active session) when a path is routed to it.
+- `schemes: ClassVar[tuple[str, ...]]` — the path prefixes (without the
+  `:`) your catalog handles. `scheme:rest` is routed to the catalog that
+  lists `scheme` and your methods receive only `rest`. List `""` to be the
+  default for unprefixed paths. A scheme can belong to only one registered
+  catalog; `Config.register_catalog` raises `ValueError` on a conflict. The
+  built-ins use `""`/`path`/`pandas` (pandas), `ibis` (ibis) and
+  `databricks` (Unity Catalog tables).
 
 `dataclean-pandas`'s `PandasCatalog` is the reference example in this repo.
 

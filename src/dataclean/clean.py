@@ -20,17 +20,6 @@ from .utils import _log_args, map_paths
 _logger = logging.getLogger(__name__)
 
 
-def _catalog_name(catalog: Catalog | type[Catalog] | None) -> str:
-    """Return a human-readable name for ``catalog``, for logging purposes."""
-    if catalog is None:
-        return "None"
-
-    if isinstance(catalog, type):
-        return catalog.__name__
-
-    return catalog.__class__.__name__
-
-
 def _find_catalog_type(name: str) -> type[Catalog] | None:
     """Find a registered catalog type matching ``name``.
 
@@ -72,6 +61,79 @@ def _resolve_catalog_by_name(name: str) -> Catalog:
         raise ValueError(f"Catalog {catalog_type.__name__} could not be instantiated")
 
     return catalog
+
+
+@dataclass(frozen=True)
+class _Target:
+    """A path resolved to the catalog that owns it.
+
+    Attributes:
+        catalog: The catalog that reads/writes ``path``.
+        scheme: The scheme prefix the user wrote ("" when none).
+        path: The path with its scheme prefix stripped; what the catalog sees.
+    """
+
+    catalog: Catalog
+    scheme: str
+    path: str
+
+    @property
+    def full(self) -> str:
+        """The path as the user wrote it, scheme prefix included."""
+        return f"{self.scheme}:{self.path}" if self.scheme else self.path
+
+
+class _CatalogRouter:
+    """Route paths to catalogs by scheme prefix (``scheme:rest``).
+
+    If ``fixed`` is given, every path goes to it unchanged (no scheme
+    parsing). Otherwise the text before the first ``:`` selects the
+    registered catalog type whose ``schemes`` contain it, and a path with no
+    ``:`` goes to the catalog registered for the empty scheme. Catalogs are
+    instantiated once per router.
+    """
+
+    def __init__(self, fixed: Catalog | None = None) -> None:
+        self._fixed = fixed
+        self._instances: dict[type[Catalog], Catalog] = {}
+
+    def resolve(self, path: str) -> _Target:
+        """Resolve ``path`` to its owning catalog.
+
+        Raises:
+            ValueError: If the scheme has no registered catalog, or the
+                catalog cannot be instantiated.
+        """
+        if self._fixed is not None:
+            return _Target(self._fixed, "", path)
+
+        scheme, sep, rest = path.partition(":")
+        if not sep:
+            scheme, rest = "", path
+
+        catalog_type = next(
+            (t for t in config.catalog_types if scheme in t.schemes), None
+        )
+        if catalog_type is None:
+            hint = (
+                " (to use a local Windows drive path, prefix it, e.g. 'path:C:/data')"
+                if len(scheme) == 1
+                else ""
+            )
+            raise ValueError(
+                f"No catalog registered for path scheme {scheme!r} in {path!r}{hint}"
+            )
+
+        catalog = self._instances.get(catalog_type)
+        if catalog is None:
+            _logger.debug("Instantiating catalog %s...", catalog_type.__name__)
+            catalog = catalog_type.instantiate()
+            if catalog is None:
+                raise ValueError(
+                    f"Catalog {catalog_type.__name__} could not be instantiated"
+                )
+            self._instances[catalog_type] = catalog
+        return _Target(catalog, scheme, rest)
 
 
 def _select_cleaners(names: Iterable[str] | None) -> list[Cleaner]:
@@ -259,86 +321,65 @@ def clean_paths(
 
     if isinstance(catalog, str):
         catalog = _resolve_catalog_by_name(catalog)
+    elif catalog is None and use_global_config:
+        catalog = config.catalog
 
-    if catalog is None:
-        if use_global_config and config.catalog is not None:
-            _logger.info("No catalog provided, using global config...")
-            catalog = config.catalog
-
-        else:
-            _logger.info("No catalog provided, trying to load from environment...")
-
-            catalog_types_len = len(config.catalog_types)
-            width = len(str(catalog_types_len))
-            for count, catalog_type in enumerate(config.catalog_types, start=1):
-                _logger.debug(
-                    "[%0*d/%d] Checking if catalog type %s supports environment...",
-                    width,
-                    count,
-                    catalog_types_len,
-                    _catalog_name(catalog_type),
-                )
-
-                if catalog_type.supports_env():
-                    _logger.debug(
-                        "Instantiating catalog %s...", _catalog_name(catalog_type)
-                    )
-                    catalog = catalog_type.instantiate()
-
-                    if catalog is None:
-                        _logger.warning(
-                            "Catalog type %s supports environment variables, but instantiation failed.",
-                            _catalog_name(catalog_type),
-                        )
-                        continue
-
-                    _logger.debug(
-                        "Instantiating catalog %s done.", _catalog_name(catalog_type)
-                    )
-                    break
-
-            if catalog is None:
-                raise ValueError("catalog must be provided")
+    router = _CatalogRouter(fixed=catalog)
 
     _logger.info("Expanding paths...")
-    expanded_paths = catalog.expand_paths(paths)
-    expanded_paths_len = len(expanded_paths)
+    patterns_by_catalog: dict[int, tuple[_Target, list[str]]] = {}
+    for pattern in paths:
+        target = router.resolve(pattern)
+        _, patterns = patterns_by_catalog.setdefault(id(target.catalog), (target, []))
+        patterns.append(target.path)
+
+    sources: dict[str, _Target] = {}
+    for target, patterns in patterns_by_catalog.values():
+        for expanded in sorted(target.catalog.expand_paths(patterns)):
+            source = _Target(target.catalog, target.scheme, expanded)
+            sources[source.full] = source
+    expanded_paths_len = len(sources)
     expanded_paths_width = len(str(expanded_paths_len))
 
     _logger.debug("Expanded paths: %d", expanded_paths_len)
     if _logger.isEnabledFor(logging.DEBUG):
-        for count, path in enumerate(expanded_paths, start=1):
+        for count, full in enumerate(sources, start=1):
             _logger.debug(
                 "[%0*d/%d]\t%s",
                 expanded_paths_width,
                 count,
                 expanded_paths_len,
-                path,
+                full,
             )
 
-    write_paths: dict[str, str] = {}
+    write_targets: dict[str, _Target] = {}
     if write_path is not None:
         _logger.info("Mapping expanded paths to write paths...")
-        write_paths = map_paths(expanded_paths, write_path)
-        write_paths_len = len(write_paths)
+        dest = router.resolve(write_path)
+        for full, source in sources.items():
+            mapped = map_paths([source.path], dest.path)[source.path]
+            write_targets[full] = _Target(dest.catalog, dest.scheme, mapped)
+        write_paths_len = len(write_targets)
         write_paths_width = len(str(write_paths_len))
 
         _logger.debug("Write paths: %d", write_paths_len)
         if _logger.isEnabledFor(logging.DEBUG):
-            for count, (src_path, dest_path) in enumerate(write_paths.items(), start=1):
+            for count, (src_full, write_target) in enumerate(
+                write_targets.items(), start=1
+            ):
                 _logger.debug(
                     "[%0*d/%d]\t%s -> %s",
                     write_paths_width,
                     count,
                     write_paths_len,
-                    src_path,
-                    dest_path,
+                    src_full,
+                    write_target.full,
                 )
 
     renamer = col_renamer or config.col_renamer
 
     dfs: dict[str, DataFrame] = {}
-    for count, path in enumerate(expanded_paths, start=1):
+    for count, (path, source) in enumerate(sources.items(), start=1):
         _logger.info(
             "[%0*d/%d] Reading path as dataframe: %s",
             expanded_paths_width,
@@ -348,7 +389,7 @@ def clean_paths(
         )
 
         if not dry_run:
-            df = catalog.read_df(path)
+            df = source.catalog.read_df(source.path)
 
             rename_map: dict[str, str] = {}
             if rename_cols:
@@ -381,17 +422,17 @@ def clean_paths(
         if write_path is None:
             continue
 
-        target_path = write_paths[path]
+        write_target = write_targets[path]
 
         _logger.info(
             "[%0*d/%d] Writing dataframe to '%s'...",
             expanded_paths_width,
             count,
             expanded_paths_len,
-            target_path,
+            write_target.full,
         )
 
         if not dry_run:
-            catalog.write_df(cleaned_dfs[path], target_path)
+            write_target.catalog.write_df(cleaned_dfs[path], write_target.path)
 
     return CleanPathResult()

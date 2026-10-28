@@ -32,7 +32,6 @@ from .col_renamer import ColRenamer
 from .config import config
 from .engine import (
     Catalog,
-    CatalogPriority,
     DataFrame,
     DataReader,
     DataType,

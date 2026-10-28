@@ -53,9 +53,9 @@ class Config:
             engine adapter types.
         auto_load_plugins: If True, plugins are loaded automatically before
             cleaning. Defaults to True.
-        catalog_types: Registered :class:`~dataclean.engine.Catalog` types,
-            kept sorted by descending priority so environment
-            auto-detection tries the highest-priority catalog first.
+        catalog_types: Registered :class:`~dataclean.engine.Catalog` types.
+            Each path scheme (see ``Catalog.schemes``) belongs to exactly
+            one of them.
         presets: Registered :class:`~dataclean.preset.Preset` instances.
         catalog: The default :class:`~dataclean.engine.Catalog` instance to
             use, or ``None`` if none is configured.
@@ -100,12 +100,24 @@ class Config:
             self.cleaners.append(api)
 
     def register_catalog(self, catalog: type[Catalog]) -> None:
-        """Add a :class:`~dataclean.engine.Catalog` type, keeping ``catalog_types`` sorted by descending priority."""
+        """Add a :class:`~dataclean.engine.Catalog` type, if not already present.
 
-        import bisect
+        Raises:
+            ValueError: If one of the catalog's ``schemes`` is already
+                registered by a different catalog type.
+        """
 
-        if catalog not in self.catalog_types:
-            bisect.insort_right(self.catalog_types, catalog, key=lambda c: -c.priority)
+        if catalog in self.catalog_types:
+            return
+
+        for scheme in catalog.schemes:
+            owner = next((t for t in self.catalog_types if scheme in t.schemes), None)
+            if owner is not None:
+                raise ValueError(
+                    f"Scheme {scheme!r} of {catalog.__name__} is already "
+                    f"registered by {owner.__name__}"
+                )
+        self.catalog_types.append(catalog)
 
     def register_preset(self, preset: Preset) -> None:
         """Add a :class:`~dataclean.preset.Preset` instance, if not already present."""
