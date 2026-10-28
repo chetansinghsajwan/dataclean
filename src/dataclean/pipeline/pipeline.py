@@ -50,7 +50,7 @@ class Pipeline:
             producer column) mappings that disambiguate context role
             resolution.
         _auto_detect: Whether to keep assignments that were auto-matched
-            (confidence < 1.0) rather than only explicit ones.
+            rather than only explicit ones.
         _resolver: Resolves dataframe columns to cleaner assignments.
         _dependency_resolver: Resolves context dependencies between
             assignments and orders them into execution waves.
@@ -85,8 +85,8 @@ class Pipeline:
                 should supply it, used to disambiguate automatic context
                 resolution. Defaults to None (no explicit overrides).
             auto_detect: Whether to keep automatically matched assignments
-                (confidence < 1.0) in addition to explicit ones. When False,
-                only explicit (confidence == 1.0) assignments are executed.
+                in addition to explicit ones. When False, only explicit
+                (``column_cleaners``) assignments are executed.
                 Defaults to True.
             ignore_cols: Column names to exclude from cleaner resolution
                 entirely, so no cleaner is assigned to them. Defaults to
@@ -139,7 +139,7 @@ class Pipeline:
 
         if not self._auto_detect:
             assignments = tuple(
-                assignment for assignment in assignments if assignment.confidence == 1.0
+                assignment for assignment in assignments if assignment.explicit
             )
 
         _logger.info("Resolved %d assignment(s).", len(assignments))

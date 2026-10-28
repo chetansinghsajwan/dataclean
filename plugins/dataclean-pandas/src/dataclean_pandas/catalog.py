@@ -1,11 +1,11 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
-from pathlib import Path
 from typing import ClassVar, Self, override
 
 import pandas as pd
 
 from dataclean import Catalog, DataFrame, checked
+from dataclean.utils import file_extension
 from dataclean_pandas.dataframe import PandasDataFrame
 
 
@@ -39,8 +39,7 @@ class PandasCatalog(Catalog):
 
     @override
     def read_df(self, path: str) -> PandasDataFrame:
-        suffixes = Path(path).suffixes
-        ext = suffixes[0] if suffixes else ""
+        ext = file_extension(path)
 
         if ext not in self.READERS:
             raise ValueError(f"Unsupported file extension: {ext}")
@@ -51,8 +50,7 @@ class PandasCatalog(Catalog):
 
     @override
     def write_df(self, df: DataFrame, path: str) -> None:
-        suffixes = Path(path).suffixes
-        ext = suffixes[0] if suffixes else ""
+        ext = file_extension(path)
 
         if ext not in self.WRITERS:
             raise ValueError(f"Unsupported file extension: {ext}")

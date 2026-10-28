@@ -2,7 +2,6 @@
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from pathlib import Path
 from typing import ClassVar, Self, override
 
 import ibis
@@ -10,6 +9,7 @@ import ibis.backends.duckdb
 
 from dataclean import Catalog, DataFrame
 from dataclean.types import checked
+from dataclean.utils import file_extension
 from dataclean_ibis.dataframe import IbisDataFrame
 
 _READERS: dict[str, str] = {".csv": "read_csv", ".parquet": "read_parquet"}
@@ -63,5 +63,4 @@ class IbisCatalog(Catalog):
 
     @staticmethod
     def _extension_of(path: str) -> str:
-        suffixes = Path(path).suffixes
-        return suffixes[0] if suffixes else ""
+        return file_extension(path)

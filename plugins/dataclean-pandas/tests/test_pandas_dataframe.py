@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 from dataclean_pandas import PandasDataFrame
 
-from dataclean.testing import RAW_TEST_DATA, BaseDataFrameTests
+from dataclean.testing import RAW_TEST_DATA, BaseDataFrameTests, FrameFactory
 
 
 class TestPandasDataFrame(BaseDataFrameTests):
@@ -14,6 +14,10 @@ class TestPandasDataFrame(BaseDataFrameTests):
     def wrapper(self) -> PandasDataFrame:
         pd_df = pd.DataFrame(RAW_TEST_DATA)
         return PandasDataFrame(df=pd_df)
+
+    @pytest.fixture
+    def make_frame(self) -> FrameFactory:
+        return lambda data: PandasDataFrame(df=pd.DataFrame(dict(data)))
 
     @pytest.fixture
     def numeric_wrapper(self) -> PandasDataFrame:

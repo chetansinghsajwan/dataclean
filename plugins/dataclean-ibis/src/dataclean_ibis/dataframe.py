@@ -64,7 +64,10 @@ def _build_scalar_udf(
         **{f"a{i}": str | None for i in range(n_inputs)},
         "return": return_type,
     }
-    return ibis.udf.scalar.python(wrapper_fn)
+    # "special" null handling passes NULL inputs through to the callable and
+    # accepts NULL results; the default silently filters NULL-input rows and
+    # rejects NULL outputs.
+    return ibis.udf.scalar.python(wrapper_fn, null_handling="special")
 
 
 @checked
@@ -126,8 +129,10 @@ class IbisDataFrame(DataFrame):
 
             if not callable(writer.expr):
                 updates = {
-                    name: ibis.literal(writer.expr, type=_TO_IBIS_DTYPE[dtype])
-                    for name, dtype in writer.write_cols
+                    name: ibis.literal(value, type=_TO_IBIS_DTYPE[dtype])
+                    for (name, dtype), value in zip(
+                        writer.write_cols, writer.constant_values(), strict=True
+                    )
                 }
                 self.df = self.df.mutate(**updates)
                 continue
@@ -263,11 +268,15 @@ class IbisDataFrame(DataFrame):
         return IbisDataFrame(df=self.df.select(*cols_list))
 
     def _resolve_string_cols(self, cols: str | Iterable[str] | None) -> list[str]:
+        # Only string columns can be stripped / nulled; any other named
+        # column (or one that does not exist) is skipped, like pandas.
+        string_cols = [
+            name for name, dtype in self.df.schema().items() if dtype.is_string()
+        ]
         if cols is None:
-            return [
-                name for name, dtype in self.df.schema().items() if dtype.is_string()
-            ]
-        return [cols] if isinstance(cols, str) else list(cols)
+            return string_cols
+        wanted = [cols] if isinstance(cols, str) else list(cols)
+        return [name for name in wanted if name in string_cols]
 
     @override
     def strip(self, cols: str | Iterable[str] | None = None) -> "IbisDataFrame":

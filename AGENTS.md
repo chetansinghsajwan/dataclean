@@ -40,6 +40,7 @@ tools directly when an equivalent Taskfile task exists.
 - **Apply unsafe fixes:** `task fix:unsafe` (requires explicit user approval,
   because it may change behavior).
 - **Run all tests:** `task test`
+- **Run core tests with coverage:** `task test:cov`
 - **Run cleaner or engine tests:** `task test:cleaners` or `task test:engines`
 - **Run a targeted test task:** use the named tasks such as `task test:phone`,
   `task test:email`, `task test:country`, `task test:pandas`, or

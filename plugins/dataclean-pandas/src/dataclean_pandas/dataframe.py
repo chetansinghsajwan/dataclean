@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 
 from dataclean import DataFrame, DataReader, DataType, DataWriter
+from dataclean.engine.dataframe import Aggregators
 from dataclean.types import checked
 
 
@@ -25,6 +26,7 @@ def _stringify(value: Any) -> str | None:
 class PandasDataFrame(DataFrame):
     df: pd.DataFrame
     _cols: tuple[tuple[str, DataType], ...] = ()
+    _group_keys: tuple[str, ...] = ()
 
     def __post_init__(self):
         self._update_cols()
@@ -56,7 +58,8 @@ class PandasDataFrame(DataFrame):
             # Multi-column operation -> Automatic Multi-Arg Unpacking via Vectorization
             else:
                 source_arrays = [self.df[col].to_numpy() for col in reader.cols]
-                np.vectorize(reader.fn)(*source_arrays)
+                # otypes avoids np.vectorize's extra probe call on the first row.
+                np.vectorize(reader.fn, otypes=[object])(*source_arrays)
 
     @override
     def write_cols(self, writers: Iterable[DataWriter]) -> None:
@@ -69,8 +72,10 @@ class PandasDataFrame(DataFrame):
 
             # --- SCENARIO A: Expression is a CONSTANT LITERAL ---
             if not callable(writer.expr):
-                for name, _ in writer.write_cols:
-                    self.df[name] = writer.expr
+                for (name, _), value in zip(
+                    writer.write_cols, writer.constant_values(), strict=True
+                ):
+                    self.df[name] = value
 
             # --- SCENARIO B: Expression is a CALLABLE FUNCTION ---
             else:
@@ -83,7 +88,10 @@ class PandasDataFrame(DataFrame):
                     source_arrays = [
                         self.df[col].to_numpy() for col in writer.read_cols
                     ]
-                    computed_series = np.vectorize(expr)(*source_arrays)
+                    # otypes avoids np.vectorize's extra probe call on the first row.
+                    computed_series = np.vectorize(expr, otypes=[object])(
+                        *source_arrays
+                    )
 
                 # Unpack results into destination columns depending on output count
                 if len(writer.write_cols) == 1:
@@ -170,23 +178,56 @@ class PandasDataFrame(DataFrame):
 
     @override
     def group_by(self, cols: Iterable[str]) -> "PandasDataFrame":
-        cols_list = list(cols)
-        result_df = self.df.groupby(cols_list, as_index=False).first()
-        return PandasDataFrame(df=result_df)
+        # Grouping stays metadata until agg(), so per-group aggregates (e.g.
+        # counts) can still see every row of each group.
+        return PandasDataFrame(df=self.df, _group_keys=tuple(cols))
 
     @override
     def agg(
         self, cols: Mapping[str, Callable] | Iterable[Callable] | Callable
     ) -> "PandasDataFrame":
-        if isinstance(cols, Mapping):
-            # Convert mapped aggregators to apply to selected columns
-            result_df = self.df.agg(cols)
-        else:
-            result_df = self.df.agg(cols)
+        count_names = self._count_names(cols)
+        if count_names is not None:
+            return self._count_aggregate(count_names)
+
+        result_df = self.df.agg(cols)
         # Ensure result is a DataFrame
         if not isinstance(result_df, pd.DataFrame):
             result_df = pd.DataFrame([result_df])
         return PandasDataFrame(df=result_df)
+
+    @staticmethod
+    def _count_names(
+        cols: Mapping[str, Callable] | Iterable[Callable] | Callable,
+    ) -> tuple[str, ...] | None:
+        """Return output names if ``cols`` asks only for counts, else None."""
+        if cols is Aggregators.count:
+            return ("count",)
+        if isinstance(cols, Mapping):
+            if cols and all(agg is Aggregators.count for agg in cols.values()):
+                return tuple(str(name) for name in cols)
+            return None
+        if callable(cols):
+            return None
+        aggregators = list(cols)
+        if aggregators and all(agg is Aggregators.count for agg in aggregators):
+            return ("count",)
+        return None
+
+    def _count_aggregate(self, names: tuple[str, ...]) -> "PandasDataFrame":
+        if self._group_keys:
+            keys = list(self._group_keys)
+            counts = (
+                self.df.groupby(keys, dropna=False)
+                .size()
+                .to_frame(names[0])
+                .reset_index()
+            )
+        else:
+            counts = pd.DataFrame({names[0]: [len(self.df)]})
+        for extra in names[1:]:
+            counts[extra] = counts[names[0]]
+        return PandasDataFrame(df=counts)
 
     @override
     def distinct(self, cols: Iterable[str] | None = None) -> "PandasDataFrame":
