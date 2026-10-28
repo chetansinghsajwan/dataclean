@@ -7,7 +7,7 @@ from typing import Protocol, cast, override, runtime_checkable
 
 from rapidfuzz import fuzz
 
-from dataclean.engine.dataframe import Aggregators, DataFrame
+from dataclean.engine.dataframe import Aggregators, DataFrame, DataType
 from dataclean.types import checked
 
 from .cleaner import Cleaner
@@ -324,7 +324,12 @@ class EnumCleaner(Cleaner):
     def match_score(self, df: DataFrame, cols: tuple[str, ...]) -> float:
         """Score confidence that this cleaner's cases apply to ``cols[0]``.
 
-        First checks the fast column-name heuristics
+        Numeric columns are usually IDs or codes rather than enumerated
+        labels, so for them the column name is ignored and *every* sampled
+        value must be accepted by a case (otherwise cleaning would turn real
+        values into null or map them to the wrong label).
+
+        For other columns, first checks the fast column-name heuristics
         (``cleaner_matching_prefixes``/``suffixes``/``words``), returning
         the maximum score immediately on any hit. Otherwise, samples up to
         the 100 most frequent distinct non-null values of the column and
@@ -341,9 +346,25 @@ class EnumCleaner(Cleaner):
 
         assert len(cols) == 1, "cols must be a tuple of length 1"
 
+        if dict(df.cols()).get(cols[0]) in (
+            DataType.INT,
+            DataType.FLOAT,
+            DataType.DOUBLE,
+        ):
+            ratio = self._value_match_ratio(df, cols[0])
+            return ratio if ratio == Cleaner.MAX_SCORE else Cleaner.MIN_SCORE
+
+        if self._matches_name(cols[0]):
+            return Cleaner.MAX_SCORE
+
+        return self._value_match_ratio(df, cols[0])
+
+    def _matches_name(self, column: str) -> bool:
+        """Return whether the column name hits a configured prefix, suffix or word."""
+
         logger = _logger.getChild("match_score")
 
-        col = cols[0].lower()
+        col = column.lower()
         logger.debug("col: %s", col)
 
         logger.debug("cleaner_matching_prefixes: %s", self._cleaner_matching_prefixes)
@@ -353,28 +374,38 @@ class EnumCleaner(Cleaner):
         for prefix in self._cleaner_matching_prefixes:
             if col.startswith(prefix):
                 logger.debug("Matched prefix: %s", prefix)
-                return Cleaner.MAX_SCORE
+                return True
 
         for suffix in self._cleaner_matching_suffixes:
             if col.endswith(suffix):
                 logger.debug("Matched suffix: %s", suffix)
-                return Cleaner.MAX_SCORE
+                return True
 
         for word in self._cleaner_matching_words:
             if word in col:
                 logger.debug("Matched word: %s", word)
-                return Cleaner.MAX_SCORE
+                return True
 
+        return False
+
+    def _value_match_ratio(self, df: DataFrame, column: str) -> float:
+        """Return the fraction of the column's sampled values accepted by a case.
+
+        Samples up to the 100 most frequent distinct non-null values and
+        weights each by its number of occurrences.
+        """
+
+        logger = _logger.getChild("match_score")
         logger.debug("Matching with values...")
 
         rows = (
-            df.select(cols[0])
+            df.select(column)
             .strip()
             .nullif()
             .filter_null()
-            .group_by([cols[0]])
+            .group_by([column])
             .agg(Aggregators.count)
-            .order_by(cols[0], desc=True)
+            .order_by(column, desc=True)
             .limit(100)
             .collect()
         )

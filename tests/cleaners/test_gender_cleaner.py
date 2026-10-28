@@ -124,3 +124,25 @@ def test_clean_value_returns_none_on_unmapped_token():
     # If the token exists but isn't part of our domain map, return None safely
     assert cleaner.clean_row("unknown_variant") is None
     assert cleaner.clean_row("alien") is None
+
+
+def _pandas_df(**cols):
+    import pandas as pd
+    from dataclean_pandas import PandasDataFrame
+
+    return PandasDataFrame(df=pd.DataFrame(cols))
+
+
+def test_gender_cleaner_rejects_numeric_id_columns():
+    from dataclean import GenderCleaner
+
+    # Mostly 1 (which could look like a gender code) but with other values: an ID.
+    df = _pandas_df(companyid=[1, 1, 1, 1, 1, 1, 1, 1, 2, 3])
+    assert GenderCleaner().match_score(df, ("companyid",)) == GenderCleaner.MIN_SCORE
+
+
+def test_gender_cleaner_still_matches_string_values():
+    from dataclean import GenderCleaner
+
+    df = _pandas_df(who=["M", "F", "male", "female"])
+    assert GenderCleaner().match_score(df, ("who",)) > 0.5

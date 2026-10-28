@@ -73,6 +73,11 @@ output shape.
   TRUEFALSE`, otherwise `DataType.STR`.
 - **Behavior**: exact, case-insensitive match against the truthy/falsy
   variant lists; unrecognized input returns `None`.
+- **Auto-detection**: columns already typed boolean always match. For
+  **numeric** columns the column name is ignored and *every* sampled value
+  must be a recognized flag (e.g. only `0` and `1`); see
+  [EnumCleaner](#enumcleaner). Other columns match by name, or by the
+  fraction of values that are recognized.
 
 !!! note "`Format.YN` is not implemented"
     `BoolCleaner.Format` declares a `YN` member, but it isn't handled by the
@@ -189,7 +194,10 @@ default** and is not auto-registered — you must construct it with `cases=`.
   name, returns `MAX_SCORE` immediately without touching the data. Otherwise
   it samples the 100 most frequent distinct non-null values from the column
   and returns the frequency-weighted fraction accepted by any case — this
-  same pattern is inherited unchanged by `BoolCleaner` and `GenderCleaner`.
+  same pattern is inherited by `BoolCleaner` and `GenderCleaner`. The
+  exception is **numeric** columns (IDs and codes): the name is ignored and
+  every sampled value must be accepted by a case, otherwise the score is `0`,
+  so a mostly-`1` ID column is never mistaken for an enum or flag.
 
 ```python
 from dataclean import EnumCleaner
@@ -269,13 +277,17 @@ NumericCleaner().clean_row("₹ 1,500.50")  # -> "1500.5"
 - **Output**: single column, role `phone`.
 - **Behavior**: delegates to the `phonenumbers` library. Converts
   scientific-notation-looking strings to plain digits first, then tries
-  each region in `default_regions` (or none, if the value is
-  self-contained e.g. `+91...`) until one parses as a valid number.
+  each region (the row's `country` first, then `default_regions`; or none,
+  if the value is self-contained e.g. `+91...`) until one parses as a
+  valid number.
 
-!!! note "`country` parameter is currently unused"
-    `clean_row(self, v, country=None)` accepts a second `country` argument
-    for signature/schema compatibility, but it currently has no effect on
-    cleaning — region selection is driven only by `default_regions`.
+!!! warning "Numbers that cannot be judged are kept, not dropped"
+    If no region is known (no `country` input and `default_regions` is
+    empty) and the number has no leading `+`, it can't be validated, so it
+    is returned unchanged (stripped) instead of `None`. With a known region,
+    a number that isn't valid there still returns `None`. Set
+    `default_regions` (or provide a country column) to get consistent
+    formatting.
 
 ```python
 from dataclean import PhoneCleaner

@@ -50,17 +50,36 @@ class AddressCleaner(Cleaner):
                 ),
                 Cleaner.InputSchema.Column(
                     key="address_line1",
-                    name_hints=("address_line1", "address_line", "street"),
+                    name_hints=(
+                        "address_line1",
+                        "address_line",
+                        "address1",
+                        "address_1",
+                        "addr1",
+                        "street",
+                    ),
                 ),
                 Cleaner.InputSchema.Column(
                     key="address_line2",
                     required=False,
-                    name_hints=("address_line2", "city"),
+                    name_hints=(
+                        "address_line2",
+                        "address2",
+                        "address_2",
+                        "addr2",
+                        "city",
+                        "town",
+                    ),
                 ),
                 Cleaner.InputSchema.Column(
                     key="address_line3",
                     required=False,
-                    name_hints=("address_line3", "postcode", "zip"),
+                    name_hints=(
+                        "address_line3",
+                        "postcode",
+                        "post_code",
+                        "zip",
+                    ),
                 ),
             )
         )

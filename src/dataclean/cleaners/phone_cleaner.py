@@ -2,7 +2,7 @@
 
 import re
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import override
 
@@ -12,6 +12,7 @@ from dataclean.engine import DataFrame
 from dataclean.types import checked
 
 from .cleaner import Cleaner
+from .country_cleaner import CountryCleaner
 
 
 @checked
@@ -30,6 +31,12 @@ class PhoneCleaner(Cleaner):
             order, when the input doesn't carry its own country code. If
             empty, parsing is attempted with no default region, relying on
             the number being self-contained (e.g. E.164 with a "+" prefix).
+
+    The row's ``country`` input (when supplied, e.g. from a country column
+    in the same table) is resolved to a region and tried before
+    ``default_regions``. If no region is known at all and the number is not
+    self-contained, it cannot be judged valid or invalid, so it is returned
+    unchanged (stripped) rather than being discarded as ``None``.
     """
 
     class Format(StrEnum):
@@ -42,6 +49,12 @@ class PhoneCleaner(Cleaner):
 
     out_format: Format = Format.E164
     default_regions: tuple[str, ...] = ()
+    _country_cleaner: CountryCleaner = field(
+        init=False,
+        repr=False,
+        compare=False,
+        default_factory=lambda: CountryCleaner(out_format=CountryCleaner.Format.ALPHA2),
+    )
 
     @override
     def _outputs(self) -> Cleaner.OutputSchema:
@@ -59,12 +72,14 @@ class PhoneCleaner(Cleaner):
 
         Args:
             v: The raw phone number string to clean, or None.
-            country: Unused; accepted for signature compatibility.
+            country: Optional country of the number (name or ISO code); its
+                region is tried before ``default_regions``.
 
         Returns:
-            The cleaned number rendered per ``out_format``, or None if ``v``
-            is None or does not parse into a valid number under any tried
-            region.
+            The cleaned number rendered per ``out_format``; None if ``v`` is
+            None or is not a valid number under any known region; or ``v``
+            unchanged (stripped) if no region is known and it is not
+            self-contained, since validity cannot be determined.
         """
 
         if v is None:
@@ -78,9 +93,14 @@ class PhoneCleaner(Cleaner):
             except ValueError:
                 pass
 
-        # 🚀 FIX 1: Ensure the execution loop runs at least once, even if default_regions is empty.
-        # This allows self-contained E.164 formats (+91...) to be parsed securely.
-        regions_to_try = self.default_regions if self.default_regions else (None,)
+        regions = self._regions_for(country)
+        if not regions and not normalized.startswith("+"):
+            # No region to validate against: keep the value rather than
+            # silently discarding a number that may well be valid.
+            return normalized
+
+        # Run at least once so self-contained formats (+91...) parse with no region.
+        regions_to_try = regions if regions else (None,)
 
         for region in regions_to_try:
             try:
@@ -110,6 +130,15 @@ class PhoneCleaner(Cleaner):
                 continue
 
         return None
+
+    def _regions_for(self, country: str | None) -> tuple[str, ...]:
+        """Return the regions to try: the row's country first, then ``default_regions``."""
+        if country is None or not country.strip():
+            return self.default_regions
+        region = self._country_cleaner.clean_row(country.strip())
+        if region is None:
+            return self.default_regions
+        return (region, *(r for r in self.default_regions if r != region))
 
     @override
     def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
