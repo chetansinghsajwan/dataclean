@@ -111,3 +111,42 @@ def test_boolean_clean_value_returns_none_on_miss():
     # Unrecognized or out-of-bounds string options safely fall through to None [cite: 1416]
     assert cleaner.clean_row("not_a_boolean_flag") is None
     assert cleaner.clean_row("pending") is None
+
+
+# ==============================================================================
+# 1c. MATCH SCORE: NUMERIC COLUMNS (IDs/codes must not be mistaken for flags)
+# ==============================================================================
+
+
+def _pandas_df(**cols):
+    import pandas as pd
+    from dataclean_pandas import PandasDataFrame
+
+    return PandasDataFrame(df=pd.DataFrame(cols))
+
+
+def test_boolean_cleaner_rejects_numeric_id_column_that_is_mostly_ones():
+    # 1 is a recognized flag value, but 2 and 3 are not: a flag column never has them.
+    df = _pandas_df(contacttypeid=[1, 1, 1, 1, 1, 1, 2, 2, 3, 1])
+    assert BoolCleaner().match_score(df, ("contacttypeid",)) == BoolCleaner.MIN_SCORE
+
+
+def test_boolean_cleaner_accepts_numeric_column_with_only_flag_values():
+    df = _pandas_df(externaluse=[0, 1, 1, 0, 1])
+    assert BoolCleaner().match_score(df, ("externaluse",)) == BoolCleaner.MAX_SCORE
+
+
+def test_boolean_cleaner_ignores_status_name_for_numeric_codes():
+    # "status" suffix would match by name, but these are multi-valued codes.
+    df = _pandas_df(idvstatus=[0, 1, 2, 3, 1, 0])
+    assert BoolCleaner().match_score(df, ("idvstatus",)) == BoolCleaner.MIN_SCORE
+
+
+def test_boolean_cleaner_name_match_still_works_for_string_columns():
+    df = _pandas_df(is_active=["Y", "N", "maybe"])
+    assert BoolCleaner().match_score(df, ("is_active",)) == BoolCleaner.MAX_SCORE
+
+
+def test_boolean_cleaner_boolean_typed_column_matches_regardless_of_name():
+    df = _pandas_df(whatever=[True, False, True])
+    assert BoolCleaner().match_score(df, ("whatever",)) == BoolCleaner.MAX_SCORE

@@ -71,14 +71,39 @@ def test_phone_clean_value_success_matrix(
     assert cleaner.clean_row(input_val) == expected_output
 
 
-def test_phone_clean_empty_default_region_drops_local_numbers():
-    # Because default_regions is (), any number without a leading '+' must return None safely
+def test_phone_clean_empty_default_region_keeps_unjudgeable_local_numbers():
+    # With no region known, a national-format number can't be validated, so it
+    # is kept (stripped) rather than silently discarded.
     cleaner = PhoneCleaner()
-    assert cleaner.clean_row("9876543210") is None
-    assert cleaner.clean_row("011-23456789") is None
+    assert cleaner.clean_row("9876543210") == "9876543210"
+    assert cleaner.clean_row("  011-23456789 ") == "011-23456789"
 
-    # But a number with an explicit '+' should still work perfectly
+    # A number with an explicit '+' is self-contained and still gets cleaned.
     assert cleaner.clean_row("+91 98765 43210") == "+919876543210"
+
+
+def test_phone_clean_known_region_still_drops_invalid_numbers():
+    assert PhoneCleaner(default_regions=("IN",)).clean_row("12345") is None
+
+
+def test_phone_country_context_selects_region():
+    cleaner = PhoneCleaner()
+    assert cleaner.clean_row("020 7357 8775", "United Kingdom") == "+442073578775"
+    assert cleaner.clean_row("020 7357 8775", "GB") == "+442073578775"
+    assert cleaner.clean_row("9876543210", "India") == "+919876543210"
+
+
+def test_phone_country_context_is_tried_before_default_regions():
+    cleaner = PhoneCleaner(default_regions=("IN",))
+    assert cleaner.clean_row("020 7357 8775", "United Kingdom") == "+442073578775"
+
+
+def test_phone_unknown_country_falls_back_to_default_regions():
+    cleaner = PhoneCleaner(default_regions=("IN",))
+    assert cleaner.clean_row("9876543210", "Atlantis") == "+919876543210"
+    assert cleaner.clean_row("9876543210", "  ") == "+919876543210"
+    # No usable country and no default region: unjudgeable, kept as-is.
+    assert PhoneCleaner().clean_row("9876543210", "Atlantis") == "9876543210"
 
 
 def test_phone_clean_value_invalid_returns_none():

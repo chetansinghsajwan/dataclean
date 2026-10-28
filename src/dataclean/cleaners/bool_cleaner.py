@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from enum import StrEnum
 from typing import Any, ClassVar, override
 
-from dataclean.engine import DataType
+from dataclean.engine import DataFrame, DataType
 from dataclean.types import checked
 from dataclean.utils.case import TextCase, convert_to_case
 
@@ -134,6 +134,31 @@ class BoolCleaner(EnumCleaner):
             cleaner_matching_suffixes=(*match_suffixes, *extra_match_suffixes),
             tags=tags,
         )
+
+    @override
+    def match_score(self, df: DataFrame, cols: tuple[str, ...]) -> float:
+        """Score confidence that ``cols[0]`` is a boolean-like column.
+
+        Columns already typed boolean match outright. Numeric columns need
+        every sampled value to be a recognized flag (e.g. only 0 and 1), as
+        for any enum cleaner. Other columns use the inherited name and value
+        heuristics.
+
+        Args:
+            df: The dataframe to inspect.
+            cols: A single-element tuple naming the candidate column.
+
+        Returns:
+            A confidence score between 0.0 and 1.0.
+        """
+
+        assert len(cols) == 1, "cols must be a tuple of length 1"
+
+        dtype = dict(df.cols()).get(cols[0])
+        if dtype is DataType.BOOL:
+            return Cleaner.MAX_SCORE
+
+        return super().match_score(df, cols)
 
     @property
     def truthy_values(self) -> frozenset[str]:

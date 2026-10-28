@@ -267,3 +267,17 @@ def test_clean_row_first_matching_case_wins_on_order():
         cases={"first": ["dup"], "second": ["dup"]},
     )
     assert cleaner.clean_row("dup") == "first"
+
+
+def test_enum_cleaner_numeric_column_needs_every_value_accepted():
+    import pandas as pd
+    from dataclean_pandas import PandasDataFrame
+
+    from dataclean import EnumCleaner
+
+    cleaner = EnumCleaner(cases={"on": ["1"], "off": ["0"]})
+    only_flags = PandasDataFrame(df=pd.DataFrame({"x": [0, 1, 1, 0]}))
+    with_other = PandasDataFrame(df=pd.DataFrame({"x": [0, 1, 1, 7]}))
+
+    assert cleaner.match_score(only_flags, ("x",)) == EnumCleaner.MAX_SCORE
+    assert cleaner.match_score(with_other, ("x",)) == EnumCleaner.MIN_SCORE
