@@ -9,32 +9,11 @@ patterns and read/write dataframes without knowing the storage details.
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from dataclasses import dataclass
-from enum import IntEnum
 from typing import ClassVar, Self
 
 from dataclean.types import checked
 
 from .dataframe import DataFrame
-
-
-@checked
-class CatalogPriority(IntEnum):
-    """Relative ordering used when auto-selecting a catalog from the environment.
-
-    Catalog types registered in :class:`~dataclean.config.Config` are tried
-    in descending priority order (highest first) when no explicit catalog
-    is given and one must be auto-detected via :meth:`Catalog.supports_env`.
-
-    Attributes:
-        GENERIC: Default priority for catalogs with no special environment
-            requirements.
-        ENV_DEPENDENT: Higher priority for catalogs that depend on specific
-            environment variables/conditions and should be preferred over
-            generic catalogs when applicable.
-    """
-
-    GENERIC = 0
-    ENV_DEPENDENT = 50
 
 
 @checked
@@ -47,18 +26,17 @@ class Catalog(ABC):
     backend, so that :func:`dataclean.clean_paths` can operate generically
     across data sources.
 
+    Paths are routed to catalogs by scheme prefix: ``scheme:rest`` goes to
+    the catalog whose ``schemes`` contains ``scheme``, and receives only
+    ``rest``. A path with no ``:`` goes to the catalog that lists the empty
+    scheme ``""``. A scheme may belong to only one registered catalog.
+
     Attributes:
-        priority: Class-level :class:`CatalogPriority` used to order this
-            catalog type among others when auto-selecting one from the
-            environment. Defaults to ``CatalogPriority.GENERIC``.
+        schemes: Path scheme prefixes this catalog handles (without the
+            ``:``). Include ``""`` to be the default for unprefixed paths.
     """
 
-    priority: ClassVar[int] = CatalogPriority.GENERIC
-
-    @classmethod
-    def supports_env(cls) -> bool:
-        """Return True if this catalog can be auto-instantiated from the current environment."""
-        return False
+    schemes: ClassVar[tuple[str, ...]] = ()
 
     @classmethod
     def instantiate(cls) -> Self | None:

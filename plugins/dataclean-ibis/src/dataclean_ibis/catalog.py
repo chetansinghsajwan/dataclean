@@ -29,15 +29,10 @@ class IbisCatalog(Catalog):
 
     con: ibis.backends.duckdb.Backend
 
+    schemes: ClassVar[tuple[str, ...]] = ("ibis",)
+
     READERS: ClassVar[dict[str, str]] = _READERS
     WRITERS: ClassVar[dict[str, str]] = _WRITERS
-
-    @override
-    @classmethod
-    def supports_env(cls) -> bool:
-        # DuckDB is embedded and a hard dependency of this plugin; it needs
-        # no external service or credentials, so it is always usable.
-        return True
 
     @override
     @classmethod

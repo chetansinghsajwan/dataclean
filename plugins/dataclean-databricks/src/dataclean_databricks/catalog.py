@@ -1,12 +1,11 @@
 import fnmatch
-import os
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import ClassVar, Self, override
 
 from databricks.connect import DatabricksEnv, DatabricksSession
 
-from dataclean import Catalog, CatalogPriority, DataFrame, checked
+from dataclean import Catalog, DataFrame, checked
 from dataclean_databricks.dataframe import PysparkDataFrame
 from dataclean_databricks.types import SparkSession
 
@@ -17,23 +16,7 @@ class UnityCatalog(Catalog):
     spark: SparkSession
     write_options: dict[str, str] = field(default_factory=dict)
 
-    priority: ClassVar[int] = CatalogPriority.ENV_DEPENDENT
-
-    @classmethod
-    @override
-    def supports_env(cls) -> bool:
-
-        if os.environ.get("DATABRICKS_RUNTIME_VERSION") is not None:
-            return True
-
-        if (
-            os.environ.get("DATABRICKS_HOST") is not None
-            and os.environ.get("DATABRICKS_TOKEN") is not None
-            and os.environ.get("DATABRICKS_CLUSTER_ID") is not None
-        ):
-            return True
-
-        return False
+    schemes: ClassVar[tuple[str, ...]] = ("databricks",)
 
     @classmethod
     @override

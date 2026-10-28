@@ -5,5 +5,5 @@ agnostic of any specific dataframe engine (pandas, PySpark, etc.) or
 storage backend.
 """
 
-from .catalog import Catalog, CatalogPriority
+from .catalog import Catalog
 from .dataframe import DataFrame, DataReader, DataType, DataWriter

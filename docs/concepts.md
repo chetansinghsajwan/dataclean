@@ -173,10 +173,16 @@ method list.
 A `Catalog` (`src/dataclean/engine/catalog.py`) is how `clean_paths()`
 discovers, reads, and writes tables/files without knowing what storage
 platform it's talking to: `expand_paths` (glob-style pattern expansion),
-`read_df`/`write_df`, plus optional `supports_env()`/`instantiate()` hooks
-for environment auto-detection. Registered catalog *types* are kept sorted
-by descending `priority` (`CatalogPriority.GENERIC` vs. `ENV_DEPENDENT`), so
-more environment-specific catalogs are tried before generic fallbacks.
+`read_df`/`write_df`, plus an optional `instantiate()` hook that builds the
+catalog from the environment.
+
+Paths are routed to catalogs by **scheme prefix**: `scheme:rest` goes to the
+catalog whose `schemes` contains `scheme`, and the catalog receives only
+`rest`. A path with no `:` goes to the catalog that lists the empty scheme
+`""`. Each scheme belongs to exactly one registered catalog, and the source
+and `write_path` are routed independently, so you can read from one catalog
+and write to another. A path with an unregistered prefix is an error; this
+includes Windows drive paths, which must be written `path:C:/data/x.csv`.
 
 Like `DataFrame`, `dataclean` core ships no concrete `Catalog` — real ones
 come from plugins.

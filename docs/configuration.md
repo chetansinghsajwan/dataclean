@@ -15,7 +15,7 @@ default `Pipeline` construction all read from it unless you build your own
 | `plugin_loader` | `PluginLoader \| None` | `PluginLoader()` | `None` disables plugin auto-loading entirely. |
 | `dataframe_apis` | `list[type[DataFrame]]` | `[]` | Empty until a plugin registers one. |
 | `auto_load_plugins` | `bool` | `True` | If `True`, `clean()`/`clean_paths()` call `plugin_loader.load_plugins()` first. |
-| `catalog_types` | `list[type[Catalog]]` | `[]` | Kept sorted by descending `priority` — see [Plugins](plugins.md). |
+| `catalog_types` | `list[type[Catalog]]` | `[]` | Each path scheme belongs to one catalog; registering a duplicate scheme raises `ValueError` — see [Plugins](plugins.md). |
 | `presets` | `list[Preset]` | `[]` | See the [Preset note](plugins.md#preset-scaffolding-only) — not consumed anywhere yet. |
 | `catalog` | `Catalog \| None` | `None` | An explicit default catalog for `clean_paths()`. |
 | `inplace` | `bool` | `True` | Declared global default; not currently read by `clean_paths()` (see below). |
@@ -34,7 +34,7 @@ from dataclean import config
 
 config.register_cleaner(my_cleaner_instance)  # appends if not already present
 config.register_dataframe(MyDataFrameAdapter)  # a type, not an instance
-config.register_catalog(MyCatalog)  # kept sorted by descending priority
+config.register_catalog(MyCatalog)  # raises if a scheme is already taken
 config.register_preset(my_preset_instance)
 ```
 
@@ -70,11 +70,13 @@ omitted), `pascal`, `camel`, `kebab`, `train`, `cobol`.
 | Cleaners used | `config.cleaners`, `auto_detect` as passed | Always `config.cleaners` with `auto_detect=True` |
 | Output | Returns the cleaned `DataFrame` | Reads, cleans, and writes each expanded path; returns a `CleanPathResult` |
 
-`clean_paths()` resolves its `catalog` in order: the explicit `catalog=`
-argument, then `config.catalog` (if `use_global_config=True`), then the
-first registered `catalog_types` entry (tried in descending-priority order)
-whose `supports_env()` returns `True` and `instantiate()` succeeds. If none
-resolves, it raises `ValueError("catalog must be provided")`.
+`clean_paths()` resolves catalogs as follows. An explicit `catalog=` (an
+instance, or the class name of a registered type) handles every path, as
+does `config.catalog` when `use_global_config=True`; no prefixes are parsed
+in that case. Otherwise each path is routed by its scheme prefix
+(`scheme:rest`) to the registered catalog that lists that scheme, and
+unprefixed paths go to the catalog that lists `""`. An unknown scheme raises
+`ValueError`.
 
 !!! warning "Several `clean_paths()` parameters are accepted but not yet wired in"
     `rename_cols`, `rename_col_map`, `col_renamer`, `clean_cols`,

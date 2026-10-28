@@ -235,3 +235,81 @@ def test_clean_paths_unknown_catalog_name_raises(
 
     with pytest.raises(ValueError, match="No registered catalog type matches"):
         clean_paths(paths=[], catalog="nope")
+
+
+class SchemeCatalog(Catalog):
+    """Records what it is asked to read/write, to test scheme routing."""
+
+    schemes = ("mem",)
+
+    def __init__(self) -> None:
+        self.read: list[str] = []
+        self.written: dict[str, DataFrame] = {}
+
+    @classmethod
+    def instantiate(cls) -> "SchemeCatalog":
+        return cls()
+
+    def expand_paths(self, paths: Iterable[str]) -> set[str]:
+        return set(paths)
+
+    def read_df(self, path: str) -> DataFrame:
+        self.read.append(path)
+        return PandasDataFrame(pd.DataFrame({"country": ["IN"]}))
+
+    def write_df(self, df: DataFrame, path: str) -> None:
+        self.written[path] = df
+
+
+class DefaultCatalog(SchemeCatalog):
+    schemes = ("",)
+
+
+def test_clean_paths_routes_by_scheme_and_strips_prefix(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(config, "auto_load_plugins", False)
+    monkeypatch.setattr(config, "catalog_types", [SchemeCatalog, DefaultCatalog])
+    seen: list[SchemeCatalog] = []
+    original = SchemeCatalog.instantiate.__func__  # type: ignore[attr-defined]
+
+    def tracking(cls: type[SchemeCatalog]) -> SchemeCatalog:
+        instance = original(cls)
+        seen.append(instance)
+        return instance
+
+    monkeypatch.setattr(SchemeCatalog, "instantiate", classmethod(tracking))
+
+    clean_paths(
+        paths=["mem:a", "b"],
+        write_path="mem:out",
+        rename_cols=False,
+        clean_cols=False,
+    )
+
+    by_type = {type(c): c for c in seen}
+    assert by_type[SchemeCatalog].read == ["a"]
+    assert by_type[DefaultCatalog].read == ["b"]
+    assert set(by_type[SchemeCatalog].written) == {"out"}
+
+
+def test_clean_paths_unknown_scheme_raises_with_windows_hint(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(config, "auto_load_plugins", False)
+    monkeypatch.setattr(config, "catalog_types", [DefaultCatalog])
+
+    with pytest.raises(ValueError, match="path:C:/data"):
+        clean_paths(paths=["C:/data/x.csv"])
+
+
+def test_register_catalog_rejects_duplicate_scheme(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(config, "catalog_types", [SchemeCatalog])
+
+    class Other(SchemeCatalog):
+        pass
+
+    with pytest.raises(ValueError, match="already registered"):
+        config.register_catalog(Other)

@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Self, override
+from typing import ClassVar, Self, override
 
 import pandas as pd
 
@@ -12,6 +12,8 @@ from dataclean_pandas.dataframe import PandasDataFrame
 @checked
 @dataclass
 class PandasCatalog(Catalog):
+    schemes: ClassVar[tuple[str, ...]] = ("", "path", "pandas")
+
     READERS = {
         ".csv": pd.read_csv,
         ".parquet": pd.read_parquet,
@@ -25,12 +27,6 @@ class PandasCatalog(Catalog):
         ".xlsx": lambda df, p: df.df.to_excel(p, engine="openpyxl"),
         ".xls": lambda df, p: df.df.to_excel(p, engine="xlrd"),
     }
-
-    @override
-    @classmethod
-    def supports_env(cls) -> bool:
-        # Pandas is installed as a dependency
-        return True
 
     @override
     @classmethod
