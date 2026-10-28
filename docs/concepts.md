@@ -68,9 +68,19 @@ does, in order:
    call per wave — not one per cleaner.
 6. Returns the (mutated in place) wrapped `DataFrame`.
 
-A required input that is missing (`None`, or `NaN` for numeric engines) never
-reaches `clean_row` at all — the pipeline short-circuits that row to `None`
-output first. Cleaners don't need to guard against missing values themselves.
+A single-output cleaner overwrites its input column. A multi-output cleaner
+(e.g. `AddressCleaner`) writes new `<input>_<output>_cleaned` columns, where
+`<input>` is the primary `value` column or, failing that, the first
+*required* input role's column (e.g. `address1_street_cleaned`). A cleaner is
+never its own context producer, so a role it both consumes and produces
+(like `AddressCleaner`'s `country`) is only satisfied by *another* cleaner.
+
+Before `clean_row` is called, every input is normalized: strings are stripped
+of surrounding whitespace, and empty or whitespace-only strings count as
+missing, like `None` and `NaN`. A required input that is missing never reaches
+`clean_row` at all — the pipeline short-circuits that row to `None` output
+first. Cleaners therefore only ever see `None` or a non-empty, trimmed string,
+and don't need to guard against blank or padded values themselves.
 
 ::: dataclean.pipeline.pipeline.Pipeline
 
@@ -83,9 +93,11 @@ output first. Cleaners don't need to guard against missing values themselves.
 mappings always win first. Remaining cleaners are tried in order of *most
 required input columns first* (so a multi-column cleaner like
 `AddressCleaner` gets first pick over a permissive single-column one). A
-single-input cleaner is scored against every still-unclaimed column and may
-claim several at once (e.g. multiple `*_email` columns); a multi-input
-cleaner greedily matches its best-scoring candidate for each role, and is
+cleaner led by the primary `value` role (e.g. `EmailCleaner`, or
+`PhoneCleaner`, whose optional `country` input is a context role) is scored
+against every still-unclaimed column and may claim several at once (e.g.
+multiple `*_email` or `*_phone` columns); any other multi-input cleaner
+greedily matches its best-scoring candidate for each role, and is
 abandoned entirely if a **required** role can't find a candidate scoring
 `>= 0.5`. That `0.5` threshold is the acceptance bar everywhere — columns no
 cleaner scores highly enough for are simply left unassigned.

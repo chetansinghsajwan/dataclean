@@ -166,3 +166,30 @@ def test_cycle_raises(resolver: DependencyResolver) -> None:
     )
     with pytest.raises(CycleDetectedError):
         resolver.resolve(assignments)
+
+
+class ProducesAndConsumesX(Cleaner):
+    def _outputs(self) -> Cleaner.OutputSchema:
+        return _outputs("x")
+
+    def clean_row(self, value: str | None, x: str | None = None) -> str | None:
+        return value
+
+
+def test_cleaner_is_not_its_own_producer(resolver: DependencyResolver) -> None:
+    waves = resolver.resolve((_assign(ProducesAndConsumesX(), "c"),))
+
+    assert len(waves) == 1
+    assert waves[0][0].context_columns == {}
+
+
+def test_other_producer_still_satisfies_a_self_producing_consumer(
+    resolver: DependencyResolver,
+) -> None:
+    other = ProducesX()
+    waves = resolver.resolve(
+        (_assign(ProducesAndConsumesX(), "c"), _assign(other, "p"))
+    )
+
+    assert [[a.cleaner for a in wave][0] is other for wave in waves[:1]] == [True]
+    assert waves[1][0].context_columns == {"x": "p"}
