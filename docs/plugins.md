@@ -30,15 +30,19 @@ abstract method list.
 
 ### Verifying it: the shared contract test suite
 
-`dataclean.testing.BaseDataFrameTests` gives you 7 tests for free — column
-management only (`supports`, `cols`, `rename_cols`, `write_cols`,
-`read_cols`, `remove_cols`, `cast_cols`). Subclass it and override the
-`wrapper` fixture:
+`dataclean.testing.BaseDataFrameTests` gives you the engine-agnostic contract
+tests for free: column management, `count`/`collect`, `select`, `limit`,
+`order_by`, `distinct`, `strip`/`nullif` (including non-string and unknown
+columns), `filter_null`, `group_by().agg(count)`, and `write_cols`/`read_cols`
+null handling, multi-output results and constant values. Subclass it and
+override two fixtures: `wrapper` (an instance of your adapter loaded with
+`RAW_TEST_DATA`) and `make_frame` (a factory building an instance from a
+`{column: values}` mapping):
 
 ```python
 import pandas as pd
 import pytest
-from dataclean.testing import RAW_TEST_DATA, BaseDataFrameTests
+from dataclean.testing import RAW_TEST_DATA, BaseDataFrameTests, FrameFactory
 from dataclean_pandas import PandasDataFrame
 
 
@@ -46,17 +50,19 @@ class TestPandasDataFrame(BaseDataFrameTests):
     @pytest.fixture
     def wrapper(self) -> PandasDataFrame:
         return PandasDataFrame(df=pd.DataFrame(RAW_TEST_DATA))
+
+    @pytest.fixture
+    def make_frame(self) -> FrameFactory:
+        return lambda data: PandasDataFrame(df=pd.DataFrame(dict(data)))
 ```
 
 This is copied nearly verbatim from
-`plugins/dataclean-pandas/tests/test_pandas_dataframe.py`.
+`plugins/dataclean-pandas/tests/test_pandas_dataframe.py`. Add your own tests
+for anything engine-specific that the shared suite doesn't cover.
 
-!!! note "The shared suite does not cover every method"
-    `group_by`, `agg`, `distinct`, `select`, `strip`, `nullif`, `order_by`,
-    `limit`, `filter_null`, `count`, and `collect` are abstract on
-    `DataFrame` but **not** exercised by `BaseDataFrameTests`. Write your own
-    tests for those — `dataclean-pandas`'s test file adds exactly this set of
-    engine-specific tests on top of the shared suite; use it as the pattern.
+!!! note "Name your test file uniquely"
+    Plugin test files share one pytest run in CI, so give yours a unique
+    basename (e.g. `test_pandas_dataframe.py`, not `test_dataframe.py`).
 
 ## Writing a `Catalog`
 

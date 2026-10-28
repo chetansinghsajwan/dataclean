@@ -82,12 +82,14 @@ class DataWriter:
     and its result is written to the column(s) named in ``write_cols``; a
     single write column expects a scalar result, multiple write columns
     expect a tuple of results in matching order. ``expr`` may also be a
-    constant scalar/tuple instead of a callable, which is broadcast to
-    every row.
+    constant instead of a callable: a scalar is written to every write
+    column, and a tuple supplies one value per write column (see
+    :meth:`constant_values`); either way it is broadcast to every row.
 
     Attributes:
         expr: Callable computing the new value(s) from the ``read_cols``
-            values, or a constant scalar/tuple broadcast to all rows.
+            values, or a constant scalar (written to every write column) or tuple
+            (one value per write column) broadcast to all rows.
         read_cols: Names of the columns whose values are passed to ``expr``.
         write_cols: Names and :class:`DataType` of the columns to write,
             in the order ``expr``'s result should be unpacked into.

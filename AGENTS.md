@@ -6,7 +6,8 @@
   Devbox). Do not run commands on the local host outside Devbox.
 - **Python Package Manager:** `uv`
 - **Python Version:** 3.12 managed via `uv`.
-- **Primary Tooling:** Ruff (Linting & Formatting), Pytest (Testing)
+- **Primary Tooling:** Ruff (Linting & Formatting), ty (Type Checking), Pytest
+  (Testing)
 
 ## 2. Project Design
 
@@ -41,7 +42,8 @@ tools directly when an equivalent Taskfile task exists.
   because it may change behavior).
 - **Run all tests:** `task test`
 - **Run core tests with coverage:** `task test:cov`
-- **Run cleaner or engine tests:** `task test:cleaners` or `task test:engines`
+- **Run cleaner or engine tests:** `task test:cleaners`, or an engine task
+  such as `task test:pandas`, `task test:pyspark` or `task test:ibis`
 - **Run a targeted test task:** use the named tasks such as `task test:phone`,
   `task test:email`, `task test:country`, `task test:pandas`, or
   `task test:pyspark`.
@@ -88,9 +90,9 @@ side effect.
 - **No Any:** Do not use `Any` types. If a type is genuinely dynamic, utilize
   structural subtyping via `Protocol`, generic type variables (`TypeVar`), or a
   clean `Union`.
-- **Validation:** Always execute the strict type check command
-  (`uv run mypy . --strict`) before marking a feature or file change as
-  complete. Zero type errors are permitted.
+- **Validation:** Always execute the type check (`task check:py`, which runs
+  Ruff and `ty`) before marking a feature or file change as complete. Zero
+  type errors are permitted.
 
 ### Code Quality & Refactoring
 
