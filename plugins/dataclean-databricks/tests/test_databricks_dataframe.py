@@ -7,6 +7,7 @@ from databricks.connect import DatabricksEnv, DatabricksSession
 from dataclean_databricks import PysparkDataFrame
 from pyspark.sql import SparkSession
 
+from dataclean import DataType
 from dataclean.testing import RAW_TEST_DATA, BaseDataFrameTests, FrameFactory
 
 
@@ -204,3 +205,23 @@ class TestDatabricksDataFrameNewMethods:
         agg_config = {"value": F.sum("value")}
         result = numeric_wrapper.agg(agg_config)
         assert result.count() > 0
+
+
+@pytest.mark.parametrize(
+    "spark_type, expected",
+    [
+        (spt.StringType(), DataType.STR),
+        (spt.BooleanType(), DataType.BOOL),
+        (spt.ByteType(), DataType.INT),
+        (spt.ShortType(), DataType.INT),
+        (spt.IntegerType(), DataType.INT),
+        (spt.LongType(), DataType.INT),
+        (spt.FloatType(), DataType.FLOAT),
+        (spt.DoubleType(), DataType.DOUBLE),
+        (spt.TimestampType(), DataType.STR),
+    ],
+)
+def test_spark_types_map_to_engine_agnostic_types(
+    spark_type: spt.DataType, expected: DataType
+) -> None:
+    assert PysparkDataFrame._from_pyspark_data_type(spark_type) == expected

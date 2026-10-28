@@ -153,6 +153,30 @@ class Aggregators:
     """Aggregator that counts the number of values (rows) in a group."""
 
 
+def count_output_names(
+    cols: "Mapping[str, Aggregator] | Iterable[Aggregator] | Aggregator",
+) -> tuple[str, ...] | None:
+    """Return the output column names if ``cols`` requests only row counts.
+
+    A lone :data:`Aggregators.count`, or an iterable of them, yields
+    ``("count",)``; a mapping of name to ``Aggregators.count`` yields those
+    names. Returns ``None`` for any other aggregation, so engines can use a
+    native count for this common case and handle the rest themselves.
+    """
+    if cols is Aggregators.count:
+        return ("count",)
+    if isinstance(cols, Mapping):
+        if cols and all(agg is Aggregators.count for agg in cols.values()):
+            return tuple(str(name) for name in cols)
+        return None
+    if callable(cols):
+        return None
+    aggregators = list(cols)
+    if aggregators and all(agg is Aggregators.count for agg in aggregators):
+        return ("count",)
+    return None
+
+
 @checked
 @dataclass
 class DataFrame(ABC):
