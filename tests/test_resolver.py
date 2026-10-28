@@ -116,3 +116,75 @@ def test_scoring_errors_count_as_no_match() -> None:
             raise ValueError("boom")
 
     assert Resolver(cleaners=(Broken(),)).resolve(_df("a"), {"a"}) == ()
+
+
+class PrimaryWithContext(Cleaner):
+    """Primary-led cleaner with an extra optional (context) role, like PhoneCleaner."""
+
+    def clean_row(self, value: str | None, country: str | None = None) -> str | None:
+        return value
+
+    def match_score(self, df: DataFrame, cols: tuple[str, ...]) -> float:
+        return 1.0 if cols[0].startswith("ph") else 0.0
+
+
+def test_primary_led_cleaner_with_context_role_claims_every_matching_column() -> None:
+    assignments = Resolver(cleaners=(PrimaryWithContext(),)).resolve(
+        _df("ph_a", "ph_b", "other"), {"ph_a", "ph_b", "other"}
+    )
+
+    assert {a.role_columns["value"] for a in assignments} == {"ph_a", "ph_b"}
+    assert all(set(a.role_columns) == {"value"} for a in assignments)
+
+
+def test_phone_cleaner_claims_tel_mobile_and_fax() -> None:
+    from dataclean import PhoneCleaner
+
+    cols = {"tel", "mobile", "fax", "email_note"}
+    assignments = Resolver(cleaners=(PhoneCleaner(),)).resolve(_df(*cols), cols)
+
+    assert {a.role_columns["value"] for a in assignments} == {"tel", "mobile", "fax"}
+
+
+def test_address_cleaner_matches_numbered_address_columns() -> None:
+    from dataclean import AddressCleaner
+
+    cols = {
+        "address1",
+        "address2",
+        "address3",
+        "town",
+        "county",
+        "postcode",
+        "country",
+    }
+    assignments = Resolver(cleaners=(AddressCleaner(),)).resolve(_df(*cols), cols)
+
+    assert len(assignments) == 1
+    assert dict(assignments[0].role_columns) == {
+        "county": "county",
+        "country": "country",
+        "address_line1": "address1",
+        "address_line2": "address2",
+        "address_line3": "postcode",
+    }
+
+
+def test_address_cleaner_still_matches_address_line_names() -> None:
+    from dataclean import AddressCleaner
+
+    cols = {"address_line1", "address_line2", "zip"}
+    assignments = Resolver(cleaners=(AddressCleaner(),)).resolve(_df(*cols), cols)
+
+    assert dict(assignments[0].role_columns) == {
+        "address_line1": "address_line1",
+        "address_line2": "address_line2",
+        "address_line3": "zip",
+    }
+
+
+def test_address_cleaner_without_a_first_line_column_is_skipped() -> None:
+    from dataclean import AddressCleaner
+
+    cols = {"county", "postcode"}
+    assert Resolver(cleaners=(AddressCleaner(),)).resolve(_df(*cols), cols) == ()

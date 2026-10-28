@@ -75,7 +75,10 @@ class Resolver:
         )
         for cleaner in ordered_cleaners:
             cols = cleaner.inputs.cols
-            if len(cols) == 1 and cols[0].key == PRIMARY:
+            # Any cleaner led by the primary role may claim every column it
+            # matches; its other roles are context, resolved later by the
+            # dependency resolver.
+            if cols[0].key == PRIMARY:
                 assignments.extend(
                     self._resolve_primary_cleaner(df, unclaimed, cleaner)
                 )

@@ -33,6 +33,20 @@ def _is_missing(value: Any) -> bool:
     return value is None or value != value  # noqa: PLR0124 (NaN != NaN by design)
 
 
+def _normalize(value: Any) -> Any:
+    """Normalize a raw input value to the form cleaners expect.
+
+    Missing values (None, NaN) and strings that are empty or whitespace-only
+    become None; other strings are stripped of surrounding whitespace; any
+    non-string value is returned unchanged.
+    """
+    if _is_missing(value):
+        return None
+    if isinstance(value, str):
+        return value.strip() or None
+    return value
+
+
 @checked
 class Pipeline:
     """Resolve unified cleaners and execute them in dependency-safe waves.
@@ -229,11 +243,7 @@ class Pipeline:
         cols = outputs.cols if outputs is not None else ()
 
         # Determine base primary column for naming
-        primary_column = assignment.role_columns.get(
-            "value"
-        ) or assignment.role_columns.get(
-            PRIMARY, next(iter(assignment.role_columns.values()))
-        )
+        primary_column = self._naming_column(assignment)
         if not primary_column:
             raise ValueError("Scalar cleaners require a 'value' input role")
 
@@ -261,41 +271,58 @@ class Pipeline:
         )
 
     @staticmethod
+    def _naming_column(assignment: Assignment) -> str:
+        """Return the input column that names (and, for single outputs, receives) the output.
+
+        The primary ``value`` column if the cleaner has one; otherwise the
+        first *required* input role's column (e.g. ``address1`` for an
+        address cleaner, not whichever optional column happens to be first);
+        otherwise the first column.
+        """
+        role_columns = assignment.role_columns
+        if PRIMARY in role_columns:
+            return role_columns[PRIMARY]
+        for col in assignment.cleaner.inputs.cols:
+            if col.required and col.key in role_columns:
+                return role_columns[col.key]
+        return next(iter(role_columns.values()))
+
+    @staticmethod
     def _guarded_expr(
         clean_row: Callable[..., Any],
         required_positions: tuple[int, ...],
         output_count: int,
     ) -> Callable[..., Any]:
-        """Wrap a cleaner's clean_row to skip rows missing a required input.
+        """Wrap a cleaner's clean_row to normalize inputs and skip missing rows.
 
-        Skipping the call keeps engines from having to pass real values into
-        cleaners that don't guarantee handling for them, and avoids running
-        cleaning logic on rows that can't produce a meaningful result anyway.
+        Every input is normalized first (see :func:`_normalize`): strings are
+        stripped, and empty or whitespace-only strings count as missing, so
+        cleaners only ever see ``None`` or a non-empty, trimmed string. A row
+        with a missing required input is then skipped entirely, which keeps
+        engines from passing real values into cleaners that don't guarantee
+        handling for them and avoids cleaning rows that can't produce a
+        meaningful result.
 
         Args:
             clean_row: The cleaner's row-cleaning function to guard.
             required_positions: Indices into the values passed to
-                `clean_row` that must not be missing (None or NaN, e.g. from
-                pandas) for the call to proceed.
+                `clean_row` that must not be missing after normalization.
             output_count: Number of output values `clean_row` produces, used
                 to build the correctly-shaped "missing" result when the call
                 is skipped.
 
         Returns:
-            `clean_row` unchanged if there are no required positions to
-            check; otherwise a wrapping callable that returns None (or a
-            tuple of Nones matching `output_count`) when any required
-            position is missing, and otherwise delegates to `clean_row`.
+            A callable that normalizes its inputs, returns None (or a tuple
+            of Nones matching `output_count`) when any required position is
+            missing, and otherwise delegates to `clean_row`.
         """
-
-        if not required_positions:
-            return clean_row
 
         none_result: Any = None if output_count == 1 else (None,) * output_count
 
         def guarded(*values: Any) -> Any:
-            if any(_is_missing(values[i]) for i in required_positions):
+            normalized = tuple(_normalize(value) for value in values)
+            if any(normalized[i] is None for i in required_positions):
                 return none_result
-            return clean_row(*values)
+            return clean_row(*normalized)
 
         return guarded

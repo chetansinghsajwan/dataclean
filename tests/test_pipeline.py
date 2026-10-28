@@ -144,3 +144,99 @@ def test_pipeline_can_be_reused_across_dataframes() -> None:
 
     assert _values(first, "up_a") == ["X"]
     assert _values(second, "up_b") == ["Y"]
+
+
+class Recorder(Cleaner):
+    """Records exactly what clean_row receives."""
+
+    seen: list[str | None] = []
+
+    def clean_row(self, value: str | None = None) -> str | None:
+        Recorder.seen.append(value)
+        return value
+
+
+def test_blank_and_whitespace_values_never_reach_a_required_cleaner() -> None:
+    Shout.calls = []
+    df = PandasDataFrame(
+        df=pd.DataFrame(
+            {"first_col": ["", "  ", " a "], "second_col": ["b", "c", " d "]}
+        )
+    )
+    cleaned = Pipeline(cleaners=(Shout(),)).fit_transform(df)
+
+    assert set(Shout.calls) == {("a", "d")}
+    values = _values(cleaned, "first_col")
+    assert values[:2] == [None, None] or all(pd.isna(v) for v in values[:2])
+    assert values[2] == "ad"
+
+
+def test_optional_inputs_are_normalized_too() -> None:
+    Recorder.seen = []
+    df = PandasDataFrame(df=pd.DataFrame({"value_col": ["", " x ", "  "]}))
+    Pipeline(
+        column_cleaners={"value_col": Recorder()}, auto_detect=False
+    ).fit_transform(df)
+
+    assert set(Recorder.seen) <= {None, "x"}
+    assert "x" in Recorder.seen
+
+
+def test_non_string_values_pass_through_unchanged() -> None:
+    from dataclean.pipeline.pipeline import _normalize
+
+    assert _normalize(5) == 5
+    assert _normalize(True) is True
+    assert _normalize(None) is None
+    assert _normalize(float("nan")) is None
+    assert _normalize("  a b ") == "a b"
+    assert _normalize("") is None
+    assert _normalize("   ") is None
+
+
+def test_pipeline_cleans_every_phone_column_alongside_country() -> None:
+    from dataclean import PhoneCleaner
+
+    df = PandasDataFrame(
+        df=pd.DataFrame(
+            {
+                "tel": ["9876543210"],
+                "mobile": ["9123456780"],
+                "fax": ["9876543211"],
+                "country": ["IN"],
+                "dlcountryoforigin": ["IN"],
+            }
+        )
+    )
+    cleaned = Pipeline(
+        cleaners=(CountryCleaner(), PhoneCleaner(default_regions=("IN",)))
+    ).fit_transform(df)
+
+    assert _values(cleaned, "tel") == ["+919876543210"]
+    assert _values(cleaned, "mobile") == ["+919123456780"]
+    assert _values(cleaned, "fax") == ["+919876543211"]
+    assert _values(cleaned, "country") == ["India"]
+
+
+def test_multi_output_columns_are_named_after_the_first_required_input() -> None:
+    from dataclean import AddressCleaner
+
+    df = PandasDataFrame(
+        df=pd.DataFrame(
+            {
+                "county": ["Kent"],
+                "address1": ["12 High Street"],
+                "address2": ["Bromley"],
+                "postcode": ["br1 1aa"],
+            }
+        )
+    )
+    cleaned = Pipeline(cleaners=(AddressCleaner(),)).fit_transform(df)
+
+    names = {name for name, _ in cleaned.cols()}
+    assert {
+        "address1_street_cleaned",
+        "address1_house_no_cleaned",
+        "address1_postcode_cleaned",
+    } <= names
+    assert not any(name.startswith("county_") for name in names)

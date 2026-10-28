@@ -92,6 +92,7 @@ class DependencyResolver:
                 if col.key == PRIMARY or col.key in assignment.role_columns:
                     continue
                 producer_index = self._resolve_producer(
+                    index,
                     col.key,
                     col.required,
                     consumer_column,
@@ -114,6 +115,7 @@ class DependencyResolver:
 
     def _resolve_producer(
         self,
+        consumer_index: int,
         role: str,
         required: bool,
         consumer_column: str | None,
@@ -130,7 +132,13 @@ class DependencyResolver:
         disambiguation by entity-token overlap between the consumer and
         candidate column names.
 
+        A cleaner is never its own producer: a role it both consumes and
+        produces (e.g. ``AddressCleaner``'s ``country``) is not satisfied by
+        its own output.
+
         Args:
+            consumer_index: Index of the consuming assignment, excluded from
+                the candidate producers.
             role: The context role key to find a producer for.
             required: Whether this role is required by the consuming cleaner.
                 Governs whether an unresolved role raises or is skipped.
@@ -158,7 +166,7 @@ class DependencyResolver:
                 producers that cannot be disambiguated by namespace signal or
                 entity-token overlap.
         """
-        candidates = producers.get(role, [])
+        candidates = [c for c in producers.get(role, []) if c != consumer_index]
 
         if consumer_column is not None and role in overrides.get(consumer_column, {}):
             requested_column = overrides[consumer_column][role]
