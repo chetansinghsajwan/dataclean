@@ -8,6 +8,7 @@ import pyspark.sql.functions as spf
 import pyspark.sql.types as spt
 
 from dataclean import DataFrame, DataReader, DataType, DataWriter, checked
+from dataclean.engine.dataframe import Aggregator, count_output_names
 from dataclean_databricks.types import SparkDataFrame
 
 
@@ -16,6 +17,7 @@ from dataclean_databricks.types import SparkDataFrame
 class PysparkDataFrame(DataFrame):
     df: SparkDataFrame
     _cols: tuple[tuple[str, DataType], ...] = ()
+    _group_keys: tuple[str, ...] = ()
 
     def __post_init__(self):
         self._update_cols()
@@ -223,7 +225,9 @@ class PysparkDataFrame(DataFrame):
         if data_type == spt.BooleanType():
             return DataType.BOOL
 
-        if data_type == spt.IntegerType():
+        if isinstance(
+            data_type, (spt.ByteType, spt.ShortType, spt.IntegerType, spt.LongType)
+        ):
             return DataType.INT
 
         if data_type == spt.FloatType():
@@ -236,11 +240,9 @@ class PysparkDataFrame(DataFrame):
 
     @override
     def group_by(self, cols: Iterable[str]) -> "PysparkDataFrame":
-        cols_list = list(cols)
-        result_df = self.df.groupBy(*cols_list).agg(
-            {col: "first" for col in self.df.columns if col not in cols_list}
-        )
-        return PysparkDataFrame(df=result_df)
+        # Grouping stays metadata until agg(), so per-group aggregates (e.g.
+        # counts) still see every row of each group.
+        return PysparkDataFrame(df=self.df, _group_keys=tuple(cols))
 
     @override
     def agg(
@@ -259,6 +261,17 @@ class PysparkDataFrame(DataFrame):
                 return aggregator.alias(col_name)
             return aggregator(col_name).alias(col_name)
 
+        if not isinstance(cols, sp.Column):
+            count_names = count_output_names(
+                cast(
+                    "Mapping[str, Aggregator] | Iterable[Aggregator] | Aggregator", cols
+                )
+            )
+            if count_names is not None:
+                return self._count_aggregate(count_names)
+
+        target = self.df.groupBy(*self._group_keys) if self._group_keys else self.df
+
         if isinstance(cols, Mapping):
             mapping_cols = cast(
                 Mapping[str, Callable[[str], sp.Column] | sp.Column], cols
@@ -266,14 +279,24 @@ class PysparkDataFrame(DataFrame):
             exprs = [
                 to_expr(name, aggregator) for name, aggregator in mapping_cols.items()
             ]
-            result_df = self.df.agg(*exprs)
+            result_df = target.agg(*exprs)
         elif isinstance(cols, sp.Column):
-            result_df = self.df.agg(cols)
+            result_df = target.agg(cols)
         else:
             # Callable applied to the whole DataFrame, or an iterable of
             # already-built Column expressions.
-            result_df = self.df.agg(cols)  # type: ignore
+            result_df = target.agg(cols)  # type: ignore
         return PysparkDataFrame(df=result_df)
+
+    def _count_aggregate(self, names: tuple[str, ...]) -> "PysparkDataFrame":
+        if self._group_keys:
+            counts = self.df.groupBy(*self._group_keys).count()
+            counts = counts.withColumnRenamed("count", names[0])
+        else:
+            counts = self.df.agg(spf.count(spf.lit(1)).alias(names[0]))
+        for extra in names[1:]:
+            counts = counts.withColumn(extra, spf.col(names[0]))
+        return PysparkDataFrame(df=counts)
 
     @override
     def distinct(self, cols: Iterable[str] | None = None) -> "PysparkDataFrame":

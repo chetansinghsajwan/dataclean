@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from dataclean import DataFrame, DataReader, DataType, DataWriter
-from dataclean.engine.dataframe import Aggregators
+from dataclean.engine.dataframe import count_output_names
 from dataclean.types import checked
 
 
@@ -186,7 +186,7 @@ class PandasDataFrame(DataFrame):
     def agg(
         self, cols: Mapping[str, Callable] | Iterable[Callable] | Callable
     ) -> "PandasDataFrame":
-        count_names = self._count_names(cols)
+        count_names = count_output_names(cols)
         if count_names is not None:
             return self._count_aggregate(count_names)
 
@@ -195,24 +195,6 @@ class PandasDataFrame(DataFrame):
         if not isinstance(result_df, pd.DataFrame):
             result_df = pd.DataFrame([result_df])
         return PandasDataFrame(df=result_df)
-
-    @staticmethod
-    def _count_names(
-        cols: Mapping[str, Callable] | Iterable[Callable] | Callable,
-    ) -> tuple[str, ...] | None:
-        """Return output names if ``cols`` asks only for counts, else None."""
-        if cols is Aggregators.count:
-            return ("count",)
-        if isinstance(cols, Mapping):
-            if cols and all(agg is Aggregators.count for agg in cols.values()):
-                return tuple(str(name) for name in cols)
-            return None
-        if callable(cols):
-            return None
-        aggregators = list(cols)
-        if aggregators and all(agg is Aggregators.count for agg in aggregators):
-            return ("count",)
-        return None
 
     def _count_aggregate(self, names: tuple[str, ...]) -> "PandasDataFrame":
         if self._group_keys:
