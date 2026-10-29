@@ -64,67 +64,26 @@ def test_name_cleaner_empty_cols_scores_zero() -> None:
 
 
 # ==============================================================================
-# 2. CLEANING
+# 2. CLEANING (pass-through)
 # ==============================================================================
 
 
 @pytest.mark.parametrize(
-    "raw, expected",
+    "raw",
     [
-        ("JOHN", "John"),
-        ("john smith", "John Smith"),
-        ("  mary   ann  ", "Mary Ann"),
-        ("o'neil", "O'Neil"),
-        ("D’ANGELO", "D’Angelo"),
-        ("smith-jones", "Smith-Jones"),
-        ("mcdonald", "McDonald"),
-        ("MCDONALD", "McDonald"),
-        ("mc", "Mc"),
-        ("VAN DER BERG", "Van der Berg"),
-        ("ludwig van beethoven", "Ludwig van Beethoven"),
-        ("john smith jr.", "John Smith Jr."),
-        ("JOHN SMITH III", "John Smith III"),
-        ("j. k. rowling", "J. K. Rowling"),
-        ("é lise", "É Lise"),
+        "JOHN",
+        "john smith",
+        "McDonald",
+        "HBOS",
+        "R.P.",
+        "GM & JW",
+        "n/a",
+        "O'Neil",
+        "123",
     ],
 )
-def test_name_cleaner_recases_single_case_names(raw: str, expected: str) -> None:
-    assert NameCleaner().clean_row(raw) == expected
-
-
-@pytest.mark.parametrize("raw", ["McDonald", "John smith", "van der Berg", "O'Neil"])
-def test_name_cleaner_preserves_mixed_case_by_default(raw: str) -> None:
+def test_name_cleaner_returns_values_unchanged(raw: str) -> None:
     assert NameCleaner().clean_row(raw) == raw
-
-
-def test_name_cleaner_mixed_case_is_only_whitespace_normalized() -> None:
-    assert NameCleaner().clean_row("McDonald   Smith") == "McDonald Smith"
-
-
-def test_name_cleaner_can_recase_mixed_case() -> None:
-    cleaner = NameCleaner(preserve_mixed_case=False)
-    assert cleaner.clean_row("jOHN") == "John"
-    assert cleaner.clean_row("mcDONALD") == "McDonald"
-
-
-@pytest.mark.parametrize(
-    "raw", ["n/a", "N/A", "unknown", "NULL", "-", "?", "123", "..."]
-)
-def test_name_cleaner_placeholders_and_letterless_values_become_none(raw: str) -> None:
-    assert NameCleaner().clean_row(raw) is None
-
-
-def test_name_cleaner_extra_null_values() -> None:
-    cleaner = NameCleaner(extra_null_values=("Deceased",))
-    assert cleaner.clean_row("deceased") is None
-    assert cleaner.clean_row("jane") == "Jane"
-
-
-def test_name_cleaner_is_idempotent() -> None:
-    cleaner = NameCleaner()
-    once = cleaner.clean_row("VAN DER BERG o'neil-smith jr.")
-    assert once is not None
-    assert cleaner.clean_row(once) == once
 
 
 # ==============================================================================
@@ -141,12 +100,12 @@ def test_name_cleaner_is_assigned_by_the_resolver() -> None:
     assert {a.role_columns["value"] for a in assignments} == {"fname", "lname", "mname"}
 
 
-def test_name_cleaner_in_the_pipeline() -> None:
+def test_name_cleaner_in_the_pipeline_only_gets_input_normalization() -> None:
     df = PandasDataFrame(
         df=pd.DataFrame(
             {
                 "fname": ["JOHN", "  mary ", "", None],
-                "lname": ["MCDONALD", "van der berg", "n/a", "O'Neil"],
+                "lname": ["HBOS", "R.P.", "McDonald", "n/a"],
             }
         )
     )
@@ -158,9 +117,7 @@ def test_name_cleaner_in_the_pipeline() -> None:
     fname = result["fname"].tolist()
     lname = result["lname"].tolist()
 
-    assert fname[:2] == ["John", "Mary"]
-    assert pd.isna(fname[2])
-    assert lname[0] == "McDonald"
-    assert lname[1] == "Van der Berg"
-    assert pd.isna(lname[2])
-    assert lname[3] == "O'Neil"
+    # Case is untouched; whitespace is stripped and blanks become null by the pipeline.
+    assert fname[:2] == ["JOHN", "mary"]
+    assert pd.isna(fname[2]) and pd.isna(fname[3])
+    assert lname == ["HBOS", "R.P.", "McDonald", "n/a"]

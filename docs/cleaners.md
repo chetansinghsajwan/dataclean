@@ -14,7 +14,7 @@ auto-detection fit together generally.
 | `EmailCleaner` | Extracts/normalizes an email address | `"email"` in column name | Yes |
 | `EnumCleaner` | Generic categorical value normalizer | name prefix/suffix/word + value sampling | **No** — needs `cases=` |
 | `GenderCleaner` | Normalizes gender values | `gender`/`sex` in column name + value sampling | Yes |
-| `NameCleaner` | Normalizes personal names | person-name column tokens (`fname`/`lname`/`first_name`/`surname`/...) | Yes |
+| `NameCleaner` | Recognizes personal-name columns (values unchanged) | person-name column tokens (`fname`/`lname`/`first_name`/`surname`/...) | Yes |
 | `NumericCleaner` | Parses/reformats numeric values | name tokens (30%) + value sampling (70%) | Yes |
 | `PhoneCleaner` | Parses/reformats phone numbers | `phone`/`tel`/`mobile`/`fax`/`contact_no` in column name | Yes |
 | `TextCleaner` | General free-text normalization | text-ish tokens, else a `0.1` baseline (never `0.0`) | Yes |
@@ -245,20 +245,16 @@ GenderCleaner().clean_row("boy")  # -> "Male"
 
 ## NameCleaner
 
-Normalizes personal names.
+Recognizes personal-name columns; it does **not** change their values.
 
-- **Params**: `preserve_mixed_case` (default `True`; a name that already mixes
-  upper and lower case, like `McDonald`, is only whitespace-normalized),
-  `extra_null_values` (placeholder strings, matched case-insensitively, to
-  treat as missing, on top of `n/a`, `na`, `null`, `none`, `unknown`, `-`,
-  `--`, `?`, `nil`, `tbc`).
+- **Params**: none beyond the base `tags`/`inplace`.
 - **Output**: single column, same name as the input.
-- **Behavior**: collapses whitespace, then re-cases names that are entirely
-  upper- or lower-case, word by word: hyphenated and apostrophe names
-  (`Smith-Jones`, `O'Neil`), the `Mc` prefix (`McDonald`), lower-case
-  particles after the first word (`van der Berg`), suffixes (`Jr.`, `III`) and
-  initials (`J. K. Rowling`). Placeholders and values with no letters
-  return `None`.
+- **Behavior**: `clean_row` returns the value unchanged. It exists so that
+  auto-detection claims name columns (and no other cleaner does). Like every
+  cleaner, values still get the pipeline's input normalization: surrounding
+  whitespace is stripped and blank strings become null. Casing is
+  deliberately left alone, because name fields often hold acronyms, initials
+  and company names that title-casing would damage.
 - **`match_score`**: name-based only, and only for string columns. Matches
   `fname`/`lname`/`mname` (standalone or concatenated, e.g. `lnamefname`) and
   `first_name`, `last_name`, `middle_name`, `full_name`, `given_name`,
@@ -269,10 +265,8 @@ Normalizes personal names.
 ```python
 from dataclean import NameCleaner
 
-NameCleaner().clean_row("VAN DER BERG")  # -> "Van der Berg"
-NameCleaner().clean_row("mcdonald")  # -> "McDonald"
-NameCleaner().clean_row("McDonald")  # -> "McDonald" (mixed case preserved)
-NameCleaner().clean_row("n/a")  # -> None
+NameCleaner().clean_row("McDonald")  # -> "McDonald"
+NameCleaner().clean_row("HBOS")  # -> "HBOS"
 ```
 
 ::: dataclean.cleaners.NameCleaner

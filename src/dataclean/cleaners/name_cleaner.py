@@ -1,4 +1,4 @@
-"""Cleaner for normalizing personal names (first, middle, last, full)."""
+"""Cleaner that recognizes personal-name columns; it does not alter the values."""
 
 import re
 from collections.abc import Iterable
@@ -14,47 +14,21 @@ from .cleaner import Cleaner
 @checked
 @dataclass
 class NameCleaner(Cleaner):
-    """Normalizes personal names: whitespace, casing, particles and suffixes.
+    """Recognizes personal-name columns and passes their values through.
 
-    Names that are entirely upper- or lower-case are re-cased word by word
-    (``"JOHN o'neil"`` style input is left alone, see
-    ``preserve_mixed_case``). Re-casing handles hyphenated and apostrophe
-    names (``Smith-Jones``, ``O'Neil``), ``Mc`` prefixes (``McDonald``),
-    lower-case particles (``van der Berg``), generational suffixes
-    (``Jr.``, ``III``) and initials (``J. K. Rowling``). Placeholder values
-    (``n/a``, ``unknown``, ``-``) and values with no letters become ``None``.
+    For now this cleaner only takes part in auto-detection: it claims
+    person-name columns (``fname``, ``lname``, ``mname``, ``first_name``,
+    ``surname``, ``full_name``, ...) so that no other cleaner does, and
+    returns each value unchanged. Values still get the pipeline's input
+    normalization like any other cleaner (surrounding whitespace is
+    stripped, blank strings become null). Casing is deliberately not
+    touched: person-name fields often hold acronyms, initials and company
+    names that title-casing would damage.
 
-    Auto-detection is by column name only: it matches person-name columns
-    such as ``fname``, ``lname``, ``mname``, ``first_name``, ``surname`` and
-    ``full_name``, and only string columns. A bare ``name`` column is
-    deliberately not matched, since it is often a company or product name.
-
-    Attributes:
-        preserve_mixed_case: If True (default), a name that already mixes
-            upper and lower case (e.g. ``McDonald``) is only
-            whitespace-normalized, never re-cased.
-        extra_null_values: Additional placeholder strings (matched
-            case-insensitively) to treat as missing, on top of
-            ``DEFAULT_NULL_VALUES``.
+    Only string columns are matched, and a bare ``name`` column is not
+    (it is often a company or product name).
     """
 
-    DEFAULT_NULL_VALUES: ClassVar[frozenset[str]] = frozenset(
-        {"n/a", "na", "null", "none", "unknown", "-", "--", "?", "nil", "tbc"}
-    )
-    PARTICLES: ClassVar[frozenset[str]] = frozenset(
-        {"van", "von", "de", "der", "den", "di", "da", "del", "della", "du", "la", "le"}
-    )
-    SUFFIXES: ClassVar[dict[str, str]] = {
-        "jr": "Jr",
-        "sr": "Sr",
-        "ii": "II",
-        "iii": "III",
-        "iv": "IV",
-    }
-
-    _SPACE_RE: ClassVar[re.Pattern[str]] = re.compile(r"\s+")
-    _LETTER_RE: ClassVar[re.Pattern[str]] = re.compile(r"[^\W\d_]")
-    _APOSTROPHE_RE: ClassVar[re.Pattern[str]] = re.compile(r"(['’])")
     # Short forms must stand alone (or be concatenated, e.g. "lnamefname") so
     # that "colname" or "filename" never match.
     _SHORT_NAME_RE: ClassVar[re.Pattern[str]] = re.compile(
@@ -65,66 +39,17 @@ class NameCleaner(Cleaner):
         r"family_?name|maiden_?name|forename|surname"
     )
 
-    preserve_mixed_case: bool = True
-    extra_null_values: tuple[str, ...] = ()
-
-    _null_values: frozenset[str] = frozenset()
-
-    def __post_init__(self) -> None:
-        """Initialize base cleaner state and compile the null-value set."""
-        super().__post_init__()
-        self._null_values = self.DEFAULT_NULL_VALUES | {
-            value.lower() for value in self.extra_null_values
-        }
-
     @override
     def clean_row(self, v: str) -> str | None:  # type: ignore
-        """Normalize ``v`` as a personal name.
+        """Return ``v`` unchanged.
 
         Args:
-            v: The raw name.
+            v: The name value (already stripped and non-blank).
 
         Returns:
-            The normalized name, or None if ``v`` is a placeholder or
-            contains no letters.
+            ``v``.
         """
-        text = self._SPACE_RE.sub(" ", v).strip()
-
-        if text.lower() in self._null_values or not self._LETTER_RE.search(text):
-            return None
-
-        if self.preserve_mixed_case and not (text.isupper() or text.islower()):
-            return text
-
-        return " ".join(
-            self._format_word(word, index) for index, word in enumerate(text.split(" "))
-        )
-
-    def _format_word(self, word: str, index: int) -> str:
-        """Re-case one space-separated word of a name."""
-        lowered = word.lower()
-
-        if index > 0 and lowered in self.PARTICLES:
-            return lowered
-
-        bare = lowered.rstrip(".")
-        suffix = self.SUFFIXES.get(bare)
-        if suffix is not None:
-            return suffix + lowered[len(bare) :]
-
-        return "-".join(self._format_part(part) for part in lowered.split("-"))
-
-    def _format_part(self, part: str) -> str:
-        """Re-case one hyphen-free piece, capitalizing around apostrophes."""
-        pieces = self._APOSTROPHE_RE.split(part)
-        return "".join(self._capitalize(piece) for piece in pieces)
-
-    @staticmethod
-    def _capitalize(piece: str) -> str:
-        """Capitalize a lower-case piece, with the ``Mc`` prefix rule."""
-        if len(piece) > 2 and piece.startswith("mc") and piece[2:].isalpha():
-            return "Mc" + piece[2:].capitalize()
-        return piece[:1].upper() + piece[1:]
+        return v
 
     @override
     def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
