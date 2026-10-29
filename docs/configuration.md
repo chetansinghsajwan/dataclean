@@ -20,10 +20,10 @@ default `Pipeline` construction all read from it unless you build your own
 | `catalog` | `Catalog \| None` | `None` | An explicit default catalog for `clean_paths()`. |
 | `inplace` | `bool` | `True` | Declared global default; not currently read by `clean_paths()` (see below). |
 
-`Config.__post_init__` auto-registers exactly these 10 of the 11 exported
+`Config.__post_init__` auto-registers exactly these 11 of the 12 exported
 cleaners: `AddressCleaner`, `BoolCleaner`, `CountryCleaner`,
-`DateTimeCleaner`, `EmailCleaner`, `GenderCleaner`, `NumericCleaner`,
-`PhoneCleaner`, `TextCleaner`, `UuidCleaner`. `EnumCleaner` needs a `cases=`
+`DateTimeCleaner`, `EmailCleaner`, `GenderCleaner`, `NameCleaner`,
+`NumericCleaner`, `PhoneCleaner`, `TextCleaner`, `UuidCleaner`. `EnumCleaner` needs a `cases=`
 argument, so there's no sensible default — register it yourself (see
 [Getting Started](getting-started.md#whats-registered-out-of-the-box)).
 

@@ -17,6 +17,7 @@ from .cleaners import (
     DateTimeCleaner,
     EmailCleaner,
     GenderCleaner,
+    NameCleaner,
     NumericCleaner,
     PhoneCleaner,
     TextCleaner,
@@ -82,6 +83,7 @@ class Config:
         self.register_cleaner(DateTimeCleaner())
         self.register_cleaner(EmailCleaner())
         self.register_cleaner(GenderCleaner())
+        self.register_cleaner(NameCleaner())
         self.register_cleaner(NumericCleaner())
         self.register_cleaner(PhoneCleaner())
         self.register_cleaner(TextCleaner())

@@ -1,6 +1,6 @@
 # Built-in Cleaners
 
-All 11 cleaners live under `dataclean.cleaners`. Their constructor
+All 12 cleaners live under `dataclean.cleaners`. Their constructor
 parameters, expected input/output roles, and `match_score` heuristics are
 summarized here; see [Concepts](concepts.md) for how `match_score` and
 auto-detection fit together generally.
@@ -14,6 +14,7 @@ auto-detection fit together generally.
 | `EmailCleaner` | Extracts/normalizes an email address | `"email"` in column name | Yes |
 | `EnumCleaner` | Generic categorical value normalizer | name prefix/suffix/word + value sampling | **No** — needs `cases=` |
 | `GenderCleaner` | Normalizes gender values | `gender`/`sex` in column name + value sampling | Yes |
+| `NameCleaner` | Normalizes personal names | person-name column tokens (`fname`/`lname`/`first_name`/`surname`/...) | Yes |
 | `NumericCleaner` | Parses/reformats numeric values | name tokens (30%) + value sampling (70%) | Yes |
 | `PhoneCleaner` | Parses/reformats phone numbers | `phone`/`tel`/`mobile`/`fax`/`contact_no` in column name | Yes |
 | `TextCleaner` | General free-text normalization | text-ish tokens, else a `0.1` baseline (never `0.0`) | Yes |
@@ -238,6 +239,40 @@ GenderCleaner().clean_row("boy")  # -> "Male"
 ```
 
 ::: dataclean.cleaners.GenderCleaner
+
+## NameCleaner
+
+Normalizes personal names.
+
+- **Params**: `preserve_mixed_case` (default `True`; a name that already mixes
+  upper and lower case, like `McDonald`, is only whitespace-normalized),
+  `extra_null_values` (placeholder strings, matched case-insensitively, to
+  treat as missing, on top of `n/a`, `na`, `null`, `none`, `unknown`, `-`,
+  `--`, `?`, `nil`, `tbc`).
+- **Output**: single column, same name as the input.
+- **Behavior**: collapses whitespace, then re-cases names that are entirely
+  upper- or lower-case, word by word: hyphenated and apostrophe names
+  (`Smith-Jones`, `O'Neil`), the `Mc` prefix (`McDonald`), lower-case
+  particles after the first word (`van der Berg`), suffixes (`Jr.`, `III`) and
+  initials (`J. K. Rowling`). Placeholders and values with no letters
+  return `None`.
+- **`match_score`**: name-based only, and only for string columns. Matches
+  `fname`/`lname`/`mname` (standalone or concatenated, e.g. `lnamefname`) and
+  `first_name`, `last_name`, `middle_name`, `full_name`, `given_name`,
+  `family_name`, `maiden_name`, `forename`, `surname`. A bare `name` column
+  is deliberately not matched (it is often a company or product name), nor
+  are `username`, `filename` or `colname`.
+
+```python
+from dataclean import NameCleaner
+
+NameCleaner().clean_row("VAN DER BERG")  # -> "Van der Berg"
+NameCleaner().clean_row("mcdonald")  # -> "McDonald"
+NameCleaner().clean_row("McDonald")  # -> "McDonald" (mixed case preserved)
+NameCleaner().clean_row("n/a")  # -> None
+```
+
+::: dataclean.cleaners.NameCleaner
 
 ## NumericCleaner
 

@@ -8,6 +8,7 @@ from .datetime_cleaner import DateTimeCleaner
 from .email_cleaner import EmailCleaner
 from .enum_cleaner import EnumCleaner
 from .gender_cleaner import GenderCleaner
+from .name_cleaner import NameCleaner
 from .numeric_cleaner import NumericCleaner
 from .phone_cleaner import PhoneCleaner
 from .text_cleaner import TextCleaner

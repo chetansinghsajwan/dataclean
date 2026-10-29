@@ -23,6 +23,7 @@ from .cleaners import (
     EmailCleaner,
     EnumCleaner,
     GenderCleaner,
+    NameCleaner,
     NumericCleaner,
     PhoneCleaner,
     TextCleaner,
