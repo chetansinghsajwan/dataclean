@@ -159,6 +159,9 @@ class PandasDataFrame(DataFrame):
             DataType.INT: np.int64,
             DataType.FLOAT: np.float64,
             DataType.DOUBLE: np.float64,
+            DataType.DATE: "datetime64[ns]",
+            DataType.DATETIME: "datetime64[ns]",
+            DataType.TIME: object,
         }
         return mapping[dt]
 
@@ -168,7 +171,9 @@ class PandasDataFrame(DataFrame):
         """
 
         dtype_str = str(dtype)
-        if "int" in dtype_str:
+        if "datetime" in dtype_str:
+            return DataType.DATETIME
+        elif "int" in dtype_str:
             return DataType.INT
         elif "float" in dtype_str or "double" in dtype_str:
             return DataType.FLOAT

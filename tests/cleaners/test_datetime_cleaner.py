@@ -82,3 +82,52 @@ def test_datetime_clean_value_returns_none_on_bad_string():
     # Unparseable temporal string tokens fall out safely as None
     assert cleaner.clean_row("not-a-date") is None
     assert cleaner.clean_row("2026/13/45") is None
+
+
+# ==============================================================================
+# 4. ALREADY-TYPED TEMPORAL COLUMNS ARE LEFT ALONE
+# ==============================================================================
+
+
+def test_datetime_cleaner_skips_columns_that_are_already_temporal():
+    import pandas as pd
+    from dataclean_pandas import PandasDataFrame
+
+    df = PandasDataFrame(
+        df=pd.DataFrame(
+            {
+                "created_at": pd.to_datetime(["2024-01-02 03:04:05"]),
+                "date_text": ["2024-01-02"],
+            }
+        )
+    )
+    cleaner = DateTimeCleaner()
+
+    assert dict(df.cols())["created_at"] == DataType.DATETIME
+    assert cleaner.match_score(df, ("created_at",)) == 0.0
+    assert cleaner.match_score(df, ("date_text",)) == 1.0
+
+
+def test_pipeline_does_not_turn_temporal_columns_into_strings():
+    import pandas as pd
+    from dataclean_pandas import PandasDataFrame
+
+    from dataclean.pipeline import Pipeline
+
+    df = PandasDataFrame(
+        df=pd.DataFrame(
+            {
+                "created_at": pd.to_datetime(["2024-01-02 03:04:05"]),
+                "date_text": ["02/01/2024"],
+            }
+        )
+    )
+
+    cleaned = Pipeline(cleaners=(DateTimeCleaner(),)).fit_transform(df)
+
+    types = dict(cleaned.cols())
+    assert types["created_at"] == DataType.DATETIME
+    assert types["date_text"] == DataType.STR
+    result = cleaned.df
+    assert result is not None
+    assert result["date_text"].tolist() == ["2024-01-02T00:00:00"]

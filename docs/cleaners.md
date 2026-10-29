@@ -133,6 +133,9 @@ CountryCleaner(in_format=CountryCleaner.Format.NAME_FUZZY).clean_row(
   `2026-06-19T22:45:00`), `ISO_DATE`, `ISO_TIME`, `INDIAN_DATE` (e.g.
   `19-06-2026`)).
 - **Output**: single STR column.
+- **Auto-detection**: matches by column name, but never a column that already
+  has a date, datetime or time type — there is nothing to parse, and cleaning
+  it would turn the typed values into strings.
 - **Behavior**: tries a fixed, non-configurable list of input formats in
   order (`"%Y-%m-%d %H:%M:%S"`, `"%Y-%m-%dT%H:%M:%S"`, `"%Y-%m-%d"`,
   `"%d-%m-%Y"`, `"%d/%m/%Y"`, `"%H:%M:%S"`, `"%I:%M %p"`) until one parses,

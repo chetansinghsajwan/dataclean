@@ -9,6 +9,7 @@ from a ``{column: values}`` mapping.
 """
 
 from collections.abc import Callable, Mapping, Sequence
+from datetime import datetime
 
 import pytest
 
@@ -142,6 +143,32 @@ class BaseDataFrameTests:
         wrapper.cast_cols({"first_name": DataType.STR})
         type_map = dict(wrapper.cols())
         assert type_map["first_name"] == DataType.STR
+
+    def test_datetime_values_are_reported_as_datetime(
+        self, make_frame: FrameFactory
+    ) -> None:
+        """Verify a column of datetimes reports :attr:`DataType.DATETIME`."""
+        df = make_frame({"ts": [datetime(2024, 1, 2, 3, 4, 5), datetime(2025, 6, 7)]})
+        assert dict(df.cols())["ts"] == DataType.DATETIME
+
+    def test_cast_cols_to_datetime(self, make_frame: FrameFactory) -> None:
+        """Verify ``cast_cols()`` can turn ISO strings into a datetime column."""
+        df = make_frame({"ts": ["2024-01-02 03:04:05", "2025-06-07 00:00:00"]})
+        assert dict(df.cols())["ts"] == DataType.STR
+
+        df.cast_cols({"ts": DataType.DATETIME})
+
+        assert dict(df.cols())["ts"] == DataType.DATETIME
+
+    def test_untouched_datetime_column_keeps_its_type_across_writes(
+        self, make_frame: FrameFactory
+    ) -> None:
+        """Verify writing another column does not change a datetime column's type."""
+        df = make_frame({"ts": [datetime(2024, 1, 2)], "a": ["x"]})
+        df.write_cols(
+            [DataWriter(str.upper, read_cols=("a",), write_cols=(("a", DataType.STR),))]
+        )
+        assert dict(df.cols())["ts"] == DataType.DATETIME
 
     # -- shape and materialization ------------------------------------
 

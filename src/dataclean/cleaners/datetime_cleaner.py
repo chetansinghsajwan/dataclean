@@ -6,7 +6,7 @@ from datetime import date, datetime, time
 from enum import StrEnum
 from typing import override
 
-from dataclean.engine import DataFrame
+from dataclean.engine import DataFrame, DataType
 from dataclean.types import checked
 
 from .cleaner import Cleaner
@@ -106,17 +106,29 @@ class DateTimeCleaner(Cleaner):
     def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
         """Score confidence based on the column name looking date/time related.
 
+        Columns that already have a date, datetime or time type are never
+        matched: there is nothing to parse, and cleaning them would turn the
+        typed values into strings.
+
         Args:
-            df: The dataframe being inspected (unused; scoring here is
-                name-based only).
+            df: The dataframe being inspected; used only to skip columns that
+                are already temporal.
             cols: Candidate column name(s); only the first is considered.
 
         Returns:
             1.0 if the column name contains a date/time-related token or
-            ends with an "_at"/"At" suffix, otherwise 0.0.
+            ends with an "_at"/"At" suffix (and the column is not already
+            temporal), otherwise 0.0.
         """
         cols_tuple = tuple(cols)
         if not cols_tuple:
+            return 0.0
+
+        if dict(df.cols()).get(cols_tuple[0]) in (
+            DataType.DATE,
+            DataType.DATETIME,
+            DataType.TIME,
+        ):
             return 0.0
 
         col_name = cols_tuple[0].lower()

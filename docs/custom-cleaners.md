@@ -105,6 +105,9 @@ class PostcodeCleaner(Cleaner):
         )
 ```
 
+`DataType` is `STR`, `BOOL`, `INT`, `FLOAT`, `DOUBLE`, `DATE`, `DATETIME` or
+`TIME`.
+
 If you don't override `_outputs()`, the default is a single unnamed STR
 column (the pipeline reuses the input column's name and overwrites it).
 
