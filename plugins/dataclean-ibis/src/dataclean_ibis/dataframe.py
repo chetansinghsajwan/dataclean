@@ -18,6 +18,9 @@ _TO_IBIS_DTYPE: dict[DataType, dt.DataType] = {
     DataType.INT: dt.Int64(),
     DataType.FLOAT: dt.Float32(),
     DataType.DOUBLE: dt.Float64(),
+    DataType.DATE: dt.Date(),
+    DataType.DATETIME: dt.Timestamp(),
+    DataType.TIME: dt.Time(),
 }
 
 
@@ -29,6 +32,12 @@ def _from_ibis_dtype(dtype: dt.DataType) -> DataType:
         return DataType.INT
     if dtype.is_floating():
         return DataType.DOUBLE if isinstance(dtype, dt.Float64) else DataType.FLOAT
+    if dtype.is_timestamp():
+        return DataType.DATETIME
+    if dtype.is_date():
+        return DataType.DATE
+    if dtype.is_time():
+        return DataType.TIME
     return DataType.STR
 
 

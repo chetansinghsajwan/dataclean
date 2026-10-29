@@ -218,7 +218,10 @@ class TestDatabricksDataFrameNewMethods:
         (spt.LongType(), DataType.INT),
         (spt.FloatType(), DataType.FLOAT),
         (spt.DoubleType(), DataType.DOUBLE),
-        (spt.TimestampType(), DataType.STR),
+        (spt.DateType(), DataType.DATE),
+        (spt.TimestampType(), DataType.DATETIME),
+        (spt.TimestampNTZType(), DataType.DATETIME),
+        (spt.BinaryType(), DataType.STR),
     ],
 )
 def test_spark_types_map_to_engine_agnostic_types(

@@ -427,7 +427,7 @@ class EnumCleaner(Cleaner):
             )
 
             assert count_in is not None, "count must be a parseable int"
-            count = int(count_in)
+            count = int(cast("int | float | str", count_in))
 
             v = str(v_in)
 

@@ -191,6 +191,7 @@ class PysparkDataFrame(DataFrame):
                 for col, data_type in cols.items()
             }
         )
+        self._update_cols()
 
     def _update_cols(self):
         self._cols = tuple(
@@ -215,6 +216,16 @@ class PysparkDataFrame(DataFrame):
         if data_type == "double":
             return spt.DoubleType()
 
+        if data_type == "date":
+            return spt.DateType()
+
+        if data_type == "datetime":
+            return spt.TimestampType()
+
+        if data_type == "time":
+            # Spark added TimeType recently; fall back to text on older versions.
+            return getattr(spt, "TimeType", spt.StringType)()
+
         return spt.StringType()
 
     @staticmethod
@@ -235,6 +246,16 @@ class PysparkDataFrame(DataFrame):
 
         if data_type == spt.DoubleType():
             return DataType.DOUBLE
+
+        if isinstance(data_type, spt.DateType):
+            return DataType.DATE
+
+        if isinstance(data_type, (spt.TimestampType, spt.TimestampNTZType)):
+            return DataType.DATETIME
+
+        time_type = getattr(spt, "TimeType", None)
+        if time_type is not None and isinstance(data_type, time_type):
+            return DataType.TIME
 
         return DataType.STR
 

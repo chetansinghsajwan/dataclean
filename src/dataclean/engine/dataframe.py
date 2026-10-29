@@ -11,6 +11,7 @@ read from and write to columns.
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from dataclasses import dataclass
+from datetime import date, datetime, time
 from enum import StrEnum
 from typing import Any
 
@@ -31,6 +32,9 @@ class DataType(StrEnum):
         INT: Integer numeric data.
         FLOAT: Single-precision floating point numeric data.
         DOUBLE: Double-precision floating point numeric data.
+        DATE: Calendar date (no time of day).
+        DATETIME: Date and time of day (a timestamp).
+        TIME: Time of day (no date).
     """
 
     STR = "str"
@@ -38,13 +42,16 @@ class DataType(StrEnum):
     INT = "int"
     FLOAT = "float"
     DOUBLE = "double"
+    DATE = "date"
+    DATETIME = "datetime"
+    TIME = "time"
 
     def __repr__(self):
         """Return the same plain value string as ``str()``, not enum repr."""
         return str(self.value)
 
 
-DataTypeValues = str | bool | int | float | None
+DataTypeValues = str | bool | int | float | date | datetime | time | None
 """The union of Python types a single cell value may hold, per :class:`DataType`."""
 
 
