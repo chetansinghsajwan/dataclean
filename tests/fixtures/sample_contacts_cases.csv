@@ -1,0 +1,1441 @@
+contactid,column,case
+1,fname,empty
+1,mname,lower
+1,lname,company-ish
+1,lnamefname,naughty: word undefined
+1,sex,digit
+1,email,naughty: leading bom
+1,tel,x extension
+1,mobile,no plus
+1,fax,empty
+1,dateofbirth,future
+1,datecreated,dmy time
+1,dateofdeath,iso
+1,respnotes,mixed case
+1,contacttypeid,5
+1,companyid,100
+1,externaluse,empty
+1,optout,null
+1,rowguid,braces
+1,country,alpha3
+1,county,plain
+1,town,naughty: japanese
+1,postcode,junk
+1,address1,null
+1,address2,padded
+1,address3,empty
+1,filename,decoy
+1,colname,decoy
+1,username,decoy
+1,scd_active,active
+1,creditlimit,naughty: NaN
+1,_client_publicly_-_funded__,test.csv empty
+1,_client_zero_rated_tax,test.csv empty
+1,_client_member_of_a_group_,test.csv
+1,_client_country_of_incorporation,test.csv
+1,_client_date_of_incorporation,test.csv empty
+1,_client_web_site,test.csv
+2,fname,spaces
+2,mname,upper
+2,lname,hyphen
+2,lnamefname,naughty: word NaN
+2,sex,empty
+2,email,empty
+2,tel,tel uri
+2,mobile,bare 10 digits
+2,fax,spaces
+2,dateofbirth,impossible
+2,datecreated,date only
+2,dateofdeath,empty
+2,respnotes,padded
+2,contacttypeid,1
+2,companyid,101
+2,externaluse,null
+2,optout,y lower
+2,rowguid,no dashes
+2,country,lower
+2,county,lower
+2,town,naughty: nul char
+2,postcode,empty
+2,address1,lower
+2,address2,empty
+2,address3,spaces
+2,filename,decoy
+2,colname,decoy
+2,username,decoy
+2,scd_active,active
+2,creditlimit,naughty: Infinity
+2,_client_publicly_-_funded__,test.csv empty
+2,_client_zero_rated_tax,test.csv empty
+2,_client_member_of_a_group_,test.csv
+2,_client_country_of_incorporation,test.csv
+2,_client_date_of_incorporation,test.csv empty
+2,_client_web_site,test.csv
+3,fname,null
+3,mname,initial dot
+3,lname,unicode
+3,lnamefname,naughty: word None
+3,sex,spaces
+3,email,spaces
+3,tel,two numbers
+3,mobile,us dashed
+3,fax,null
+3,dateofbirth,junk
+3,datecreated,empty
+3,dateofdeath,dmy
+3,respnotes,newline
+3,contacttypeid,2
+3,companyid,102
+3,externaluse,junk
+3,optout,Y
+3,rowguid,junk
+3,country,dots
+3,county,placeholder
+3,town,empty
+3,postcode,spaces
+3,address1,upper
+3,address2,spaces
+3,address3,null
+3,filename,empty
+3,colname,null
+3,username,decoy
+3,scd_active,active
+3,creditlimit,naughty: null
+3,_client_publicly_-_funded__,test.csv empty
+3,_client_zero_rated_tax,test.csv empty
+3,_client_member_of_a_group_,test.csv
+3,_client_country_of_incorporation,test.csv
+3,_client_date_of_incorporation,test.csv empty
+3,_client_web_site,test.csv
+4,fname,lower
+4,mname,padded
+4,lname,naughty: word null
+4,lnamefname,naughty: word Infinity
+4,sex,null
+4,email,null
+4,tel,vanity
+4,mobile,uk intl spaced
+4,fax,uk intl
+4,dateofbirth,compact
+4,datecreated,null
+4,dateofdeath,null
+4,respnotes,csv escaping
+4,contacttypeid,1
+4,companyid,ambiguous 1
+4,externaluse,true
+4,optout,N
+4,rowguid,empty
+4,country,native
+4,county,empty
+4,town,spaces
+4,postcode,null
+4,address1,flat
+4,address2,null
+4,address3,plain
+4,filename,decoy
+4,colname,decoy
+4,username,decoy
+4,scd_active,active
+4,creditlimit,plain
+4,_client_publicly_-_funded__,test.csv empty
+4,_client_zero_rated_tax,test.csv empty
+4,_client_member_of_a_group_,test.csv
+4,_client_country_of_incorporation,test.csv
+4,_client_date_of_incorporation,test.csv empty
+4,_client_web_site,test.csv
+5,fname,upper
+5,mname,empty
+5,lname,naughty: word undefined
+5,lnamefname,naughty: word true
+5,sex,M
+5,email,valid
+5,tel,bad country code
+5,mobile,uk compact
+5,fax,uk national
+5,dateofbirth,naughty: word null
+5,datecreated,junk
+5,dateofdeath,null
+5,respnotes,unicode
+5,contacttypeid,2
+5,companyid,ambiguous 0
+5,externaluse,false
+5,optout,empty
+5,rowguid,null
+5,country,junk
+5,county,spaces
+5,town,null
+5,postcode,uk
+5,address1,po box
+5,address2,plain
+5,address3,empty
+5,filename,decoy
+5,colname,decoy
+5,username,decoy
+5,scd_active,active
+5,creditlimit,thousands sep
+5,_client_publicly_-_funded__,test.csv empty
+5,_client_zero_rated_tax,test.csv empty
+5,_client_member_of_a_group_,test.csv
+5,_client_country_of_incorporation,test.csv
+5,_client_date_of_incorporation,test.csv empty
+5,_client_web_site,test.csv
+6,fname,padded
+6,mname,spaces
+6,lname,naughty: word NaN
+6,lnamefname,naughty: zero
+6,sex,F
+6,email,uppercase
+6,tel,plus only
+6,mobile,trunk zero
+6,fax,placeholder
+6,dateofbirth,naughty: zero date
+6,datecreated,iso
+6,dateofdeath,null
+6,respnotes,naughty: word null
+6,contacttypeid,3
+6,companyid,null
+6,externaluse,1
+6,optout,null
+6,rowguid,upper
+6,country,padded
+6,county,null
+6,town,lower
+6,postcode,uk compact lower
+6,address1,naughty: word null
+6,address2,padded
+6,address3,spaces
+6,filename,empty
+6,colname,null
+6,username,decoy
+6,scd_active,active
+6,creditlimit,gbp symbol
+6,_client_publicly_-_funded__,test.csv empty
+6,_client_zero_rated_tax,test.csv empty
+6,_client_member_of_a_group_,test.csv
+6,_client_country_of_incorporation,test.csv
+6,_client_date_of_incorporation,test.csv empty
+6,_client_web_site,test.csv
+7,fname,mixed
+7,mname,null
+7,lname,naughty: word None
+7,lnamefname,naughty: dash only
+7,sex,m lower
+7,email,plus tag padded
+7,tel,all zeros
+7,mobile,00 prefix
+7,fax,annotated
+7,dateofbirth,naughty: nines
+7,datecreated,iso z
+7,dateofdeath,iso
+7,respnotes,naughty: word undefined
+7,contacttypeid,4
+7,companyid,100
+7,externaluse,0
+7,optout,y lower
+7,rowguid,lower
+7,country,empty
+7,county,plain
+7,town,upper
+7,postcode,us zip
+7,address1,naughty: word undefined
+7,address2,empty
+7,address3,null
+7,filename,decoy
+7,colname,decoy
+7,username,decoy
+7,scd_active,inactive
+7,creditlimit,usd symbol
+7,_client_publicly_-_funded__,test.csv empty
+7,_client_zero_rated_tax,test.csv empty
+7,_client_member_of_a_group_,test.csv
+7,_client_country_of_incorporation,test.csv
+7,_client_date_of_incorporation,test.csv empty
+7,_client_web_site,test.csv
+8,fname,initials
+8,mname,lower
+8,lname,naughty: word Infinity
+8,lnamefname,naughty: empty quotes
+8,sex,Male
+8,email,no at
+8,tel,too long
+8,mobile,no leading zero
+8,fax,dashed national
+8,dateofbirth,empty
+8,datecreated,dmy time
+8,dateofdeath,empty
+8,respnotes,naughty: word NaN
+8,contacttypeid,5
+8,companyid,101
+8,externaluse,Y
+8,optout,Y
+8,rowguid,braces
+8,country,spaces
+8,county,lower
+8,town,padded
+8,postcode,in pin
+8,address1,naughty: word NaN
+8,address2,spaces
+8,address3,plain
+8,filename,decoy
+8,colname,decoy
+8,username,decoy
+8,scd_active,active
+8,creditlimit,eu format
+8,_client_publicly_-_funded__,test.csv empty
+8,_client_zero_rated_tax,test.csv empty
+8,_client_member_of_a_group_,test.csv
+8,_client_country_of_incorporation,test.csv
+8,_client_date_of_incorporation,test.csv empty
+8,_client_web_site,test.csv
+9,fname,acronym
+9,mname,upper
+9,lname,naughty: word true
+9,lnamefname,naughty: html script
+9,sex,female lower
+9,email,no tld
+9,tel,de intl
+9,mobile,in compact
+9,fax,empty
+9,dateofbirth,spaces
+9,datecreated,date only
+9,dateofdeath,dmy
+9,respnotes,naughty: word None
+9,contacttypeid,1
+9,companyid,102
+9,externaluse,N
+9,optout,N
+9,rowguid,no dashes
+9,country,null
+9,county,placeholder
+9,town,naughty: word null
+9,postcode,junk
+9,address1,naughty: word None
+9,address2,null
+9,address3,empty
+9,filename,empty
+9,colname,null
+9,username,decoy
+9,scd_active,active
+9,creditlimit,negative
+9,_client_publicly_-_funded__,test.csv empty
+9,_client_zero_rated_tax,test.csv empty
+9,_client_member_of_a_group_,test.csv
+9,_client_country_of_incorporation,test.csv
+9,_client_date_of_incorporation,test.csv empty
+9,_client_web_site,test.csv
+10,fname,placeholder
+10,mname,initial dot
+10,lname,naughty: zero
+10,lnamefname,naughty: sql injection
+10,sex,MALE
+10,email,double at
+10,tel,jp intl
+10,mobile,us extension
+10,fax,spaces
+10,dateofbirth,null
+10,datecreated,empty
+10,dateofdeath,null
+10,respnotes,naughty: word Infinity
+10,contacttypeid,2
+10,companyid,ambiguous 1
+10,externaluse,yes
+10,optout,empty
+10,rowguid,junk
+10,country,name
+10,county,empty
+10,town,naughty: word undefined
+10,postcode,empty
+10,address1,naughty: word Infinity
+10,address2,plain
+10,address3,spaces
+10,filename,decoy
+10,colname,decoy
+10,username,decoy
+10,scd_active,active
+10,creditlimit,scientific
+10,_client_publicly_-_funded__,test.csv empty
+10,_client_zero_rated_tax,test.csv empty
+10,_client_member_of_a_group_,test.csv
+10,_client_country_of_incorporation,test.csv
+10,_client_date_of_incorporation,test.csv empty
+10,_client_web_site,test.csv
+11,fname,apostrophe
+11,mname,padded
+11,lname,naughty: dash only
+11,lnamefname,naughty: path traversal
+11,sex,other
+11,email,space
+11,tel,arabic digits
+11,mobile,label prefix
+11,fax,null
+11,dateofbirth,iso
+11,datecreated,null
+11,dateofdeath,null
+11,respnotes,naughty: word true
+11,contacttypeid,1
+11,companyid,ambiguous 0
+11,externaluse,no
+11,optout,null
+11,rowguid,empty
+11,country,uk alias
+11,county,spaces
+11,town,naughty: word NaN
+11,postcode,spaces
+11,address1,naughty: word true
+11,address2,padded
+11,address3,null
+11,filename,decoy
+11,colname,decoy
+11,username,decoy
+11,scd_active,active
+11,creditlimit,empty
+11,_client_publicly_-_funded__,test.csv empty
+11,_client_zero_rated_tax,test.csv empty
+11,_client_member_of_a_group_,test.csv
+11,_client_country_of_incorporation,test.csv
+11,_client_date_of_incorporation,test.csv empty
+11,_client_web_site,test.csv
+12,fname,unicode
+12,mname,empty
+12,lname,naughty: empty quotes
+12,lnamefname,naughty: template
+12,sex,unknown
+12,email,unicode domain
+12,tel,empty
+12,mobile,empty
+12,fax,uk intl
+12,dateofbirth,dmy slash
+12,datecreated,junk
+12,dateofdeath,null
+12,respnotes,naughty: zero
+12,contacttypeid,2
+12,companyid,null
+12,externaluse,TRUE
+12,optout,y lower
+12,rowguid,null
+12,country,alpha2
+12,county,null
+12,town,naughty: word None
+12,postcode,null
+12,address1,naughty: zero
+12,address2,empty
+12,address3,plain
+12,filename,empty
+12,colname,null
+12,username,decoy
+12,scd_active,active
+12,creditlimit,null
+12,_client_publicly_-_funded__,test.csv empty
+12,_client_zero_rated_tax,test.csv empty
+12,_client_member_of_a_group_,test.csv
+12,_client_country_of_incorporation,test.csv
+12,_client_date_of_incorporation,test.csv empty
+12,_client_web_site,test.csv
+13,fname,digits
+13,mname,spaces
+13,lname,naughty: html script
+13,lnamefname,naughty: format string
+13,sex,junk
+13,email,placeholder
+13,tel,spaces
+13,mobile,spaces
+13,fax,uk national
+13,dateofbirth,mdy slash
+13,datecreated,iso
+13,dateofdeath,iso
+13,respnotes,naughty: dash only
+13,contacttypeid,3
+13,companyid,100
+13,externaluse,empty
+13,optout,Y
+13,rowguid,upper
+13,country,alpha3
+13,county,plain
+13,town,naughty: word Infinity
+13,postcode,uk
+13,address1,naughty: dash only
+13,address2,spaces
+13,address3,empty
+13,filename,decoy
+13,colname,decoy
+13,username,decoy
+13,scd_active,active
+13,creditlimit,placeholder
+13,_client_publicly_-_funded__,test.csv empty
+13,_client_zero_rated_tax,test.csv empty
+13,_client_member_of_a_group_,test.csv
+13,_client_country_of_incorporation,test.csv
+13,_client_date_of_incorporation,test.csv empty
+13,_client_web_site,test.csv
+14,fname,hyphen
+14,mname,null
+14,lname,naughty: sql injection
+14,lnamefname,naughty: emoji
+14,sex,digit
+14,email,naughty: html email
+14,tel,null
+14,mobile,null
+14,fax,placeholder
+14,dateofbirth,text month
+14,datecreated,iso z
+14,dateofdeath,empty
+14,respnotes,naughty: empty quotes
+14,contacttypeid,4
+14,companyid,101
+14,externaluse,null
+14,optout,N
+14,rowguid,lower
+14,country,lower
+14,county,lower
+14,town,naughty: word true
+14,postcode,uk compact lower
+14,address1,naughty: empty quotes
+14,address2,null
+14,address3,spaces
+14,filename,decoy
+14,colname,decoy
+14,username,decoy
+14,scd_active,inactive
+14,creditlimit,words
+14,_client_publicly_-_funded__,test.csv empty
+14,_client_zero_rated_tax,test.csv empty
+14,_client_member_of_a_group_,test.csv
+14,_client_country_of_incorporation,test.csv
+14,_client_date_of_incorporation,test.csv empty
+14,_client_web_site,test.csv
+15,fname,spaced initials
+15,mname,lower
+15,lname,naughty: path traversal
+15,lnamefname,naughty: rtl arabic
+15,sex,empty
+15,email,naughty: word null
+15,tel,uk intl
+15,mobile,uk mobile
+15,fax,annotated
+15,dateofbirth,iso datetime
+15,datecreated,dmy time
+15,dateofdeath,dmy
+15,respnotes,naughty: html script
+15,contacttypeid,5
+15,companyid,102
+15,externaluse,junk
+15,optout,empty
+15,rowguid,braces
+15,country,dots
+15,county,placeholder
+15,town,naughty: zero
+15,postcode,us zip
+15,address1,naughty: html script
+15,address2,plain
+15,address3,null
+15,filename,empty
+15,colname,null
+15,username,decoy
+15,scd_active,active
+15,creditlimit,padded
+15,_client_publicly_-_funded__,test.csv empty
+15,_client_zero_rated_tax,test.csv empty
+15,_client_member_of_a_group_,test.csv
+15,_client_country_of_incorporation,test.csv
+15,_client_date_of_incorporation,test.csv empty
+15,_client_web_site,test.csv
+16,fname,naughty: word null
+16,mname,upper
+16,lname,naughty: template
+16,lnamefname,naughty: zero width space
+16,sex,spaces
+16,email,naughty: long tld
+16,tel,uk national
+16,mobile,uk compact
+16,fax,dashed national
+16,dateofbirth,placeholder
+16,datecreated,date only
+16,dateofdeath,null
+16,respnotes,naughty: sql injection
+16,contacttypeid,1
+16,companyid,ambiguous 1
+16,externaluse,true
+16,optout,null
+16,rowguid,no dashes
+16,country,native
+16,county,empty
+16,town,naughty: dash only
+16,postcode,in pin
+16,address1,naughty: sql injection
+16,address2,padded
+16,address3,plain
+16,filename,decoy
+16,colname,decoy
+16,username,decoy
+16,scd_active,active
+16,creditlimit,naughty: NaN
+16,_client_publicly_-_funded__,test.csv empty
+16,_client_zero_rated_tax,test.csv empty
+16,_client_member_of_a_group_,test.csv
+16,_client_country_of_incorporation,test.csv
+16,_client_date_of_incorporation,test.csv empty
+16,_client_web_site,test.csv
+17,fname,naughty: word undefined
+17,mname,initial dot
+17,lname,naughty: format string
+17,lnamefname,naughty: leading bom
+17,sex,null
+17,email,naughty: leading bom
+17,tel,in intl
+17,mobile,no plus
+17,fax,empty
+17,dateofbirth,min
+17,datecreated,empty
+17,dateofdeath,null
+17,respnotes,naughty: path traversal
+17,contacttypeid,2
+17,companyid,ambiguous 0
+17,externaluse,false
+17,optout,y lower
+17,rowguid,junk
+17,country,junk
+17,county,spaces
+17,town,naughty: empty quotes
+17,postcode,junk
+17,address1,naughty: path traversal
+17,address2,empty
+17,address3,empty
+17,filename,decoy
+17,colname,decoy
+17,username,decoy
+17,scd_active,active
+17,creditlimit,naughty: Infinity
+17,_client_publicly_-_funded__,test.csv empty
+17,_client_zero_rated_tax,test.csv empty
+17,_client_member_of_a_group_,test.csv
+17,_client_country_of_incorporation,test.csv
+17,_client_date_of_incorporation,test.csv empty
+17,_client_web_site,test.csv
+18,fname,naughty: word NaN
+18,mname,padded
+18,lname,naughty: emoji
+18,lnamefname,naughty: tab
+18,sex,M
+18,email,empty
+18,tel,dashed
+18,mobile,bare 10 digits
+18,fax,spaces
+18,dateofbirth,future
+18,datecreated,null
+18,dateofdeath,null
+18,respnotes,naughty: template
+18,contacttypeid,1
+18,companyid,null
+18,externaluse,1
+18,optout,Y
+18,rowguid,empty
+18,country,padded
+18,county,null
+18,town,naughty: html script
+18,postcode,empty
+18,address1,naughty: template
+18,address2,spaces
+18,address3,spaces
+18,filename,empty
+18,colname,null
+18,username,decoy
+18,scd_active,active
+18,creditlimit,naughty: null
+18,_client_publicly_-_funded__,test.csv empty
+18,_client_zero_rated_tax,test.csv empty
+18,_client_member_of_a_group_,test.csv
+18,_client_country_of_incorporation,test.csv
+18,_client_date_of_incorporation,test.csv empty
+18,_client_web_site,test.csv
+19,fname,naughty: word None
+19,mname,empty
+19,lname,naughty: rtl arabic
+19,lnamefname,naughty: carriage return
+19,sex,F
+19,email,spaces
+19,tel,annotated
+19,mobile,us dashed
+19,fax,null
+19,dateofbirth,impossible
+19,datecreated,junk
+19,dateofdeath,iso
+19,respnotes,naughty: format string
+19,contacttypeid,2
+19,companyid,100
+19,externaluse,0
+19,optout,N
+19,rowguid,null
+19,country,empty
+19,county,plain
+19,town,naughty: sql injection
+19,postcode,spaces
+19,address1,naughty: format string
+19,address2,null
+19,address3,null
+19,filename,decoy
+19,colname,decoy
+19,username,decoy
+19,scd_active,active
+19,creditlimit,plain
+19,_client_publicly_-_funded__,test.csv empty
+19,_client_zero_rated_tax,test.csv empty
+19,_client_member_of_a_group_,test.csv
+19,_client_country_of_incorporation,test.csv
+19,_client_date_of_incorporation,test.csv empty
+19,_client_web_site,test.csv
+20,fname,naughty: word Infinity
+20,mname,spaces
+20,lname,naughty: zero width space
+20,lnamefname,naughty: nbsp padded
+20,sex,m lower
+20,email,null
+20,tel,too short
+20,mobile,uk intl spaced
+20,fax,uk intl
+20,dateofbirth,junk
+20,datecreated,iso
+20,dateofdeath,empty
+20,respnotes,naughty: emoji
+20,contacttypeid,3
+20,companyid,101
+20,externaluse,Y
+20,optout,empty
+20,rowguid,upper
+20,country,spaces
+20,county,lower
+20,town,naughty: path traversal
+20,postcode,null
+20,address1,naughty: emoji
+20,address2,plain
+20,address3,plain
+20,filename,decoy
+20,colname,decoy
+20,username,decoy
+20,scd_active,active
+20,creditlimit,thousands sep
+20,_client_publicly_-_funded__,test.csv empty
+20,_client_zero_rated_tax,test.csv empty
+20,_client_member_of_a_group_,test.csv
+20,_client_country_of_incorporation,test.csv
+20,_client_date_of_incorporation,test.csv empty
+20,_client_web_site,test.csv
+21,fname,naughty: word true
+21,mname,null
+21,lname,naughty: leading bom
+21,lnamefname,naughty: combining marks
+21,sex,Male
+21,email,valid
+21,tel,letters
+21,mobile,uk compact
+21,fax,uk national
+21,dateofbirth,compact
+21,datecreated,iso z
+21,dateofdeath,dmy
+21,respnotes,naughty: rtl arabic
+21,contacttypeid,4
+21,companyid,102
+21,externaluse,N
+21,optout,null
+21,rowguid,lower
+21,country,null
+21,county,placeholder
+21,town,naughty: template
+21,postcode,uk
+21,address1,naughty: rtl arabic
+21,address2,padded
+21,address3,empty
+21,filename,empty
+21,colname,null
+21,username,decoy
+21,scd_active,inactive
+21,creditlimit,gbp symbol
+21,_client_publicly_-_funded__,test.csv empty
+21,_client_zero_rated_tax,test.csv empty
+21,_client_member_of_a_group_,test.csv
+21,_client_country_of_incorporation,test.csv
+21,_client_date_of_incorporation,test.csv empty
+21,_client_web_site,test.csv
+22,fname,naughty: zero
+22,mname,lower
+22,lname,naughty: tab
+22,lnamefname,naughty: 500 chars
+22,sex,female lower
+22,email,uppercase
+22,tel,us parens
+22,mobile,trunk zero
+22,fax,placeholder
+22,dateofbirth,naughty: word null
+22,datecreated,dmy time
+22,dateofdeath,null
+22,respnotes,naughty: zero width space
+22,contacttypeid,5
+22,companyid,ambiguous 1
+22,externaluse,yes
+22,optout,y lower
+22,rowguid,braces
+22,country,name
+22,county,empty
+22,town,naughty: format string
+22,postcode,uk compact lower
+22,address1,naughty: zero width space
+22,address2,empty
+22,address3,spaces
+22,filename,decoy
+22,colname,decoy
+22,username,decoy
+22,scd_active,active
+22,creditlimit,usd symbol
+22,_client_publicly_-_funded__,test.csv empty
+22,_client_zero_rated_tax,test.csv empty
+22,_client_member_of_a_group_,test.csv
+22,_client_country_of_incorporation,test.csv
+22,_client_date_of_incorporation,test.csv empty
+22,_client_web_site,test.csv
+23,fname,naughty: dash only
+23,mname,upper
+23,lname,naughty: carriage return
+23,lnamefname,naughty: japanese
+23,sex,MALE
+23,email,plus tag padded
+23,tel,us intl
+23,mobile,00 prefix
+23,fax,annotated
+23,dateofbirth,naughty: zero date
+23,datecreated,date only
+23,dateofdeath,null
+23,respnotes,naughty: leading bom
+23,contacttypeid,1
+23,companyid,ambiguous 0
+23,externaluse,no
+23,optout,Y
+23,rowguid,no dashes
+23,country,uk alias
+23,county,spaces
+23,town,naughty: emoji
+23,postcode,us zip
+23,address1,naughty: leading bom
+23,address2,spaces
+23,address3,null
+23,filename,decoy
+23,colname,decoy
+23,username,decoy
+23,scd_active,active
+23,creditlimit,eu format
+23,_client_publicly_-_funded__,test.csv empty
+23,_client_zero_rated_tax,test.csv empty
+23,_client_member_of_a_group_,test.csv
+23,_client_country_of_incorporation,test.csv
+23,_client_date_of_incorporation,test.csv empty
+23,_client_web_site,test.csv
+24,fname,naughty: empty quotes
+24,mname,initial dot
+24,lname,naughty: nbsp padded
+24,lnamefname,naughty: nul char
+24,sex,other
+24,email,no at
+24,tel,00 intl prefix
+24,mobile,no leading zero
+24,fax,dashed national
+24,dateofbirth,naughty: nines
+24,datecreated,empty
+24,dateofdeath,null
+24,respnotes,naughty: tab
+24,contacttypeid,2
+24,companyid,null
+24,externaluse,TRUE
+24,optout,N
+24,rowguid,junk
+24,country,alpha2
+24,county,null
+24,town,naughty: rtl arabic
+24,postcode,in pin
+24,address1,naughty: tab
+24,address2,null
+24,address3,plain
+24,filename,empty
+24,colname,null
+24,username,decoy
+24,scd_active,active
+24,creditlimit,negative
+24,_client_publicly_-_funded__,test.csv empty
+24,_client_zero_rated_tax,test.csv empty
+24,_client_member_of_a_group_,test.csv
+24,_client_country_of_incorporation,test.csv
+24,_client_date_of_incorporation,test.csv empty
+24,_client_web_site,test.csv
+25,fname,naughty: html script
+25,mname,padded
+25,lname,naughty: combining marks
+25,lnamefname,empty
+25,sex,unknown
+25,email,no tld
+25,tel,0044 prefix
+25,mobile,in compact
+25,fax,empty
+25,dateofbirth,empty
+25,datecreated,null
+25,dateofdeath,iso
+25,respnotes,naughty: carriage return
+25,contacttypeid,1
+25,companyid,100
+25,externaluse,empty
+25,optout,empty
+25,rowguid,empty
+25,country,alpha3
+25,county,plain
+25,town,naughty: zero width space
+25,postcode,junk
+25,address1,naughty: carriage return
+25,address2,plain
+25,address3,empty
+25,filename,decoy
+25,colname,decoy
+25,username,decoy
+25,scd_active,active
+25,creditlimit,scientific
+25,_client_publicly_-_funded__,test.csv empty
+25,_client_zero_rated_tax,test.csv empty
+25,_client_member_of_a_group_,test.csv
+25,_client_country_of_incorporation,test.csv
+25,_client_date_of_incorporation,test.csv empty
+25,_client_web_site,test.csv
+26,fname,naughty: sql injection
+26,mname,empty
+26,lname,naughty: 500 chars
+26,lnamefname,spaces
+26,sex,junk
+26,email,double at
+26,tel,trunk zero in parens
+26,mobile,us extension
+26,fax,spaces
+26,dateofbirth,spaces
+26,datecreated,junk
+26,dateofdeath,empty
+26,respnotes,naughty: nbsp padded
+26,contacttypeid,2
+26,companyid,101
+26,externaluse,null
+26,optout,null
+26,rowguid,null
+26,country,lower
+26,county,lower
+26,town,naughty: leading bom
+26,postcode,empty
+26,address1,naughty: nbsp padded
+26,address2,padded
+26,address3,spaces
+26,filename,decoy
+26,colname,decoy
+26,username,decoy
+26,scd_active,active
+26,creditlimit,empty
+26,_client_publicly_-_funded__,test.csv empty
+26,_client_zero_rated_tax,test.csv empty
+26,_client_member_of_a_group_,test.csv
+26,_client_country_of_incorporation,test.csv
+26,_client_date_of_incorporation,test.csv empty
+26,_client_web_site,test.csv
+27,fname,naughty: path traversal
+27,mname,spaces
+27,lname,naughty: japanese
+27,lnamefname,null
+27,sex,digit
+27,email,space
+27,tel,dashes
+27,mobile,label prefix
+27,fax,null
+27,dateofbirth,null
+27,datecreated,iso
+27,dateofdeath,dmy
+27,respnotes,naughty: combining marks
+27,contacttypeid,3
+27,companyid,102
+27,externaluse,junk
+27,optout,y lower
+27,rowguid,upper
+27,country,dots
+27,county,placeholder
+27,town,naughty: tab
+27,postcode,spaces
+27,address1,naughty: combining marks
+27,address2,empty
+27,address3,null
+27,filename,empty
+27,colname,null
+27,username,decoy
+27,scd_active,active
+27,creditlimit,null
+27,_client_publicly_-_funded__,test.csv empty
+27,_client_zero_rated_tax,test.csv empty
+27,_client_member_of_a_group_,test.csv
+27,_client_country_of_incorporation,test.csv
+27,_client_date_of_incorporation,test.csv empty
+27,_client_web_site,test.csv
+28,fname,naughty: template
+28,mname,null
+28,lname,naughty: nul char
+28,lnamefname,comma
+28,sex,empty
+28,email,unicode domain
+28,tel,parens national
+28,mobile,empty
+28,fax,uk intl
+28,dateofbirth,iso
+28,datecreated,iso z
+28,dateofdeath,null
+28,respnotes,naughty: 500 chars
+28,contacttypeid,4
+28,companyid,ambiguous 1
+28,externaluse,true
+28,optout,Y
+28,rowguid,lower
+28,country,native
+28,county,empty
+28,town,naughty: carriage return
+28,postcode,null
+28,address1,naughty: 500 chars
+28,address2,spaces
+28,address3,plain
+28,filename,decoy
+28,colname,decoy
+28,username,decoy
+28,scd_active,inactive
+28,creditlimit,placeholder
+28,_client_publicly_-_funded__,test.csv empty
+28,_client_zero_rated_tax,test.csv empty
+28,_client_member_of_a_group_,test.csv
+28,_client_country_of_incorporation,test.csv
+28,_client_date_of_incorporation,test.csv empty
+28,_client_web_site,test.csv
+29,fname,naughty: format string
+29,mname,lower
+29,lname,empty
+29,lnamefname,company
+29,sex,spaces
+29,email,placeholder
+29,tel,extension
+29,mobile,spaces
+29,fax,uk national
+29,dateofbirth,dmy slash
+29,datecreated,dmy time
+29,dateofdeath,null
+29,respnotes,naughty: japanese
+29,contacttypeid,5
+29,companyid,ambiguous 0
+29,externaluse,false
+29,optout,N
+29,rowguid,braces
+29,country,junk
+29,county,spaces
+29,town,naughty: nbsp padded
+29,postcode,uk
+29,address1,naughty: japanese
+29,address2,null
+29,address3,empty
+29,filename,decoy
+29,colname,decoy
+29,username,decoy
+29,scd_active,active
+29,creditlimit,words
+29,_client_publicly_-_funded__,test.csv empty
+29,_client_zero_rated_tax,test.csv empty
+29,_client_member_of_a_group_,test.csv
+29,_client_country_of_incorporation,test.csv
+29,_client_date_of_incorporation,test.csv empty
+29,_client_web_site,test.csv
+30,fname,naughty: emoji
+30,mname,upper
+30,lname,spaces
+30,lnamefname,acronym
+30,sex,null
+30,email,naughty: html email
+30,tel,x extension
+30,mobile,null
+30,fax,placeholder
+30,dateofbirth,mdy slash
+30,datecreated,date only
+30,dateofdeath,null
+30,respnotes,naughty: nul char
+30,contacttypeid,1
+30,companyid,null
+30,externaluse,1
+30,optout,empty
+30,rowguid,no dashes
+30,country,padded
+30,county,null
+30,town,naughty: combining marks
+30,postcode,uk compact lower
+30,address1,naughty: nul char
+30,address2,plain
+30,address3,spaces
+30,filename,empty
+30,colname,null
+30,username,decoy
+30,scd_active,active
+30,creditlimit,padded
+30,_client_publicly_-_funded__,test.csv empty
+30,_client_zero_rated_tax,test.csv empty
+30,_client_member_of_a_group_,test.csv
+30,_client_country_of_incorporation,test.csv
+30,_client_date_of_incorporation,test.csv empty
+30,_client_web_site,test.csv
+31,fname,naughty: rtl arabic
+31,mname,initial dot
+31,lname,null
+31,lnamefname,lower
+31,sex,M
+31,email,naughty: word null
+31,tel,tel uri
+31,mobile,uk mobile
+31,fax,annotated
+31,dateofbirth,text month
+31,datecreated,empty
+31,dateofdeath,iso
+31,respnotes,empty
+31,contacttypeid,2
+31,companyid,100
+31,externaluse,0
+31,optout,null
+31,rowguid,junk
+31,country,empty
+31,county,plain
+31,town,naughty: 500 chars
+31,postcode,us zip
+31,address1,empty
+31,address2,padded
+31,address3,null
+31,filename,decoy
+31,colname,decoy
+31,username,decoy
+31,scd_active,active
+31,creditlimit,naughty: NaN
+31,_client_publicly_-_funded__,test.csv empty
+31,_client_zero_rated_tax,test.csv empty
+31,_client_member_of_a_group_,test.csv
+31,_client_country_of_incorporation,test.csv
+31,_client_date_of_incorporation,test.csv empty
+31,_client_web_site,test.csv
+32,fname,naughty: zero width space
+32,mname,padded
+32,lname,lower
+32,lnamefname,padded
+32,sex,F
+32,email,naughty: long tld
+32,tel,two numbers
+32,mobile,uk compact
+32,fax,dashed national
+32,dateofbirth,iso datetime
+32,datecreated,null
+32,dateofdeath,empty
+32,respnotes,spaces
+32,contacttypeid,1
+32,companyid,101
+32,externaluse,Y
+32,optout,y lower
+32,rowguid,empty
+32,country,spaces
+32,county,lower
+32,town,naughty: japanese
+32,postcode,in pin
+32,address1,spaces
+32,address2,empty
+32,address3,plain
+32,filename,decoy
+32,colname,decoy
+32,username,decoy
+32,scd_active,active
+32,creditlimit,naughty: Infinity
+32,_client_publicly_-_funded__,test.csv empty
+32,_client_zero_rated_tax,test.csv empty
+32,_client_member_of_a_group_,test.csv
+32,_client_country_of_incorporation,test.csv
+32,_client_date_of_incorporation,test.csv empty
+32,_client_web_site,test.csv
+33,fname,naughty: leading bom
+33,mname,empty
+33,lname,upper
+33,lnamefname,naughty: word null
+33,sex,m lower
+33,email,naughty: leading bom
+33,tel,vanity
+33,mobile,no plus
+33,fax,empty
+33,dateofbirth,placeholder
+33,datecreated,junk
+33,dateofdeath,dmy
+33,respnotes,null
+33,contacttypeid,2
+33,companyid,102
+33,externaluse,N
+33,optout,Y
+33,rowguid,null
+33,country,null
+33,county,placeholder
+33,town,naughty: nul char
+33,postcode,junk
+33,address1,null
+33,address2,spaces
+33,address3,empty
+33,filename,empty
+33,colname,null
+33,username,decoy
+33,scd_active,active
+33,creditlimit,naughty: null
+33,_client_publicly_-_funded__,test.csv empty
+33,_client_zero_rated_tax,test.csv empty
+33,_client_member_of_a_group_,test.csv
+33,_client_country_of_incorporation,test.csv
+33,_client_date_of_incorporation,test.csv empty
+33,_client_web_site,test.csv
+34,fname,naughty: tab
+34,mname,spaces
+34,lname,particles
+34,lnamefname,naughty: word undefined
+34,sex,Male
+34,email,empty
+34,tel,bad country code
+34,mobile,bare 10 digits
+34,fax,spaces
+34,dateofbirth,min
+34,datecreated,iso
+34,dateofdeath,null
+34,respnotes,mixed case
+34,contacttypeid,3
+34,companyid,ambiguous 1
+34,externaluse,yes
+34,optout,N
+34,rowguid,upper
+34,country,name
+34,county,empty
+34,town,empty
+34,postcode,empty
+34,address1,lower
+34,address2,null
+34,address3,spaces
+34,filename,decoy
+34,colname,decoy
+34,username,decoy
+34,scd_active,active
+34,creditlimit,plain
+34,_client_publicly_-_funded__,test.csv empty
+34,_client_zero_rated_tax,test.csv empty
+34,_client_member_of_a_group_,test.csv
+34,_client_country_of_incorporation,test.csv
+34,_client_date_of_incorporation,test.csv empty
+34,_client_web_site,test.csv
+35,fname,naughty: carriage return
+35,mname,null
+35,lname,company-ish
+35,lnamefname,naughty: word NaN
+35,sex,female lower
+35,email,spaces
+35,tel,plus only
+35,mobile,us dashed
+35,fax,null
+35,dateofbirth,future
+35,datecreated,iso z
+35,dateofdeath,null
+35,respnotes,padded
+35,contacttypeid,4
+35,companyid,ambiguous 0
+35,externaluse,no
+35,optout,empty
+35,rowguid,lower
+35,country,uk alias
+35,county,spaces
+35,town,spaces
+35,postcode,spaces
+35,address1,upper
+35,address2,plain
+35,address3,null
+35,filename,decoy
+35,colname,decoy
+35,username,decoy
+35,scd_active,inactive
+35,creditlimit,thousands sep
+35,_client_publicly_-_funded__,test.csv empty
+35,_client_zero_rated_tax,test.csv empty
+35,_client_member_of_a_group_,test.csv
+35,_client_country_of_incorporation,test.csv
+35,_client_date_of_incorporation,test.csv empty
+35,_client_web_site,test.csv
+36,fname,naughty: nbsp padded
+36,mname,lower
+36,lname,hyphen
+36,lnamefname,naughty: word None
+36,sex,MALE
+36,email,null
+36,tel,all zeros
+36,mobile,uk intl spaced
+36,fax,uk intl
+36,dateofbirth,impossible
+36,datecreated,dmy time
+36,dateofdeath,null
+36,respnotes,newline
+36,contacttypeid,5
+36,companyid,null
+36,externaluse,TRUE
+36,optout,null
+36,rowguid,braces
+36,country,alpha2
+36,county,null
+36,town,null
+36,postcode,null
+36,address1,flat
+36,address2,padded
+36,address3,plain
+36,filename,empty
+36,colname,null
+36,username,decoy
+36,scd_active,active
+36,creditlimit,gbp symbol
+36,_client_publicly_-_funded__,test.csv empty
+36,_client_zero_rated_tax,test.csv empty
+36,_client_member_of_a_group_,test.csv
+36,_client_country_of_incorporation,test.csv
+36,_client_date_of_incorporation,test.csv empty
+36,_client_web_site,test.csv
+37,fname,naughty: combining marks
+37,mname,upper
+37,lname,unicode
+37,lnamefname,naughty: word Infinity
+37,sex,other
+37,email,valid
+37,tel,too long
+37,mobile,uk compact
+37,fax,uk national
+37,dateofbirth,junk
+37,datecreated,date only
+37,dateofdeath,iso
+37,respnotes,csv escaping
+37,contacttypeid,1
+37,companyid,100
+37,externaluse,empty
+37,optout,y lower
+37,rowguid,no dashes
+37,country,alpha3
+37,county,plain
+37,town,lower
+37,postcode,uk
+37,address1,po box
+37,address2,empty
+37,address3,empty
+37,filename,decoy
+37,colname,decoy
+37,username,decoy
+37,scd_active,active
+37,creditlimit,usd symbol
+37,_client_publicly_-_funded__,test.csv empty
+37,_client_zero_rated_tax,test.csv empty
+37,_client_member_of_a_group_,test.csv
+37,_client_country_of_incorporation,test.csv
+37,_client_date_of_incorporation,test.csv empty
+37,_client_web_site,test.csv
+38,fname,naughty: 500 chars
+38,mname,initial dot
+38,lname,naughty: word null
+38,lnamefname,naughty: word true
+38,sex,unknown
+38,email,uppercase
+38,tel,de intl
+38,mobile,trunk zero
+38,fax,placeholder
+38,dateofbirth,compact
+38,datecreated,empty
+38,dateofdeath,empty
+38,respnotes,unicode
+38,contacttypeid,2
+38,companyid,101
+38,externaluse,null
+38,optout,Y
+38,rowguid,junk
+38,country,lower
+38,county,lower
+38,town,upper
+38,postcode,uk compact lower
+38,address1,naughty: word null
+38,address2,spaces
+38,address3,spaces
+38,filename,decoy
+38,colname,decoy
+38,username,decoy
+38,scd_active,active
+38,creditlimit,eu format
+38,_client_publicly_-_funded__,test.csv empty
+38,_client_zero_rated_tax,test.csv empty
+38,_client_member_of_a_group_,test.csv
+38,_client_country_of_incorporation,test.csv
+38,_client_date_of_incorporation,test.csv empty
+38,_client_web_site,test.csv
+39,fname,naughty: japanese
+39,mname,padded
+39,lname,naughty: word undefined
+39,lnamefname,naughty: zero
+39,sex,junk
+39,email,plus tag padded
+39,tel,jp intl
+39,mobile,00 prefix
+39,fax,annotated
+39,dateofbirth,naughty: word null
+39,datecreated,null
+39,dateofdeath,dmy
+39,respnotes,naughty: word null
+39,contacttypeid,1
+39,companyid,102
+39,externaluse,junk
+39,optout,N
+39,rowguid,empty
+39,country,dots
+39,county,placeholder
+39,town,padded
+39,postcode,us zip
+39,address1,naughty: word undefined
+39,address2,null
+39,address3,null
+39,filename,empty
+39,colname,null
+39,username,decoy
+39,scd_active,active
+39,creditlimit,negative
+39,_client_publicly_-_funded__,test.csv empty
+39,_client_zero_rated_tax,test.csv empty
+39,_client_member_of_a_group_,test.csv
+39,_client_country_of_incorporation,test.csv
+39,_client_date_of_incorporation,test.csv empty
+39,_client_web_site,test.csv
+40,fname,naughty: nul char
+40,mname,empty
+40,lname,naughty: word NaN
+40,lnamefname,naughty: dash only
+40,sex,digit
+40,email,no at
+40,tel,arabic digits
+40,mobile,no leading zero
+40,fax,dashed national
+40,dateofbirth,naughty: zero date
+40,datecreated,junk
+40,dateofdeath,null
+40,respnotes,naughty: word undefined
+40,contacttypeid,2
+40,companyid,ambiguous 1
+40,externaluse,true
+40,optout,empty
+40,rowguid,null
+40,country,native
+40,county,empty
+40,town,naughty: word null
+40,postcode,in pin
+40,address1,naughty: word NaN
+40,address2,plain
+40,address3,plain
+40,filename,decoy
+40,colname,decoy
+40,username,decoy
+40,scd_active,active
+40,creditlimit,scientific
+40,_client_publicly_-_funded__,test.csv empty
+40,_client_zero_rated_tax,test.csv empty
+40,_client_member_of_a_group_,test.csv
+40,_client_country_of_incorporation,test.csv
+40,_client_date_of_incorporation,test.csv empty
+40,_client_web_site,test.csv
