@@ -1,6 +1,7 @@
 import pytest
 
 from dataclean import BoolCleaner, DataType
+from dataclean.utils.case import TextCase
 
 # ==============================================================================
 # 1. CORE METADATA & DATA TYPE HEURISTICS
@@ -150,3 +151,37 @@ def test_boolean_cleaner_name_match_still_works_for_string_columns():
 def test_boolean_cleaner_boolean_typed_column_matches_regardless_of_name():
     df = _pandas_df(whatever=[True, False, True])
     assert BoolCleaner().match_score(df, ("whatever",)) == BoolCleaner.MAX_SCORE
+
+
+# ==============================================================================
+# 9. EXTRA VARIANTS AND THE YN FORMAT
+# ==============================================================================
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("on", True),
+        ("ON", True),
+        ("enabled", True),
+        ("1.0", True),
+        ("off", False),
+        ("Disabled", False),
+        ("0.0", False),
+    ],
+)
+def test_boolean_cleaner_accepts_toggle_and_float_variants(value, expected):
+    assert BoolCleaner().clean_row(value) is expected
+
+
+@pytest.mark.parametrize("value", ["maybe", "unknown", "ok", "2"])
+def test_boolean_cleaner_unrecognized_values_become_none(value):
+    assert BoolCleaner().clean_row(value) is None
+
+
+def test_boolean_cleaner_yn_format():
+    cleaner = BoolCleaner(out_format=BoolCleaner.Format.YN, out_case=TextCase.UPPER)
+    assert cleaner.true_out == "Y"
+    assert cleaner.false_out == "N"
+    assert cleaner.clean_row("yes") == "Y"
+    assert cleaner.clean_row("0") == "N"

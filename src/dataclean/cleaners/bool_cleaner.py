@@ -35,13 +35,11 @@ class BoolCleaner(EnumCleaner):
         """Output representations a BoolCleaner can produce."""
 
         TRUEFALSE = "truefalse"  # Returns Python boolean primitives: True / False
-        TRUEFALSE_STR = (
-            "truefalse_str"  # Returns Python boolean primitives: "True" / "False"
-        )
-        TF = "tf"  # Returns Python boolean primitives: T / F
+        TRUEFALSE_STR = "truefalse_str"  # Returns strings: "True" / "False"
+        TF = "tf"  # Returns single-letter strings: "T" / "F"
         BINARY = "binary"  # Returns structured string flags: "1" / "0"
-        YESNO = "yesno"  # Returns standardized YES NO representations: "YES" / "NO"
-        YN = "yn"  # Returns standardized Y N representations: "Y" / "N"
+        YESNO = "yesno"  # Returns "Yes" / "No" (cased by out_case)
+        YN = "yn"  # Returns "Y" / "N" (cased by out_case)
 
     DEFAULT_TRUTHY_VALUES: ClassVar[tuple[str, ...]] = (
         "true",
@@ -50,6 +48,9 @@ class BoolCleaner(EnumCleaner):
         "t",
         "y",
         "active",
+        "on",
+        "enabled",
+        "1.0",
     )
     DEFAULT_FALSY_VALUES: ClassVar[tuple[str, ...]] = (
         "false",
@@ -58,6 +59,9 @@ class BoolCleaner(EnumCleaner):
         "f",
         "n",
         "inactive",
+        "off",
+        "disabled",
+        "0.0",
     )
     DEFAULT_MATCH_PREFIXES: ClassVar[tuple[str, ...]] = (
         "is",
@@ -269,6 +273,9 @@ class BoolCleaner(EnumCleaner):
             case BoolCleaner.Format.YESNO:
                 true_out = "Yes"
                 false_out = "No"
+            case BoolCleaner.Format.YN:
+                true_out = "Y"
+                false_out = "N"
             case _:
                 raise ValueError(f"Invalid out_format: {out_format}")
 
