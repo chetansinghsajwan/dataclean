@@ -1,6 +1,8 @@
 """Cleaner for normalizing free-form text (HTML, URLs, whitespace, etc.)."""
 
+import html
 import re
+import unicodedata
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import ClassVar, override
@@ -28,21 +30,61 @@ class TextCleaner(Cleaner):
         remove_punctuation: If True, strips non-word, non-whitespace
             characters.
         remove_digits: If True, strips digit runs.
+        remove_symbols: If True, strips symbols such as currency signs, math signs,
+            emoji and the copyright sign. Punctuation is kept; use
+            ``remove_punctuation`` to strip both.
         replace_newlines_with_spaces: If True, replaces control characters
             (including newlines) with a single space; if False, drops most
             control characters but keeps newlines out of the subsequent
             whitespace-collapsing step by removing them explicitly.
+        decode_entities: If True, decodes HTML entities such as `&amp;` and
+            `&#39;` to the characters they stand for. Only entities that end
+            with a semicolon are decoded, so text like `AT&T` is left alone.
+        remove_invisible: If True, removes the byte-order mark, zero-width space and
+            word joiner. They are invisible but make equal-looking values differ.
+            The zero-width joiner and non-joiner are kept because Indic and
+            Persian scripts and emoji sequences need them.
+        normalize_unicode: If True, converts text to Unicode NFC form so that
+            equal-looking values (for example `e` plus a combining accent and the
+            single character `\u00e9`) compare equal.
+        max_combining_marks: Most combining marks kept on a single character. Extra
+            marks are dropped, which removes stacked-mark "zalgo" text. Spacing
+            marks used by Indic scripts are not counted. None keeps every mark.
+        null_tokens: Placeholder values (compared case-insensitively after
+            cleaning) that mean "no value" and become None.
+        infinity_as_null: If True, `inf` and `infinity` (with an optional sign)
+            are also treated as placeholders. They usually come from
+            float serialization, not from real text.
     """
 
     lowercase: bool = True
     remove_html: bool = True
-    remove_urls: bool = True
-    remove_emails: bool = True
+    remove_urls: bool = False
+    remove_emails: bool = False
     remove_punctuation: bool = False
     remove_digits: bool = False
+    remove_symbols: bool = False
     replace_newlines_with_spaces: bool = True
+    decode_entities: bool = True
+    remove_invisible: bool = True
+    normalize_unicode: bool = True
+    max_combining_marks: int | None = 2
+    null_tokens: tuple[str, ...] = (
+        "null",
+        "none",
+        "nan",
+        "undefined",
+        "n/a",
+        "na",
+        "-",
+        "''",
+        '""',
+    )
+    infinity_as_null: bool = True
 
-    _HTML_RE: ClassVar[re.Pattern] = re.compile(r"<[^>]+>")
+    _HTML_RE: ClassVar[re.Pattern] = re.compile(
+        r"<!--.*?-->|<[!?][^<>]*>|</?[A-Za-z][^<>]*>", re.DOTALL
+    )
     _URL_RE: ClassVar[re.Pattern] = re.compile(r"http[s]?://\S+|www\.\S+")
     _EMAIL_RE: ClassVar[re.Pattern] = re.compile(r"\S+@\S+")
     _DIGIT_RE: ClassVar[re.Pattern] = re.compile(r"\d+")
@@ -50,13 +92,30 @@ class TextCleaner(Cleaner):
     _MULTI_SPACE_RE: ClassVar[re.Pattern] = re.compile(r"\s+")
     _NL_SPACE_RE: ClassVar[re.Pattern] = re.compile(r"[\x00-\x1f\x7f-\x9f]")
     _NL_STRIP_RE: ClassVar[re.Pattern] = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")
+    _INVISIBLE_RE: ClassVar[re.Pattern] = re.compile("[\ufeff\u200b\u2060]")
+    _ENTITY_RE: ClassVar[re.Pattern] = re.compile(
+        r"&(?:#\d+|#[xX][0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]*);"
+    )
+    _INFINITY_TOKENS: ClassVar[tuple[str, ...]] = (
+        "inf",
+        "+inf",
+        "-inf",
+        "infinity",
+        "+infinity",
+        "-infinity",
+    )
 
     _pipeline: tuple[Callable[[str], str], ...] = ()
+    _null_set: frozenset[str] = frozenset()
 
     def __post_init__(self) -> None:
         """Initialize base cleaner state, then build the regex step pipeline."""
         super().__post_init__()
         self._pipeline = self._build_pipeline()
+        tokens = {token.lower() for token in self.null_tokens}
+        if self.infinity_as_null:
+            tokens.update(self._INFINITY_TOKENS)
+        self._null_set = frozenset(tokens)
 
     def _build_pipeline(self) -> tuple[Callable[[str], str], ...]:
         """Evaluate configuration flags once and build a linear regex step pipeline.
@@ -69,8 +128,20 @@ class TextCleaner(Cleaner):
         """
         steps: list[Callable[[str], str]] = []
 
+        if self.remove_invisible:
+            steps.append(lambda x: self._INVISIBLE_RE.sub("", x))
+
         if self.remove_html:
             steps.append(lambda x: self._HTML_RE.sub(" ", x))
+
+        if self.decode_entities:
+            steps.append(lambda x: self._ENTITY_RE.sub(self._decode_entity, x))
+
+        if self.normalize_unicode:
+            steps.append(lambda x: unicodedata.normalize("NFC", x))
+
+        if self.max_combining_marks is not None:
+            steps.append(self._limit_combining_marks)
 
         if self.remove_urls:
             steps.append(lambda x: self._URL_RE.sub("", x))
@@ -80,6 +151,9 @@ class TextCleaner(Cleaner):
 
         if self.remove_digits:
             steps.append(lambda x: self._DIGIT_RE.sub("", x))
+
+        if self.remove_symbols:
+            steps.append(self._strip_symbols)
 
         if self.remove_punctuation:
             steps.append(lambda x: self._PUNCT_RE.sub("", x))
@@ -98,6 +172,37 @@ class TextCleaner(Cleaner):
 
         return tuple(steps)
 
+    def _limit_combining_marks(self, value: str) -> str:
+        """Drop combining marks beyond ``max_combining_marks`` on one character."""
+        if value.isascii():
+            return value
+        limit = self.max_combining_marks
+        kept: list[str] = []
+        run = 0
+        for char in value:
+            if unicodedata.category(char) in ("Mn", "Me"):
+                run += 1
+                if run > limit:
+                    continue
+            else:
+                run = 0
+            kept.append(char)
+        return "".join(kept)
+
+    @staticmethod
+    def _strip_symbols(value: str) -> str:
+        """Drop characters in the Unicode symbol categories (Sm, Sc, Sk, So)."""
+        if value.isascii() and value.isalnum():
+            return value
+        return "".join(
+            char for char in value if not unicodedata.category(char).startswith("S")
+        )
+
+    @staticmethod
+    def _decode_entity(match: re.Match) -> str:
+        """Decode one matched HTML entity, leaving unknown ones as written."""
+        return html.unescape(match.group(0))
+
     @override
     def clean_row(self, v: str) -> str | None:  # type: ignore
         """Run ``v`` through the configured cleaning pipeline.
@@ -107,14 +212,16 @@ class TextCleaner(Cleaner):
 
         Returns:
             The cleaned text, or None if the pipeline reduces it to an
-            empty string.
+            empty string or a placeholder from ``null_tokens``.
         """
 
         # 🚀 Linear Pipeline Execution
         for step in self._pipeline:
             v = step(v)
 
-        return v if v else None
+        if not v or v.lower() in self._null_set:
+            return None
+        return v
 
     @override
     def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:

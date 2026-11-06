@@ -121,3 +121,176 @@ def test_text_clean_value_empty_after_cleaning_returns_none():
     assert cleaner.clean_row("12345") is None
     assert cleaner.clean_row("!!! ???") is None
     assert cleaner.clean_row("   \n \t  ") is None
+
+
+# ==============================================================================
+# 5. HTML ENTITIES, PLACEHOLDER TOKENS AND DEFAULTS
+# ==============================================================================
+
+
+@pytest.mark.parametrize(
+    "input_val, kwargs, expected_output",
+    [
+        ("a &amp; b", {}, "a & b"),
+        ("it&#39;s &quot;ok&quot;", {}, 'it\'s "ok"'),
+        ("caf&eacute;&nbsp;bar", {}, "café bar"),
+        ("<b>a &amp; b</b>", {}, "a & b"),
+        # Only entities that end with a semicolon are decoded.
+        ("AT&T and R&D", {}, "at&t and r&d"),
+        ("x&notify", {}, "x&notify"),
+        ("a &amp; b", {"decode_entities": False}, "a &amp; b"),
+    ],
+)
+def test_text_clean_decodes_entities(input_val, kwargs, expected_output):
+    assert TextCleaner(**kwargs).clean_row(input_val) == expected_output
+
+
+@pytest.mark.parametrize(
+    "input_val",
+    ["null", "NULL", "None", "NaN", "undefined", "n/a", "N/A", "na", "-", "  -  "],
+)
+def test_text_clean_placeholder_tokens_become_none(input_val):
+    assert TextCleaner().clean_row(input_val) is None
+
+
+@pytest.mark.parametrize("input_val", ["Infinity", "inf", "-Infinity", "+inf"])
+def test_text_clean_infinity_is_placeholder_by_default(input_val):
+    assert TextCleaner().clean_row(input_val) is None
+    assert TextCleaner(infinity_as_null=False).clean_row(input_val) == (
+        input_val.lower()
+    )
+
+
+def test_text_clean_placeholder_only_matches_whole_value():
+    cleaner = TextCleaner()
+    assert cleaner.clean_row("none of the above") == "none of the above"
+    assert cleaner.clean_row("n/a for now") == "n/a for now"
+
+
+def test_text_clean_custom_null_tokens_replace_defaults():
+    cleaner = TextCleaner(null_tokens=("tbd",))
+    assert cleaner.clean_row("TBD") is None
+    assert cleaner.clean_row("null") == "null"
+
+
+def test_text_clean_defaults_pin_html_and_lowercase():
+    cleaner = TextCleaner()
+    assert cleaner.clean_row("<script>alert(1)</script>") == "alert(1)"
+    assert cleaner.clean_row("Called back; wants QUOTE") == "called back; wants quote"
+    assert TextCleaner(remove_html=False).clean_row("<b>x</b>") == "<b>x</b>"
+
+
+@pytest.mark.parametrize(
+    "input_val, kwargs, expected_output",
+    [
+        ("a​b", {}, "ab"),
+        ("﻿bom start", {}, "bom start"),
+        ("join⁠ed", {}, "joined"),
+        ("​﻿", {}, None),
+        ("a​b", {"remove_invisible": False}, "a​b"),
+        # Joiners carry meaning in Indic scripts and emoji, so they stay.
+        ("क्‍ष", {}, "क्‍ष"),
+        ("\U0001f468‍\U0001f469", {}, "\U0001f468‍\U0001f469"),
+    ],
+)
+def test_text_clean_invisible_characters(input_val, kwargs, expected_output):
+    assert TextCleaner(**kwargs).clean_row(input_val) == expected_output
+
+
+@pytest.mark.parametrize(
+    "input_val, kwargs, expected_output",
+    [
+        ("café", {}, "café"),
+        ("Nguyễn", {}, "nguyễn"),
+        ("café", {}, "café"),
+        # Entities that decode to a combining mark are composed afterwards.
+        ("cafe&#769;", {}, "café"),
+        ("café", {"normalize_unicode": False}, "café"),
+    ],
+)
+def test_text_clean_normalizes_unicode_to_nfc(input_val, kwargs, expected_output):
+    assert TextCleaner(**kwargs).clean_row(input_val) == expected_output
+
+
+# ==============================================================================
+# 6. SAFE DEFAULTS FOR URLS, EMAILS, COMPARISONS, QUOTES AND STACKED MARKS
+# ==============================================================================
+
+
+def test_text_clean_keeps_urls_and_emails_by_default():
+    cleaner = TextCleaner()
+    assert cleaner.clean_row("see www.example.com") == "see www.example.com"
+    assert cleaner.clean_row("mail a@b.com now") == "mail a@b.com now"
+
+
+@pytest.mark.parametrize(
+    "input_val, expected_output",
+    [
+        ("if a < b and c > d", "if a < b and c > d"),
+        ("3 < 5 > 2", "3 < 5 > 2"),
+        ("x<5 and y>3", "x<5 and y>3"),
+        ("<p>Hello</p> World", "hello world"),
+        ('<a href="x">link</a>', "link"),
+        ("a<br/>b", "a b"),
+        ("<!-- note -->kept", "kept"),
+        ("<!DOCTYPE html>text", "text"),
+    ],
+)
+def test_text_clean_html_only_strips_real_tags(input_val, expected_output):
+    assert TextCleaner().clean_row(input_val) == expected_output
+
+
+@pytest.mark.parametrize("input_val", ["''", '""', "  ''  "])
+def test_text_clean_empty_quotes_become_none(input_val):
+    assert TextCleaner().clean_row(input_val) is None
+
+
+def test_text_clean_limits_stacked_combining_marks():
+    zalgo = "Z͈͛͡alg̃o"
+    assert TextCleaner().clean_row(zalgo) == "z͈͛alg̃o"
+    assert TextCleaner(max_combining_marks=None).clean_row(zalgo) == zalgo.lower()
+    assert TextCleaner(max_combining_marks=0).clean_row(zalgo) == "zalgo"
+
+
+def test_text_clean_combining_marks_keep_normal_scripts():
+    cleaner = TextCleaner()
+    # Composed accents, Vietnamese tone marks, Indic vowel signs and Arabic
+    # with two marks all stay intact.
+    for text in ("café", "nguyễn", "हिन्दी"):
+        assert cleaner.clean_row(text) == text
+    # NFC reorders the two Arabic marks into canonical order but keeps both.
+    assert cleaner.clean_row("\u0628\u0651\u064e") == "\u0628\u064e\u0651"
+
+
+# ==============================================================================
+# 7. SYMBOL AND NUMBER REMOVAL (OFF BY DEFAULT)
+# ==============================================================================
+
+
+def test_text_clean_symbols_and_numbers_are_kept_by_default():
+    cleaner = TextCleaner()
+    assert cleaner.clean_row("Pay $5 + 3 © \U0001f600") == "pay $5 + 3 © \U0001f600"
+
+
+@pytest.mark.parametrize(
+    "input_val, expected_output",
+    [
+        ("Pay $5 + 3 = 8", "pay 5 3 8"),
+        ("£1,000 ₹500", "1,000 500"),
+        ("hello \U0001f600 world ©", "hello world"),
+        # Punctuation is not a symbol, so it stays.
+        ("Hello, world! (ok)", "hello, world! (ok)"),
+        ("a<b>c", "abc"),
+    ],
+)
+def test_text_clean_remove_symbols(input_val, expected_output):
+    assert (
+        TextCleaner(remove_symbols=True, remove_html=False).clean_row(input_val)
+        == expected_output
+    )
+
+
+def test_text_clean_remove_digits_strips_numbers():
+    cleaner = TextCleaner(remove_digits=True)
+    assert cleaner.clean_row("Order 12345 is ready") == "order is ready"
+    assert cleaner.clean_row("१२३ abc") == "abc"
