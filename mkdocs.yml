@@ -26,6 +26,7 @@ nav:
     - Engines, Catalogs & Plugins: plugins.md
     - Configuration: configuration.md
     - Roadmap: rust-migrate-plan.md
+    - First Release Plan: release-plan.md
 
 plugins:
     - search
