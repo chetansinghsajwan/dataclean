@@ -180,3 +180,16 @@ class TestPandasDataFrame(BaseDataFrameTests):
         agg_config = {"value": lambda x: x.sum()}
         result = numeric_wrapper.agg(agg_config)
         assert result.count() > 0
+
+
+def test_bool_and_int_outputs_keep_nulls() -> None:
+    """Nulls must not be coerced to False or 0 when casting to BOOL or INT."""
+    from dataclean import DataType
+
+    wrapper = PandasDataFrame(df=pd.DataFrame({"a": [True, None], "b": [2, None]}))
+    wrapper.cast_cols({"a": DataType.BOOL, "b": DataType.INT})
+
+    assert wrapper.df["a"].tolist()[0] is True
+    assert wrapper.df["a"].isna().tolist() == [False, True]
+    assert wrapper.df["b"].isna().tolist() == [False, True]
+    assert dict(wrapper.cols()) == {"a": DataType.BOOL, "b": DataType.INT}

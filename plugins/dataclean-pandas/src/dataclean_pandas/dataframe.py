@@ -155,8 +155,8 @@ class PandasDataFrame(DataFrame):
 
         mapping: dict[DataType, Any] = {
             DataType.STR: object,
-            DataType.BOOL: bool,
-            DataType.INT: np.int64,
+            DataType.BOOL: "boolean",
+            DataType.INT: "Int64",
             DataType.FLOAT: np.float64,
             DataType.DOUBLE: np.float64,
             DataType.DATE: "datetime64[ns]",
@@ -170,7 +170,7 @@ class PandasDataFrame(DataFrame):
         Converts native Pandas/NumPy type schemas back to your framework string Literals.
         """
 
-        dtype_str = str(dtype)
+        dtype_str = str(dtype).lower()
         if "datetime" in dtype_str:
             return DataType.DATETIME
         elif "int" in dtype_str:
