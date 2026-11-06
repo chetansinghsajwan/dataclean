@@ -9,7 +9,7 @@ This plan covers what must be done before the first public release of
 
 | Order | Item | Depends on | Size |
 | --- | --- | --- | --- |
-| 1 | Collect sample datasets | none | S |
+| 1 | Collect sample datasets (done) | none | S |
 | 2 | Cleaner audit: implement and auto-detect | 1 | L |
 | 3 | Override automatic cleaner allocation | none | S |
 | 4 | Retain original values | none | M |
@@ -22,6 +22,9 @@ This plan covers what must be done before the first public release of
 ## Details
 
 ### 1. Sample datasets
+
+Status: done. The datasets in `tests/fixtures/` are accepted as safe to
+publish. The two contact files and the case list were reviewed value by value.
 
 - Pick 5 to 8 messy datasets that together exercise every cleaner, including
   Indian data such as phone numbers, PIN codes, GSTIN and names.
@@ -100,12 +103,11 @@ This plan covers what must be done before the first public release of
 - **Versioning:** decide plugin versioning and the publish order for
   `dataclean` and its plugins.
 - **Docs:** the docs match the scheme-prefix path routing and the new options.
-- **Public repo hygiene:** dataset licenses are checked, no secrets or
-  internal data are in the history, and the release workflow publishes to PyPI.
+- **Public repo hygiene:** no secrets or internal data are in the history, and the release workflow
+  publishes to PyPI.
 
 ## Open questions
 
-- Dataset sources: real data to anonymize, or synthetic?
 - Release scope: core plus pandas and databricks only, with ibis and cch-crm
   deferred?
 - dbt: is the Python-model route acceptable for v1?
