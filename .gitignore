@@ -227,3 +227,5 @@ __marimo__/
 .devbox/
 
 .claude/worktrees/
+
+.tmp/
