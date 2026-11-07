@@ -1,11 +1,12 @@
 """Cleaner for validating and re-formatting UUID strings."""
 
 import re
+import unicodedata
 import uuid
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import override
+from typing import ClassVar, override
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
@@ -19,15 +20,25 @@ class UuidCleaner(Cleaner):
     """Validates and re-formats UUID strings, tolerating common surface noise.
 
     Strips surrounding quoting/bracket characters and a leading
-    "urn:uuid:" prefix, then attempts to parse the value as a UUID; if that
-    fails, falls back to extracting exactly 32 hex characters from the
-    remaining text. Optionally restricts accepted values to specific UUID
+    "urn:uuid:" or "0x" prefix, then accepts the value only if it is a
+    UUID in a recognizable shape: 32 hex digits, or the 8-4-4-4-12 groups
+    joined by one repeated separator ("-", "_", "." or a space). Anything else
+    becomes None. Optionally restricts accepted values to specific UUID
     versions.
 
     Attributes:
         out_format: The output layout to render valid UUIDs as.
         allowed_versions: If set, only UUIDs whose version is in this set
             are accepted; None accepts any valid version.
+        allow_nil: If False, the nil UUID (all zeros) is treated as a
+            placeholder and becomes None.
+        allow_max: If False, the max UUID (all f) is treated as a
+            placeholder and becomes None.
+        extract_from_text: If True, a single UUID is also pulled out of
+            surrounding text, so ``id: <uuid>`` and ``<uuid>, extra`` are
+            cleaned to the UUID. Off by default because it can read a UUID
+            out of a free-text value that is not an identifier at all. If
+            the text holds more than one UUID, the value becomes None.
     """
 
     class Format(StrEnum):
@@ -41,6 +52,21 @@ class UuidCleaner(Cleaner):
 
     # Restrict to specific versions (e.g., {4, 7}). Set to None to accept any valid version.
     allowed_versions: set[int] | None = None
+    allow_nil: bool = False
+    allow_max: bool = False
+    extract_from_text: bool = False
+
+    _SEPARATORS: ClassVar[str] = r"[-_. ]"
+    _SHAPE_RE: ClassVar[re.Pattern] = re.compile(
+        r"[0-9a-f]{32}"
+        r"|[0-9a-f]{8}(?P<sep>[-_. ])[0-9a-f]{4}(?P=sep)[0-9a-f]{4}(?P=sep)"
+        r"[0-9a-f]{4}(?P=sep)[0-9a-f]{12}"
+    )
+    _EMBEDDED_RE: ClassVar[re.Pattern] = re.compile(
+        r"(?<![0-9a-f])(?:[0-9a-f]{32}"
+        r"|[0-9a-f]{8}(?P<sep>[-_. ])[0-9a-f]{4}(?P=sep)[0-9a-f]{4}(?P=sep)"
+        r"[0-9a-f]{4}(?P=sep)[0-9a-f]{12})(?![0-9a-f])"
+    )
 
     @override
     def clean_row(self, v: str) -> str | None:  # type: ignore
@@ -51,28 +77,34 @@ class UuidCleaner(Cleaner):
 
         Returns:
             The UUID rendered per ``out_format``, or None if ``v`` cannot be
-            parsed as a UUID (including via the 32-hex-character fallback),
+            in a recognized UUID shape (or the version is excluded),
             or if its version is excluded by ``allowed_versions``.
         """
 
-        # Base class contract guarantees v arrives stripped and non-empty
-        normalized = v.lower().strip("'\"{}()[]")
+        # Base class contract guarantees v arrives stripped and non-empty.
+        # NFKC turns full-width digits into ASCII before the shape check.
+        normalized = unicodedata.normalize("NFKC", v).lower().strip("'\"{}()[]")
 
-        if normalized.startswith("urn:uuid:"):
-            normalized = normalized[9:]
+        for prefix in ("urn:uuid:", "0x"):
+            if normalized.startswith(prefix):
+                normalized = normalized[len(prefix) :]
+                break
 
-        # 1. Fast-Path Attempt: Native execution check
-        try:
-            uuid_obj = uuid.UUID(normalized)
-        except ValueError:
-            # 2. Resilient Fallback: Isolate pure hex tokens from messy text anomalies
-            hex_only = "".join(re.findall(r"[0-9a-f]", normalized))
-            if len(hex_only) != 32:
+        match = self._SHAPE_RE.fullmatch(normalized)
+        if match is None and self.extract_from_text:
+            found = [m.group(0) for m in self._EMBEDDED_RE.finditer(normalized)]
+            if len(found) != 1:
                 return None
-            try:
-                uuid_obj = uuid.UUID(hex_only)
-            except ValueError:
-                return None
+            match = self._SHAPE_RE.fullmatch(found[0])
+        if match is None:
+            return None
+
+        uuid_obj = uuid.UUID(re.sub(self._SEPARATORS, "", match.group(0)))
+
+        if (uuid_obj == uuid.UUID(int=0) and not self.allow_nil) or (
+            uuid_obj == uuid.UUID(int=(1 << 128) - 1) and not self.allow_max
+        ):
+            return None
 
         # Allow only specific UUID versions if set
         if (

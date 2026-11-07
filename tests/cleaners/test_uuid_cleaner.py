@@ -92,3 +92,81 @@ def test_uuid_version_enforcement():
     # Allow any valid version configuration -> passes seamlessly now
     lax_cleaner = UuidCleaner(allowed_versions=None)
     assert lax_cleaner.clean_row(v4_uuid) is not None
+
+
+# ==============================================================================
+# NIL AND MAX UUID PLACEHOLDERS
+# ==============================================================================
+
+NIL = "00000000-0000-0000-0000-000000000000"
+MAX = "ffffffff-ffff-ffff-ffff-ffffffffffff"
+
+
+@pytest.mark.parametrize("value", [NIL, MAX, "{" + NIL + "}", MAX.upper()])
+def test_uuid_nil_and_max_become_none_by_default(value):
+    assert UuidCleaner().clean_row(value) is None
+
+
+def test_uuid_allow_nil_and_allow_max_flags_are_independent():
+    assert UuidCleaner(allow_nil=True).clean_row(NIL) == NIL
+    assert UuidCleaner(allow_nil=True).clean_row(MAX) is None
+    assert UuidCleaner(allow_max=True).clean_row(MAX) == MAX
+    assert UuidCleaner(allow_max=True).clean_row(NIL) is None
+
+
+# ==============================================================================
+# STRICT SHAPES, 0x PREFIX AND TEXT EXTRACTION
+# ==============================================================================
+
+GOOD = "3f2504e0-4f89-11d3-9a0c-0305e82c3304"
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "0x3f2504e04f8911d39a0c0305e82c3304",
+        "3f2504e0 4f89 11d3 9a0c 0305e82c3304",
+        "3f2504e0_4f89_11d3_9a0c_0305e82c3304",
+        "３f2504e0-4f89-11d3-9a0c-0305e82c3304",
+    ],
+)
+def test_uuid_accepts_known_shapes(value):
+    assert UuidCleaner().clean_row(value) == GOOD
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "deadbeef deadbeef deadbeef deadbeef",
+        "3f2504e04f89-11d3-9a0c0305e82c3304",
+        "3f2504e0-4f89_11d3-9a0c-0305e82c3304",
+        "3f2504e0-4f89-11d3-9a0c-0305e82c330",
+        "3f2504e0-4f89-11d3-9a0c-0305e82c33045",
+        "id: " + GOOD,
+        GOOD + ", extra",
+        "no. " + GOOD,
+    ],
+)
+def test_uuid_rejects_other_shapes_and_embedded_text_by_default(value):
+    assert UuidCleaner().clean_row(value) is None
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["id: " + GOOD, GOOD + ", extra", "no. " + GOOD, "ref=" + GOOD.upper() + "."],
+)
+def test_uuid_extract_from_text_pulls_one_uuid(value):
+    assert UuidCleaner(extract_from_text=True).clean_row(value) == GOOD
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        GOOD + " and " + GOOD.replace("3304", "3305"),
+        "no uuid here",
+        "deadbeef deadbeef deadbeef deadbeef",
+        "e3f2504e0-4f89-11d3-9a0c-0305e82c3304",
+    ],
+)
+def test_uuid_extract_from_text_rejects_none_or_many(value):
+    assert UuidCleaner(extract_from_text=True).clean_row(value) is None
