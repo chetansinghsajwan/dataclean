@@ -27,6 +27,7 @@ from .cleaners import (
     NumericCleaner,
     PhoneCleaner,
     TextCleaner,
+    UrlCleaner,
     UuidCleaner,
 )
 from .col_renamer import ColRenamer

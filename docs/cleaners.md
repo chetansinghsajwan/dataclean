@@ -1,6 +1,6 @@
 # Built-in Cleaners
 
-All 12 cleaners live under `dataclean.cleaners`. Their constructor
+All 13 cleaners live under `dataclean.cleaners`. Their constructor
 parameters, expected input/output roles, and `match_score` heuristics are
 summarized here; see [Concepts](concepts.md) for how `match_score` and
 auto-detection fit together generally.
@@ -18,6 +18,7 @@ auto-detection fit together generally.
 | `NumericCleaner` | Parses/reformats numeric values | name tokens (30%) + value sampling (70%) | Yes |
 | `PhoneCleaner` | Parses/reformats phone numbers | `phone`/`tel`/`mobile`/`fax`/`contact_no` in column name | Yes |
 | `TextCleaner` | General free-text normalization | text-ish tokens, else a `0.1` baseline (never `0.0`) | Yes |
+| `UrlCleaner` | Normalizes web addresses | `url`/`uri`/`href`/`link` word or `website`/`homepage` in column name | Yes |
 | `UuidCleaner` | Normalizes UUID strings | `uuid`/`guid`/`pk_id`/`session_token` in column name | Yes |
 
 ## AddressCleaner
@@ -391,6 +392,32 @@ UuidCleaner(allowed_versions={7}).clean_row(some_v4_uuid)  # -> None (wrong vers
 ```
 
 ::: dataclean.cleaners.UuidCleaner
+
+## UrlCleaner
+
+- **Params**: `out_format` (`Format.FULL` (default) or `DOMAIN`, the host
+  only), `default_scheme` (`"https"` (default) or `"http"`).
+- **Output**: single STR column, cleaned in place.
+- **Behavior**: trims whitespace, invisible characters and wrapping quotes or
+  `<>`, adds `default_scheme` when missing (`www.x.com`, `//x.com`),
+  lowercases the scheme and host, and drops the default port, a trailing dot
+  on the host and a lone `/` after it. Path, query, fragment, `www.` and the
+  `http` scheme are kept. Only `http` and `https` are accepted; other schemes
+  (`javascript:`, `mailto:`, `ftp:`), invalid hosts and values with spaces
+  become `None`. Of several URLs in one value (separated by `;`, `|`, `,` or
+  `or`) the first valid one is used. Internationalized hosts stay in Unicode.
+- **Detection**: names with a `url`, `uri`, `href` or `link` word, or
+  `website`/`homepage`. A name with an `id` word is left alone.
+
+```python
+from dataclean import UrlCleaner
+
+UrlCleaner().clean_row("WWW.Example.com:443/")  # -> "https://www.example.com"
+```
+
+::: dataclean.cleaners.UrlCleaner
+
+## What's next
 
 ## What's next
 

@@ -21,6 +21,7 @@ from .cleaners import (
     NumericCleaner,
     PhoneCleaner,
     TextCleaner,
+    UrlCleaner,
     UuidCleaner,
 )
 from .col_renamer import ColRenamer
@@ -87,6 +88,7 @@ class Config:
         self.register_cleaner(NumericCleaner())
         self.register_cleaner(PhoneCleaner())
         self.register_cleaner(TextCleaner())
+        self.register_cleaner(UrlCleaner())
         self.register_cleaner(UuidCleaner())
 
     def register_dataframe(self, api: type[DataFrame]) -> None:

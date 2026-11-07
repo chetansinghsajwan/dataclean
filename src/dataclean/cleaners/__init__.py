@@ -12,4 +12,5 @@ from .name_cleaner import NameCleaner
 from .numeric_cleaner import NumericCleaner
 from .phone_cleaner import PhoneCleaner
 from .text_cleaner import TextCleaner
+from .url_cleaner import UrlCleaner
 from .uuid_cleaner import UuidCleaner

@@ -55,12 +55,12 @@ cleaner applies to which column.
 
 ## What's registered out of the box
 
-`Config.__post_init__` auto-registers 11 of the 12 cleaners exported from
+`Config.__post_init__` auto-registers 12 of the 13 cleaners exported from
 `dataclean`:
 
 `AddressCleaner`, `BoolCleaner`, `CountryCleaner`, `DateTimeCleaner`,
 `EmailCleaner`, `GenderCleaner`, `NameCleaner`, `NumericCleaner`,
-`PhoneCleaner`, `TextCleaner`, `UuidCleaner`.
+`PhoneCleaner`, `TextCleaner`, `UrlCleaner`, `UuidCleaner`.
 
 `EnumCleaner` is **not** auto-registered — it requires a `cases=` argument at
 construction time, so there's no sensible default to register. Use it by
