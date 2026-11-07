@@ -83,20 +83,20 @@ def test_gender_cleaner_auto_matching_case_insensitive(mock_df_with_value_counts
         ("man", GenderCleaner.Format.FULL, "Male"),
         ("boy", GenderCleaner.Format.FULL, "Male"),
         ("male", GenderCleaner.Format.CHAR, "M"),
-        ("male", GenderCleaner.Format.BINARY, "1"),
+        ("male", GenderCleaner.Format.BINARY, 1),
         # --- Female Mapping Permutations ---
         ("female", GenderCleaner.Format.FULL, "Female"),
         ("f", GenderCleaner.Format.FULL, "Female"),
         ("woman", GenderCleaner.Format.FULL, "Female"),
         ("girl", GenderCleaner.Format.FULL, "Female"),
         ("female", GenderCleaner.Format.CHAR, "F"),
-        ("female", GenderCleaner.Format.BINARY, "0"),
+        ("female", GenderCleaner.Format.BINARY, 0),
         # --- Other/Non-Binary Mapping Permutations ---
         ("other", GenderCleaner.Format.FULL, "Other"),
         ("o", GenderCleaner.Format.FULL, "Other"),
         ("non-binary", GenderCleaner.Format.FULL, "Other"),
         ("other", GenderCleaner.Format.CHAR, "O"),
-        ("other", GenderCleaner.Format.BINARY, "-1"),
+        ("other", GenderCleaner.Format.BINARY, -1),
     ],
 )
 def test_clean_value_format_translations(input_value, target_format, expected_output):
@@ -146,3 +146,108 @@ def test_gender_cleaner_still_matches_string_values():
 
     df = _pandas_df(who=["M", "F", "male", "female"])
     assert GenderCleaner().match_score(df, ("who",)) > 0.5
+
+
+# ==============================================================================
+# 4. VARIANTS, TYPOS, ISO 5218 CODES AND UNKNOWN VALUES
+# ==============================================================================
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("x", "Other"),
+        ("X", "Other"),
+        ("nonbinary", "Other"),
+        ("Non Binary", "Other"),
+        ("Transgender", "Other"),
+        ("trans", "Other"),
+        ("TG", "Other"),
+        ("Intersex", "Other"),
+        ("Genderqueer", "Other"),
+        ("Prefer not to disclose", "Other"),
+        ("Mr", "Male"),
+        ("Sir", "Male"),
+        ("he", "Male"),
+        ("Gents", "Male"),
+        ("Mrs", "Female"),
+        ("Ms", "Female"),
+        ("Miss", "Female"),
+        ("Madam", "Female"),
+        ("she", "Female"),
+        ("Ladies", "Female"),
+    ],
+)
+def test_gender_cleaner_reads_more_variants(value, expected):
+    assert GenderCleaner().clean_row(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("Mal", "Male"),
+        ("Femal", "Female"),
+        ("Femlae", "Female"),
+        ("Non-binry", "Other"),
+        ("Tansgender", "Other"),
+    ],
+)
+def test_gender_cleaner_accepts_small_typos(value, expected):
+    assert GenderCleaner().clean_row(value) == expected
+
+
+def test_gender_cleaner_typos_never_cross_between_genders():
+    cleaner = GenderCleaner()
+    assert cleaner.clean_row("male") == "Male"
+    assert cleaner.clean_row("female") == "Female"
+    assert cleaner.clean_row("mail") is None
+    assert cleaner.clean_row("mother") is None
+
+
+def test_gender_cleaner_fuzzy_matching_can_be_turned_off():
+    cleaner = GenderCleaner(fuzzy_threshold=1.0)
+    assert cleaner.clean_row("Femal") is None
+    assert cleaner.clean_row("female") == "Female"
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [("1", "Male"), ("2", "Female"), ("0", None), ("9", None)],
+)
+def test_gender_cleaner_uses_iso_5218_codes(value, expected):
+    assert GenderCleaner().clean_row(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value", ["U", "u", "Unknown", "Not Specified", "N/A", "alien"]
+)
+def test_gender_cleaner_unknown_values_become_none(value):
+    assert GenderCleaner().clean_row(value) is None
+
+
+# ==============================================================================
+# 5. CONFIGURATION
+# ==============================================================================
+
+
+def test_gender_cleaner_binary_output_is_an_integer_column():
+    cleaner = GenderCleaner(format=GenderCleaner.Format.BINARY)
+    assert cleaner.outputs.cols[0].dtype == DataType.INT
+    assert cleaner.clean_row("m") == 1
+    assert isinstance(cleaner.clean_row("f"), int)
+    assert GenderCleaner(format=GenderCleaner.Format.CHAR).outputs.cols[0].dtype == (
+        DataType.STR
+    )
+
+
+def test_gender_cleaner_honours_custom_matching_words():
+    cleaner = GenderCleaner(cleaner_matching_words=["pronoun"])
+    assert cleaner._matches_name("user_pronoun")
+    assert not cleaner._matches_name("gender")
+
+
+def test_gender_cleaner_instances_do_not_share_defaults():
+    first = GenderCleaner(extra_genders={"other": ["mx"]})
+    second = GenderCleaner()
+    assert first.clean_row("mx") == "Other"
+    assert second.clean_row("mx") is None
