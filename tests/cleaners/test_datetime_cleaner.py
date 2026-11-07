@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock
+from zoneinfo import ZoneInfoNotFoundError
 
 import pytest
 
@@ -85,6 +86,110 @@ def test_datetime_clean_value_returns_none_on_bad_string():
 
 
 # ==============================================================================
+# 3. FORMATS, DAY ORDER, PLACEHOLDER DATES AND TIMEZONES
+# ==============================================================================
+
+
+@pytest.mark.parametrize(
+    "input_val, expected_output",
+    [
+        # Date-only input stays a date; input with a time stays a datetime.
+        ("1985-03-14", "1985-03-14"),
+        ("1985-03-14 00:00:00", "1985-03-14T00:00:00"),
+        ("19850314", "1985-03-14"),
+        ("1985.03.14", "1985-03-14"),
+        ("14 Mar 1985", "1985-03-14"),
+        ("14 March 1985", "1985-03-14"),
+        ("March 14, 1985", "1985-03-14"),
+        ("14-Mar-1985", "1985-03-14"),
+        ("15/01/2020 10:30", "2020-01-15T10:30:00"),
+        ("2020-01-15 10:30 PM", "2020-01-15T22:30:00"),
+        ("2020-01-15T10:30:00.5", "2020-01-15T10:30:00.500000"),
+        ("22:45", "22:45:00"),
+    ],
+)
+def test_datetime_auto_output_follows_the_input(input_val, expected_output):
+    assert DateTimeCleaner().clean_row(input_val) == expected_output
+
+
+@pytest.mark.parametrize(
+    "input_val",
+    [
+        "31/02/1990",
+        "2026/13/45",
+        "yesterday",
+        "14-03-85",
+        "2020-01-15 25:00",
+        "13:00 PM",
+    ],
+)
+def test_datetime_rejects_impossible_and_unreadable_values(input_val):
+    assert DateTimeCleaner().clean_row(input_val) is None
+
+
+def test_datetime_day_first_controls_numeric_order():
+    assert DateTimeCleaner().clean_row("03/04/1985") == "1985-04-03"
+    assert DateTimeCleaner().clean_row("03/14/1985") is None
+    month_first = DateTimeCleaner(day_first=False)
+    assert month_first.clean_row("03/04/1985") == "1985-03-04"
+    assert month_first.clean_row("03/14/1985") == "1985-03-14"
+    assert month_first.clean_row("19/06/2026") is None
+    # Year-first values do not depend on the flag.
+    assert month_first.clean_row("2026-06-19") == "2026-06-19"
+
+
+@pytest.mark.parametrize(
+    "input_val", ["0001-01-01", "1900-01-01", "2099-12-31", "9999-12-31"]
+)
+def test_datetime_placeholder_dates_become_none_unless_disabled(input_val):
+    assert DateTimeCleaner().clean_row(input_val) is None
+    assert DateTimeCleaner().clean_row(input_val + " 00:00:00") is None
+    kept = DateTimeCleaner(null_placeholder_dates=False)
+    assert kept.clean_row(input_val) == input_val
+
+
+def test_datetime_min_and_max_date():
+    from datetime import date
+
+    cleaner = DateTimeCleaner(min_date=date(1920, 1, 1), max_date=date(2030, 1, 1))
+    assert cleaner.clean_row("1919-12-31") is None
+    assert cleaner.clean_row("1920-01-01") == "1920-01-01"
+    assert cleaner.clean_row("2030-01-02") is None
+
+
+def test_datetime_converts_offsets_to_the_default_timezone():
+    assert (
+        DateTimeCleaner().clean_row("2020-01-15T10:30:00Z")
+        == "2020-01-15T10:30:00+00:00"
+    )
+    assert (
+        DateTimeCleaner().clean_row("2020-01-15T10:30:00+05:30")
+        == "2020-01-15T05:00:00+00:00"
+    )
+    india = DateTimeCleaner(default_timezone="Asia/Kolkata")
+    assert india.clean_row("2020-01-15T10:30:00Z") == "2020-01-15T16:00:00+05:30"
+    # No offset: taken to be in the default timezone and left as written.
+    assert india.clean_row("2020-01-15 10:30:00") == "2020-01-15T10:30:00"
+    # The date changes when the conversion crosses midnight.
+    assert india.clean_row("2020-01-15T20:00:00Z") == "2020-01-16T01:30:00+05:30"
+    assert (
+        DateTimeCleaner(out_format=DateTimeCleaner.Format.ISO_DATE).clean_row(
+            "2020-01-15T20:00:00-05:00"
+        )
+        == "2020-01-16"
+    )
+
+
+def test_datetime_time_only_with_offset_is_rejected():
+    assert DateTimeCleaner().clean_row("22:45+05:30") is None
+
+
+def test_datetime_unknown_timezone_name_is_rejected():
+    with pytest.raises(ZoneInfoNotFoundError):
+        DateTimeCleaner(default_timezone="Mars/Olympus")
+
+
+# ==============================================================================
 # 4. ALREADY-TYPED TEMPORAL COLUMNS ARE LEFT ALONE
 # ==============================================================================
 
@@ -130,4 +235,4 @@ def test_pipeline_does_not_turn_temporal_columns_into_strings():
     assert types["date_text"] == DataType.STR
     result = cleaned.df
     assert result is not None
-    assert result["date_text"].tolist() == ["2024-01-02T00:00:00"]
+    assert result["date_text"].tolist() == ["2024-01-02"]
