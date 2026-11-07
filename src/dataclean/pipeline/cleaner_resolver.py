@@ -33,9 +33,10 @@ class Resolver:
         """Resolve dataframe columns to cleaner assignments.
 
         Explicit mappings are honored first and claim their column outright
-        (confidence 1.0). Remaining cleaners are then tried in order of most
-        required input columns first, so multi-column (constrained) cleaners
-        get first pick of columns before looser, single-column cleaners.
+        (confidence 1.0). Remaining cleaners are then tried with group
+        cleaners first, then by most required input columns, so multi-column
+        (constrained) cleaners get first pick of columns before looser,
+        single-column cleaners.
         Columns that no cleaner claims with sufficient confidence are left
         untouched (absent from the returned assignments).
 
@@ -68,9 +69,15 @@ class Resolver:
             )
             unclaimed.remove(column)
 
+        # Group cleaners (not led by the primary role) go first even when all
+        # their roles are optional, so they are not outranked by single-column
+        # cleaners that have one required role.
         ordered_cleaners = sorted(
             self.cleaners,
-            key=lambda cleaner: sum(col.required for col in cleaner.inputs.cols),
+            key=lambda cleaner: (
+                cleaner.inputs.cols[0].key != PRIMARY,
+                sum(col.required for col in cleaner.inputs.cols),
+            ),
             reverse=True,
         )
         for cleaner in ordered_cleaners:

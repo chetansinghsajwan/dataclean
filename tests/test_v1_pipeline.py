@@ -100,8 +100,8 @@ def test_pipeline_wraps_pandas_dataframe() -> None:
 
 def test_address_cleaner_accepts_positional_input() -> None:
     result = AddressCleaner().clean_row(
-        "Maharashtra", "India", "123 Main Street", "Mumbai", "400001"
+        "123 Main Street", None, None, "Mumbai", "Maharashtra", "400001"
     )
     assert result is not None
-    assert result[0] == "India"
-    assert result[2] == "400001"
+    assert result[0] == "Maharashtra"
+    assert result[1] == "400001"

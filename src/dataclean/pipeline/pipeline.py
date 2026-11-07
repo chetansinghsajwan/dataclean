@@ -261,10 +261,18 @@ class Pipeline:
             i for i, key in enumerate(ordered_keys) if key in required_keys
         )
         output_count = 1 if len(cols) <= 1 else len(cols)
+        # clean_row takes one argument per input role, in schema order, while
+        # read_columns holds only the roles that found a column. Map each
+        # argument to its read position so a missing optional role passes None
+        # instead of shifting later values into the wrong parameter.
+        arg_positions = tuple(
+            ordered_keys.index(col.key) if col.key in ordered_keys else None
+            for col in cleaner.inputs.cols
+        )
 
         return DataWriter(
             expr=self._guarded_expr(
-                cleaner.clean_row, required_positions, output_count
+                cleaner.clean_row, required_positions, output_count, arg_positions
             ),
             read_cols=read_columns,
             write_cols=write_columns,
@@ -292,6 +300,7 @@ class Pipeline:
         clean_row: Callable[..., Any],
         required_positions: tuple[int, ...],
         output_count: int,
+        arg_positions: tuple[int | None, ...],
     ) -> Callable[..., Any]:
         """Wrap a cleaner's clean_row to normalize inputs and skip missing rows.
 
@@ -310,6 +319,9 @@ class Pipeline:
             output_count: Number of output values `clean_row` produces, used
                 to build the correctly-shaped "missing" result when the call
                 is skipped.
+            arg_positions: For each `clean_row` argument in order, the index
+                of its value among the values passed in, or None when that
+                role has no column and the argument is passed as None.
 
         Returns:
             A callable that normalizes its inputs, returns None (or a tuple
@@ -323,6 +335,8 @@ class Pipeline:
             normalized = tuple(_normalize(value) for value in values)
             if any(normalized[i] is None for i in required_positions):
                 return none_result
-            return clean_row(*normalized)
+            return clean_row(
+                *(None if i is None else normalized[i] for i in arg_positions)
+            )
 
         return guarded

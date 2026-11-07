@@ -71,9 +71,10 @@ does, in order:
 A single-output cleaner overwrites its input column. A multi-output cleaner
 (e.g. `AddressCleaner`) writes new `<input>_<output>_cleaned` columns, where
 `<input>` is the primary `value` column or, failing that, the first
-*required* input role's column (e.g. `address1_street_cleaned`). A cleaner is
-never its own context producer, so a role it both consumes and produces
-(like `AddressCleaner`'s `country`) is only satisfied by *another* cleaner.
+*required* input role's column, or the first column found when none is required
+(e.g. `address1_street_cleaned`). A cleaner is
+never its own context producer, so a role it both consumes and produces is only
+satisfied by *another* cleaner.
 
 Before `clean_row` is called, every input is normalized: strings are stripped
 of surrounding whitespace, and empty or whitespace-only strings count as
@@ -90,9 +91,10 @@ and don't need to guard against blank or padded values themselves.
 
 **Column ↔ cleaner assignment (`Resolver.resolve`,
 `src/dataclean/pipeline/cleaner_resolver.py`).** Explicit `column_cleaners`
-mappings always win first. Remaining cleaners are tried in order of *most
-required input columns first* (so a multi-column cleaner like
-`AddressCleaner` gets first pick over a permissive single-column one). A
+mappings always win first. Remaining cleaners are tried group cleaners first (those not led by the
+primary `value` role), then in order of *most required input columns first*
+(so a multi-column cleaner like `AddressCleaner` gets first pick over a
+permissive single-column one). A
 cleaner led by the primary `value` role (e.g. `EmailCleaner`, or
 `PhoneCleaner`, whose optional `country` input is a context role) is scored
 against every still-unclaimed column and may claim several at once (e.g.

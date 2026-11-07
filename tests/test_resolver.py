@@ -162,11 +162,12 @@ def test_address_cleaner_matches_numbered_address_columns() -> None:
 
     assert len(assignments) == 1
     assert dict(assignments[0].role_columns) == {
-        "county": "county",
-        "country": "country",
         "address_line1": "address1",
         "address_line2": "address2",
-        "address_line3": "postcode",
+        "address_line3": "address3",
+        "town": "town",
+        "county": "county",
+        "postcode": "postcode",
     }
 
 
@@ -179,12 +180,17 @@ def test_address_cleaner_still_matches_address_line_names() -> None:
     assert dict(assignments[0].role_columns) == {
         "address_line1": "address_line1",
         "address_line2": "address_line2",
-        "address_line3": "zip",
+        "postcode": "zip",
     }
 
 
-def test_address_cleaner_without_a_first_line_column_is_skipped() -> None:
+def test_address_cleaner_matches_without_a_first_line_column() -> None:
     from dataclean import AddressCleaner
 
     cols = {"county", "postcode"}
-    assert Resolver(cleaners=(AddressCleaner(),)).resolve(_df(*cols), cols) == ()
+    assignments = Resolver(cleaners=(AddressCleaner(),)).resolve(_df(*cols), cols)
+
+    assert dict(assignments[0].role_columns) == {
+        "county": "county",
+        "postcode": "postcode",
+    }

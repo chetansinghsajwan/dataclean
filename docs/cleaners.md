@@ -25,33 +25,39 @@ auto-detection fit together generally.
 Multi-column cleaner: takes address parts in and produces normalized address
 components out. No configuration options beyond the base `tags`/`inplace`.
 
-- **Inputs**: `county` (optional), `country` (optional), `address_line1`
-  (**required**), `address_line2` (optional — see note below),
-  `address_line3` (optional).
-- **Outputs**: `country`, `state`, `postcode`, `address_line`, `street`,
-  `house_no`.
-- **Behavior**: strips/title-cases `country` and `county`; strips
-  `address_line3`, uppercases it, and removes hyphens to derive `postcode`;
-  splits `address_line1` on whitespace — a leading numeric token becomes
-  `house_no`, the remainder becomes `street`.
+- **Inputs**: `address_line1`, `address_line2`, `address_line3`, `town`,
+  `county` and `postcode`, all optional. A group forms from any one matching
+  column, and a row is cleaned even when its first line is empty.
+- **Outputs**: `state`, `postcode`, `address_line`, `street`, `house_no`,
+  `town`, `address_line2`, `address_line3`.
+- **Behavior**: collapses whitespace in each address line; title-cases `town`
+  and `county` when they are written all lower or all upper case and look like
+  a place name (mixed case such as "McDonald Heights" is kept); uppercases the
+  postcode, drops hyphens, collapses whitespace and nulls a value with no
+  letter or digit (such as `???`), without reformatting the spacing inside it;
+  splits `address_line1` on whitespace, where a leading numeric token becomes
+  `house_no` and the remainder becomes `street`.
+- **Country**: there is no country input or output. `CountryCleaner` owns every
+  country column, including the country of an address, and cleans it in place.
 
 !!! note "Known gaps"
-    `address_line2` (city) is accepted as an input but is **not currently
-    used** by `clean_row` — it has no effect on the output. The `state`
-    output column is populated from the cleaned **county** value, not a
-    separate "state" concept — treat `state` as "cleaned county" until this
-    is revisited.
+    The `state` output column is populated from the cleaned **county** value,
+    not a separate "state" concept: treat `state` as "cleaned county". Because
+    no input is required, a lone column whose name contains a hint such as
+    `city` or `county` is claimed as an address group, and the output columns
+    are named after the first column found when there is no first line.
 
 ```python
 from dataclean import AddressCleaner
 
 AddressCleaner().clean_row(
-    county="uttar pradesh",
-    country="in",
     address_line1="221 Baker Street",
-    address_line3="ncr-110001",
+    town="london",
+    county="greater london",
+    postcode="nw1-6xe",
 )
-# -> ("In", "Uttar Pradesh", "NCR110001", "221 Baker Street", "Baker Street", "221")
+# -> ("Greater London", "NW16XE", "221 Baker Street", "Baker Street", "221",
+#     "London", None, None)
 ```
 
 ::: dataclean.cleaners.AddressCleaner
