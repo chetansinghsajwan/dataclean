@@ -1,6 +1,7 @@
 """Cleaner for parsing and normalizing phone numbers."""
 
 import re
+import unicodedata
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -13,6 +14,23 @@ from dataclean.types import checked
 
 from .cleaner import Cleaner
 from .country_cleaner import CountryCleaner
+
+# A leading label such as "tel:" or "mobile:".
+_LABEL = re.compile(r"^[A-Za-z][A-Za-z .]*:\s*")
+
+# A trailing word in brackets such as "(Mobile)" or "(fax)". Brackets with
+# digits, as in "+44 (0)20", are part of the number and are kept.
+_TRAILING_NOTE = re.compile(r"\s*\([^\d()]*[A-Za-z][^\d()]*\)\s*$")
+
+# Separators that put several numbers in one cell.
+_NUMBER_SEPARATORS = re.compile(r"\s*(?:[/;|,&]|\bor\b)\s*", re.IGNORECASE)
+
+
+def _to_ascii_digits(value: str) -> str:
+    """Replace digits of other scripts, such as Arabic-Indic, with 0-9."""
+    return "".join(
+        str(unicodedata.decimal(char)) if char.isdecimal() else char for char in value
+    )
 
 
 @checked
@@ -35,8 +53,13 @@ class PhoneCleaner(Cleaner):
     The row's ``country`` input (when supplied, e.g. from a country column
     in the same table) is resolved to a region and tried before
     ``default_regions``. If no region is known at all and the number is not
-    self-contained, it cannot be judged valid or invalid, so it is returned
-    unchanged (stripped) rather than being discarded as ``None``.
+    self-contained, it cannot be judged valid or invalid, so a value with
+    digits is returned unchanged (stripped) and one without is ``None``.
+
+    Labels ("tel:", "mobile:"), trailing notes ("(fax)"), the "00"
+    international prefix and non-ASCII digits are handled before parsing. A
+    cell holding several numbers, split by ``/``, ``;``, ``|``, ``,``, ``&``
+    or ``or``, gives the first one that cleans.
     """
 
     class Format(StrEnum):
@@ -79,13 +102,23 @@ class PhoneCleaner(Cleaner):
             The cleaned number rendered per ``out_format``; None if ``v`` is
             None or is not a valid number under any known region; or ``v``
             unchanged (stripped) if no region is known and it is not
-            self-contained, since validity cannot be determined.
+            self-contained, since validity cannot be determined, but only if
+            it has a digit.
         """
 
         if v is None:
             return None
 
-        normalized = v.strip()
+        # A cell may hold several numbers: the first one that cleans wins.
+        for part in _NUMBER_SEPARATORS.split(v):
+            cleaned = self._clean_number(part, country)
+            if cleaned is not None:
+                return cleaned
+        return None
+
+    def _clean_number(self, v: str, country: str | None) -> str | None:
+        """Clean a single number, as ``clean_row`` does for each part of a cell."""
+        normalized = self._strip_noise(v)
 
         if re.match(r"^\d+(\.\d+)?([eE][+-]?\d+)$", normalized):
             try:
@@ -95,9 +128,10 @@ class PhoneCleaner(Cleaner):
 
         regions = self._regions_for(country)
         if not regions and not normalized.startswith("+"):
-            # No region to validate against: keep the value rather than
-            # silently discarding a number that may well be valid.
-            return normalized
+            # No region to validate against: keep a value that has digits
+            # rather than discarding a number that may well be valid, and drop
+            # one with none, such as "abc" or "n/a".
+            return normalized if any(c.isdigit() for c in normalized) else None
 
         # Run at least once so self-contained formats (+91...) parse with no region.
         regions_to_try = regions if regions else (None,)
@@ -105,31 +139,45 @@ class PhoneCleaner(Cleaner):
         for region in regions_to_try:
             try:
                 parsed_num = phonenumbers.parse(normalized, region)
-
-                if phonenumbers.is_valid_number(parsed_num):
-                    match self.out_format:
-                        case PhoneCleaner.Format.E164:
-                            return phonenumbers.format_number(
-                                parsed_num, phonenumbers.PhoneNumberFormat.E164
-                            )
-                        case PhoneCleaner.Format.INTERNATIONAL:
-                            return phonenumbers.format_number(
-                                parsed_num, phonenumbers.PhoneNumberFormat.INTERNATIONAL
-                            )
-                        case PhoneCleaner.Format.NATIONAL:
-                            return phonenumbers.format_number(
-                                parsed_num, phonenumbers.PhoneNumberFormat.NATIONAL
-                            )
-                        case PhoneCleaner.Format.RAW_DIGITS:
-                            e164 = phonenumbers.format_number(
-                                parsed_num, phonenumbers.PhoneNumberFormat.E164
-                            )
-                            return e164.replace("+", "")
-
             except phonenumbers.NumberParseException:
                 continue
+            if phonenumbers.is_valid_number(parsed_num):
+                return self._render(parsed_num)
 
         return None
+
+    def _strip_noise(self, value: str) -> str:
+        """Strip labels, trailing notes and non-ASCII digits around a number.
+
+        Turns "tel:+44 20 7946 0958", "+36 209 457 414 (Mobile)" and
+        "00 44 20 7946 0958" into forms the parser accepts, and Arabic-Indic
+        digits into 0-9.
+        """
+        cleaned = _to_ascii_digits(value.strip())
+        cleaned = _LABEL.sub("", cleaned)
+        cleaned = _TRAILING_NOTE.sub("", cleaned).strip()
+        # "00" is the international dialing prefix in most countries.
+        return re.sub(r"^00\s*(?=\d)", "+", cleaned)
+
+    def _render(self, number: phonenumbers.PhoneNumber) -> str:
+        """Render a valid number in ``out_format``."""
+        match self.out_format:
+            case PhoneCleaner.Format.E164:
+                return phonenumbers.format_number(
+                    number, phonenumbers.PhoneNumberFormat.E164
+                )
+            case PhoneCleaner.Format.INTERNATIONAL:
+                return phonenumbers.format_number(
+                    number, phonenumbers.PhoneNumberFormat.INTERNATIONAL
+                )
+            case PhoneCleaner.Format.NATIONAL:
+                return phonenumbers.format_number(
+                    number, phonenumbers.PhoneNumberFormat.NATIONAL
+                )
+            case PhoneCleaner.Format.RAW_DIGITS:
+                return phonenumbers.format_number(
+                    number, phonenumbers.PhoneNumberFormat.E164
+                ).replace("+", "")
 
     def _regions_for(self, country: str | None) -> tuple[str, ...]:
         """Return the regions to try: the row's country first, then ``default_regions``."""

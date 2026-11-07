@@ -116,3 +116,64 @@ def test_phone_clean_value_invalid_returns_none():
 
     # 🚀 FIX 2: Acknowledge that the engine is powerful enough to extract phone numbers hidden inside text blobs!
     assert cleaner.clean_row("Call me at 9876543210") == "+919876543210"
+
+
+# ==============================================================================
+# 3. NOISE, ANNOTATIONS AND JUNK
+# ==============================================================================
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "tel:+442079460958",
+        "mobile: +44 20 7946 0958",
+        "+44 20 7946 0958 (fax)",
+        "+44 (0)20 7946 0958 (Mobile)",
+        "00 44 20 7946 0958",
+        "0044 20 7946 0958",
+    ],
+)
+def test_phone_strips_labels_notes_and_international_prefix(raw):
+    assert PhoneCleaner().clean_row(raw) == "+442079460958"
+
+
+def test_phone_label_and_note_are_stripped_with_a_region_too():
+    cleaner = PhoneCleaner(default_regions=("GB",))
+    assert cleaner.clean_row("mobile: 07911 123456") == "+447911123456"
+
+
+def test_phone_transliterates_non_ascii_digits():
+    assert PhoneCleaner().clean_row("٠١٢٣٤٥٦٧٨٩") == "0123456789"
+    assert PhoneCleaner(default_regions=("IN",)).clean_row("+٩١ ٩٨٧٦٥ ٤٣٢١٠") == (
+        "+919876543210"
+    )
+
+
+@pytest.mark.parametrize("raw", ["abc", "n/a", "N/A", "+", "---"])
+def test_phone_without_digits_is_none_even_when_no_region_is_known(raw):
+    assert PhoneCleaner().clean_row(raw) is None
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "+44 20 7946 0958 / 07911 123456",
+        "+44 20 7946 0958; +44 7911 123456",
+        "+44 20 7946 0958 or +44 7911 123456",
+        "+44 20 7946 0958, +44 7911 123456",
+        "n/a / +44 20 7946 0958",
+    ],
+)
+def test_phone_with_several_numbers_in_one_cell_keeps_the_first_valid(raw):
+    assert PhoneCleaner(default_regions=("GB",)).clean_row(raw) == "+442079460958"
+
+
+def test_phone_with_several_numbers_none_valid_is_none():
+    assert PhoneCleaner(default_regions=("GB",)).clean_row("abc / 12345") is None
+
+
+def test_phone_extension_is_dropped_when_the_number_is_valid():
+    cleaner = PhoneCleaner(default_regions=("GB",))
+    assert cleaner.clean_row("020 7946 0958 ext. 123") == "+442079460958"
+    assert cleaner.clean_row("+44 20 7946 0958x12") == "+442079460958"

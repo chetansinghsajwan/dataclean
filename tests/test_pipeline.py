@@ -240,3 +240,22 @@ def test_multi_output_columns_are_named_after_the_first_required_input() -> None
         "address1_postcode_cleaned",
     } <= names
     assert not any(name.startswith("county_") for name in names)
+
+
+def test_phone_uses_the_country_column_when_several_country_columns_exist() -> None:
+    from dataclean import PhoneCleaner
+
+    df = PandasDataFrame(
+        df=pd.DataFrame(
+            {
+                "tel": ["020 7946 0958", "9876543210"],
+                "country": ["United Kingdom", "India"],
+                "_client_country_of_incorporation": ["Malta", "Malta"],
+            }
+        )
+    )
+
+    cleaned = Pipeline(cleaners=(CountryCleaner(), PhoneCleaner())).fit_transform(df)
+
+    assert cleaned.df is not None
+    assert cleaned.df["tel"].tolist() == ["+442079460958", "+919876543210"]

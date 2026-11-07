@@ -313,17 +313,25 @@ NumericCleaner().clean_row("₹ 1,500.50")  # -> "1500.5"
   region codes to try, in order, when the number has no leading `+`;
   default `()`).
 - **Output**: single column, role `phone`.
-- **Behavior**: delegates to the `phonenumbers` library. Converts
-  scientific-notation-looking strings to plain digits first, then tries
-  each region (the row's `country` first, then `default_regions`; or none,
-  if the value is self-contained e.g. `+91...`) until one parses as a
-  valid number.
+- **Behavior**: delegates to the `phonenumbers` library. Before parsing it
+  converts scientific-notation-looking strings to plain digits, turns digits
+  of other scripts (such as Arabic-Indic) into `0-9`, strips a leading label
+  (`tel:`, `mobile:`) and a trailing note (`(Mobile)`, `(fax)`), and reads a
+  leading `00` as `+`. It then tries each region (the row's `country` first,
+  then `default_regions`; or none, if the value is self-contained e.g.
+  `+91...`) until one parses as a valid number. Extensions are dropped.
+- **Several numbers in one cell** (split by `/`, `;`, `|`, `,`, `&` or `or`)
+  give the first one that cleans; `None` if none does.
+- **Country column**: when a table has several country columns, the phone
+  columns take the one named exactly `country`, not a specific one such as
+  `_client_country_of_incorporation`.
 
 !!! warning "Numbers that cannot be judged are kept, not dropped"
     If no region is known (no `country` input and `default_regions` is
-    empty) and the number has no leading `+`, it can't be validated, so it
-    is returned unchanged (stripped) instead of `None`. With a known region,
-    a number that isn't valid there still returns `None`. Set
+    empty) and the number has no leading `+`, it can't be validated, so a
+    value with at least one digit is returned unchanged (stripped) instead of
+    `None`. A value with no digit, such as `abc` or `n/a`, is `None`. With a
+    known region, a number that isn't valid there also returns `None`. Set
     `default_regions` (or provide a country column) to get consistent
     formatting.
 

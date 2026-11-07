@@ -130,7 +130,8 @@ class DependencyResolver:
         candidate, disambiguation by namespace signal (the role name
         appearing in each candidate's identifying column), and finally
         disambiguation by entity-token overlap between the consumer and
-        candidate column names.
+        candidate column names. If those find no single best producer, the one
+        column named exactly after the role (e.g. ``country``) is used.
 
         A cleaner is never its own producer: a role it both consumes and
         produces (e.g. ``AddressCleaner``'s ``country``) is not satisfied by
@@ -200,6 +201,9 @@ class DependencyResolver:
         ]
 
         if not all(role_token in column.lower() for column in candidate_columns):
+            generic = self._generic_producer(role_token, candidates, candidate_columns)
+            if generic is not None:
+                return generic
             if required:
                 raise AmbiguousRoleError(
                     f"Role '{role}' has producers without namespace signals"
@@ -216,12 +220,33 @@ class DependencyResolver:
         best_score = max(scores)
 
         if best_score == 0.0 or scores.count(best_score) != 1:
+            generic = self._generic_producer(role_token, candidates, candidate_columns)
+            if generic is not None:
+                return generic
             if required:
                 raise AmbiguousRoleError(
                     f"Unable to disambiguate required role '{role}'"
                 )
             return None
         return candidates[scores.index(best_score)]
+
+    @staticmethod
+    def _generic_producer(
+        role_token: str, candidates: Sequence[int], columns: Sequence[str]
+    ) -> int | None:
+        """Pick the producer whose column is named exactly after the role.
+
+        The fallback when no producer matches the consumer better than the
+        others: a column named just ``country`` is the table's general one,
+        while ``_client_country_of_incorporation`` describes something
+        specific. Returns None unless exactly one producer is named that way.
+        """
+        exact = [
+            candidate
+            for candidate, column in zip(candidates, columns, strict=True)
+            if column.lower() == role_token
+        ]
+        return exact[0] if len(exact) == 1 else None
 
     def _producer_identity(self, assignment: Assignment) -> str:
         """Return the column name that identifies a producer assignment.
