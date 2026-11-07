@@ -145,3 +145,89 @@ def test_clean_row_success(input_value, in_fmt, out_fmt, expected_output):
 def test_clean_row_returns_none_on_miss(input_value, in_fmt):
     cleaner = CountryCleaner(in_format=in_fmt)
     assert cleaner.clean_row(input_value) is None
+
+
+# ==============================================================================
+# 4. EXACT NAMES, ALIASES AND AMBIGUITY
+# ==============================================================================
+
+
+@pytest.mark.parametrize(
+    "input_value, expected_output",
+    [
+        ("U.S.A.", "United States"),
+        ("USA", "United States"),
+        ("America", "United States"),
+        ("U.A.E.", "United Arab Emirates"),
+        ("Deutschland", "Germany"),
+        ("Turkey", "Türkiye"),
+        ("Ivory Coast", "Côte d'Ivoire"),
+        ("Cote d'Ivoire", "Côte d'Ivoire"),
+        ("Burma", "Myanmar"),
+        ("Bharat", "India"),
+        ("Holland", "Netherlands"),
+        ("The Netherlands", "Netherlands"),
+        ("England", "United Kingdom"),
+        ("Czech Republic", "Czechia"),
+    ],
+)
+def test_names_and_aliases(input_value, expected_output):
+    assert CountryCleaner().clean_row(input_value) == expected_output
+
+
+@pytest.mark.parametrize(
+    "input_value, expected_output",
+    [("Niger", "Niger"), ("Oman", "Oman"), ("Guinea", "Guinea"), ("India", "India")],
+)
+def test_exact_names_do_not_match_a_longer_name(input_value, expected_output):
+    assert CountryCleaner().clean_row(input_value) == expected_output
+
+
+@pytest.mark.parametrize("input_value", ["Man", "Kosovo", "Atlantis", "unknown"])
+def test_wrong_substring_matches_become_none(input_value):
+    assert CountryCleaner().clean_row(input_value) is None
+
+
+@pytest.mark.parametrize("input_value", ["Korea", "Congo", "korea"])
+def test_ambiguous_names_become_none(input_value):
+    assert CountryCleaner().clean_row(input_value) is None
+
+
+def test_short_values_are_never_fuzzy_matched():
+    cleaner = CountryCleaner(in_format=CountryCleaner.Format.NAME_FUZZY)
+    assert cleaner.clean_row("Indi") is None
+    assert cleaner.clean_row("Indian") == "India"
+
+
+# ==============================================================================
+# 5. COMMON NAMES
+# ==============================================================================
+
+
+@pytest.mark.parametrize(
+    "input_value, expected_output",
+    [
+        ("KR", "South Korea"),
+        ("Korea, Republic of", "South Korea"),
+        ("IR", "Iran"),
+        ("TW", "Taiwan"),
+        ("VN", "Vietnam"),
+        ("RU", "Russia"),
+        ("PS", "Palestine"),
+        ("CD", "DR Congo"),
+    ],
+)
+def test_output_uses_common_names_by_default(input_value, expected_output):
+    assert CountryCleaner().clean_row(input_value) == expected_output
+
+
+def test_common_names_can_be_turned_off():
+    cleaner = CountryCleaner(common_names=False)
+    assert cleaner.clean_row("KR") == "Korea, Republic of"
+    assert cleaner.clean_row("RU") == "Russian Federation"
+    assert cleaner.clean_row("IN") == "India"
+
+
+def test_alpha_output_is_unaffected_by_common_names():
+    cleaner = CountryCleaner(out_format=CountryCleaner.Format.ALPHA3)
+    assert cleaner.clean_row("South Korea") == "KOR"

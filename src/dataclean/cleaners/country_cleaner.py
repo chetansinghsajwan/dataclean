@@ -1,5 +1,7 @@
 """Country cleaner for normalizing country names and codes to a canonical format."""
 
+import re
+import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
@@ -12,6 +14,75 @@ from dataclean.engine import DataFrame
 from dataclean.types import checked
 
 from .cleaner import Cleaner
+
+# Names people use that pycountry does not list. They are added on top of the
+# official, common and short names pycountry has.
+_ALIASES: dict[str, tuple[str, ...]] = {
+    "AE": ("uae", "emirates"),
+    "BR": ("brasil",),
+    "CI": ("ivory coast",),
+    "CV": ("cape verde",),
+    "CZ": ("czech republic",),
+    "DE": ("deutschland",),
+    "ES": ("espana",),
+    "GB": ("uk", "great britain", "britain", "england", "scotland", "wales"),
+    "IN": ("bharat", "hindustan"),
+    "MK": ("macedonia",),
+    "MM": ("burma",),
+    "NL": ("holland",),
+    "PS": ("palestine",),
+    "RU": ("russia",),
+    "SZ": ("swaziland",),
+    "TL": ("east timor",),
+    "TR": ("turkey",),
+    "US": ("usa", "america", "united states of america"),
+    "VA": ("vatican", "vatican city"),
+}
+
+# Names that point at more than one country. They become None instead of a guess.
+_AMBIGUOUS_NAMES: frozenset[str] = frozenset({"korea", "congo"})
+
+# Everyday names for countries whose pycountry names are formal and that have
+# no common name there.
+_COMMON_NAMES: dict[str, str] = {
+    "CD": "DR Congo",
+    "PS": "Palestine",
+    "RU": "Russia",
+}
+
+# Fuzzy matching is skipped for values shorter than this: one wrong letter in a
+# short word, such as "man" for "oman", changes the country.
+_MIN_FUZZY_LENGTH = 5
+
+
+def _normalize_name(value: str) -> str:
+    """Fold case, accents, dots and a leading "the" so equal names compare equal."""
+    value = unicodedata.normalize("NFKD", value.casefold())
+    value = "".join(c for c in value if not unicodedata.combining(c))
+    value = value.replace("&", " and ").replace(".", "")
+    value = re.sub(r"[^a-z0-9]+", " ", value).strip()
+    return value.removeprefix("the ")
+
+
+def _build_name_index() -> dict[str, str]:
+    """Map each normalized country name to its alpha-2 code, dropping ambiguous names."""
+    seen: dict[str, set[str]] = {}
+    for country in pycountry.countries:
+        names = [country.name]
+        names += [
+            getattr(country, attr)
+            for attr in ("common_name", "official_name")
+            if hasattr(country, attr)
+        ]
+        names += _ALIASES.get(country.alpha_2, ())
+        for name in names:
+            seen.setdefault(_normalize_name(name), set()).add(country.alpha_2)
+
+    return {
+        name: next(iter(codes))
+        for name, codes in seen.items()
+        if len(codes) == 1 and name not in _AMBIGUOUS_NAMES
+    }
 
 
 @checked
@@ -31,7 +102,9 @@ class CountryCleaner(Cleaner):
         """Resolved details for a single matched country.
 
         Attributes:
-            name: The country's name.
+            name: The country's ISO 3166-1 name, such as "Korea, Republic of".
+            common_name: The everyday name, such as "South Korea", when it
+                differs from ``name``.
             alpha2: The ISO 3166-1 alpha-2 code.
             alpha3: The ISO 3166-1 alpha-3 code.
         """
@@ -39,6 +112,7 @@ class CountryCleaner(Cleaner):
         name: str
         alpha2: str
         alpha3: str
+        common_name: str | None = None
 
     @checked
     class Format(StrEnum):
@@ -57,7 +131,7 @@ class CountryCleaner(Cleaner):
         Format.NAME_FUZZY,
     )
 
-    _PYCOUNTRY_COUNTRIES = {c.name.lower(): c for c in pycountry.countries}
+    _NAME_INDEX: ClassVar[dict[str, str]] = _build_name_index()
 
     _in_formats: Format | tuple[Format, ...]
     _resolved_in_formats: tuple[Format, ...]
@@ -65,12 +139,14 @@ class CountryCleaner(Cleaner):
     _find_country_pipeline: tuple[Callable[[str], Details | None], ...]
     _output_formatter: Callable[[Details], str]
     _fuzzy_match_thresold: float
+    _common_names: bool
 
     def __init__(
         self,
         in_format: Format | tuple[Format, ...] = Format.AUTO,
         out_format: Format = Format.NAME,
         fuzzy_match_thresold: float = 0.9,
+        common_names: bool = True,
         tags: tuple[str, ...] = (),
     ) -> None:
         """Initialize a CountryCleaner.
@@ -85,6 +161,9 @@ class CountryCleaner(Cleaner):
             fuzzy_match_thresold: Minimum similarity ratio (0.0-1.0)
                 required for a fuzzy name match to be accepted. Defaults to
                 0.9.
+            common_names: If True, ``Format.NAME`` output uses the everyday
+                name ("South Korea") where one exists; if False, the ISO
+                name ("Korea, Republic of"). Defaults to True.
             tags: Optional labels distinguishing multiple CountryCleaner
                 instances.
         """
@@ -93,6 +172,7 @@ class CountryCleaner(Cleaner):
         self._in_formats = in_format
         self._out_format = out_format
         self._fuzzy_match_thresold = fuzzy_match_thresold
+        self._common_names = common_names
         self._resolved_in_formats = self._resolve_input_format(in_format)
         self._find_country_pipeline = self._create_find_country_pipeline(
             resolved_formats=self._resolved_in_formats
@@ -180,6 +260,8 @@ class CountryCleaner(Cleaner):
         """
         match out_format:
             case self.Format.NAME:
+                if self._common_names:
+                    return lambda country: country.common_name or country.name
                 return lambda country: country.name
             case self.Format.ALPHA2:
                 return lambda country: country.alpha2
@@ -254,49 +336,40 @@ class CountryCleaner(Cleaner):
         return tuple(pipeline)
 
     @staticmethod
+    def _details(country: object) -> Details:
+        """Build Details from a pycountry country record."""
+        return CountryCleaner.Details(
+            name=country.name,  # type: ignore[attr-defined]
+            alpha2=country.alpha_2,  # type: ignore[attr-defined]
+            alpha3=country.alpha_3,  # type: ignore[attr-defined]
+            common_name=getattr(country, "common_name", None)
+            or _COMMON_NAMES.get(country.alpha_2),  # type: ignore[attr-defined]
+        )
+
+    @staticmethod
     def _find_country_alpha2(v: str) -> Details | None:
         """Look up a country by exact ISO 3166-1 alpha-2 code (case-insensitive)."""
         result = pycountry.countries.get(alpha_2=v.upper())
-
-        if result is None:
-            return None
-
-        return CountryCleaner.Details(
-            name=result.name,
-            alpha2=result.alpha_2,
-            alpha3=result.alpha_3,
-        )
+        return None if result is None else CountryCleaner._details(result)
 
     @staticmethod
     def _find_country_alpha3(v: str) -> Details | None:
         """Look up a country by exact ISO 3166-1 alpha-3 code (case-insensitive)."""
         result = pycountry.countries.get(alpha_3=v.upper())
-
-        if result is None:
-            return None
-
-        return CountryCleaner.Details(
-            name=result.name,
-            alpha2=result.alpha_2,
-            alpha3=result.alpha_3,
-        )
+        return None if result is None else CountryCleaner._details(result)
 
     @staticmethod
     def _find_country_name(v: str) -> Details | None:
-        """Look up a country via pycountry's built-in fuzzy name search.
+        """Look up a country by its exact name, ignoring case, accents and dots.
 
-        Returns None if no match is found.
+        Matches the ISO, common and official names and a few aliases such as
+        "USA" or "Deutschland". Names shared by two countries, such as "Korea",
+        give None.
         """
-        try:
-            result = pycountry.countries.search_fuzzy(v)[0]
-        except (LookupError, IndexError):
+        alpha2 = CountryCleaner._NAME_INDEX.get(_normalize_name(v))
+        if alpha2 is None:
             return None
-
-        return CountryCleaner.Details(
-            name=result.name,
-            alpha2=result.alpha_2,
-            alpha3=result.alpha_3,
-        )
+        return CountryCleaner._details(pycountry.countries.get(alpha_2=alpha2))
 
     @staticmethod
     def _find_country_name_fuzzy(v: str, threshold: float) -> Details | None:
@@ -309,21 +382,19 @@ class CountryCleaner(Cleaner):
 
         Returns:
             The best-matching country's Details if its similarity score
-            meets threshold, otherwise None.
+            meets threshold, otherwise None. Values shorter than
+            ``_MIN_FUZZY_LENGTH`` characters never match.
         """
-        name, score, _ = process.extractOne(
-            v,
-            CountryCleaner._PYCOUNTRY_COUNTRIES.keys(),
-            scorer=fuzz.WRatio,
-        )
-
-        if score < (threshold * 100):
+        v = _normalize_name(v)
+        if len(v) < _MIN_FUZZY_LENGTH or v in _AMBIGUOUS_NAMES:
             return None
 
-        country = CountryCleaner._PYCOUNTRY_COUNTRIES[name]
+        match = process.extractOne(
+            v, CountryCleaner._NAME_INDEX.keys(), scorer=fuzz.WRatio
+        )
+        if match is None or match[1] < (threshold * 100):
+            return None
 
-        return CountryCleaner.Details(
-            name=country.name,
-            alpha2=country.alpha_2,
-            alpha3=country.alpha_3,
+        return CountryCleaner._details(
+            pycountry.countries.get(alpha_2=CountryCleaner._NAME_INDEX[match[0]])
         )
