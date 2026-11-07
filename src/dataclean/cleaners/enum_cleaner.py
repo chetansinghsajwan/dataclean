@@ -37,6 +37,11 @@ class EnumCleaner(Cleaner):
     values are matched by any configured case.
     """
 
+    # Share of sampled values that must match a case before value-only
+    # detection (no name hit) claims a column. Below it the score is zero, so
+    # a few stray gender-like tokens do not pull in an unrelated column.
+    _MIN_VALUE_RATIO = 0.7
+
     @checked
     class CombinedMatcher:
         """Matcher that accepts a value if any of its sub-matchers accept it.
@@ -357,7 +362,14 @@ class EnumCleaner(Cleaner):
         if self._matches_name(cols[0]):
             return Cleaner.MAX_SCORE
 
-        return self._value_match_ratio(df, cols[0])
+        # Without a name hit, digit-only values such as "1" and "2" say little
+        # (they are usually ids or codes), so they only count when the whole
+        # column is digit-only and every value is accepted.
+        ratio, digit_ratio, all_digits = self._value_match_stats(df, cols[0])
+        if all_digits:
+            return ratio if ratio == Cleaner.MAX_SCORE else Cleaner.MIN_SCORE
+        ratio -= digit_ratio
+        return ratio if ratio >= self._MIN_VALUE_RATIO else Cleaner.MIN_SCORE
 
     def _matches_name(self, column: str) -> bool:
         """Return whether the column name hits a configured prefix, suffix or word."""
@@ -389,10 +401,19 @@ class EnumCleaner(Cleaner):
         return False
 
     def _value_match_ratio(self, df: DataFrame, column: str) -> float:
-        """Return the fraction of the column's sampled values accepted by a case.
+        """Return the fraction of the column's sampled values accepted by a case."""
+
+        return self._value_match_stats(df, column)[0]
+
+    def _value_match_stats(
+        self, df: DataFrame, column: str
+    ) -> tuple[float, float, bool]:
+        """Return how much of the column's sampled values the cases accept.
 
         Samples up to the 100 most frequent distinct non-null values and
-        weights each by its number of occurrences.
+        weights each by its number of occurrences. Returns the accepted
+        fraction, the part of it made of digit-only values, and whether every
+        sampled value is digit-only.
         """
 
         logger = _logger.getChild("match_score")
@@ -412,6 +433,8 @@ class EnumCleaner(Cleaner):
 
         total_count = 0
         match_count = 0
+        digit_match_count = 0
+        all_digits = True
 
         rows_len = len(rows)
         rows_len_width = len(str(rows_len))
@@ -433,10 +456,21 @@ class EnumCleaner(Cleaner):
 
             total_count += count
 
+            is_digits = v.isdigit()
+            all_digits = all_digits and is_digits
+
             for _, matcher in self._cases.items():
                 if matcher(v):
                     match_count += count
+                    if is_digits:
+                        digit_match_count += count
                     break
 
-        match_ratio = match_count / total_count if total_count > 0.0 else 0.0
-        return match_ratio
+        if total_count == 0:
+            return 0.0, 0.0, False
+
+        return (
+            match_count / total_count,
+            digit_match_count / total_count,
+            all_digits,
+        )

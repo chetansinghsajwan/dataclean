@@ -281,3 +281,35 @@ def test_enum_cleaner_numeric_column_needs_every_value_accepted():
 
     assert cleaner.match_score(only_flags, ("x",)) == EnumCleaner.MAX_SCORE
     assert cleaner.match_score(with_other, ("x",)) == EnumCleaner.MIN_SCORE
+
+
+# ==============================================================================
+# 1c. MATCH SCORE: DIGIT-ONLY VALUES
+# ==============================================================================
+
+
+def test_match_score_digit_only_column_needs_every_value_to_match():
+    # Values 3 to 5 are not cases, so the ids-like column scores zero even
+    # though "1" and "2" match.
+    cleaner = EnumCleaner(cases=["1", "2"])
+    mock_df = _mock_df_with_value_counts([("1", 4), ("2", 3), ("3", 2), ("5", 1)])
+    assert cleaner.match_score(mock_df, ("kind",)) == EnumCleaner.MIN_SCORE
+
+
+def test_match_score_digit_only_column_scores_full_when_all_match():
+    cleaner = EnumCleaner(cases=["1", "2"])
+    mock_df = _mock_df_with_value_counts([("1", 4), ("2", 3)])
+    assert cleaner.match_score(mock_df, ("kind",)) == EnumCleaner.MAX_SCORE
+
+
+def test_match_score_digit_values_do_not_count_in_a_mixed_column():
+    cleaner = EnumCleaner(cases=["m", "f", "1", "2"])
+    mock_df = _mock_df_with_value_counts([("m", 4), ("f", 4), ("1", 1), ("x", 1)])
+    # only "m" and "f" count; the digit "1" is ignored as evidence
+    assert cleaner.match_score(mock_df, ("kind",)) == pytest.approx(0.8)
+
+
+def test_match_score_digit_values_count_on_a_name_hit():
+    cleaner = EnumCleaner(cases=["1", "2"], cleaner_matching_words=("kind",))
+    mock_df = _mock_df_with_value_counts([("1", 4), ("9", 3)])
+    assert cleaner.match_score(mock_df, ("kind",)) == EnumCleaner.MAX_SCORE

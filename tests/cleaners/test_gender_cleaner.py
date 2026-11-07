@@ -51,10 +51,21 @@ def test_gender_cleaner_auto_matches_by_value_when_name_does_not_match(
 def test_gender_cleaner_auto_matching_partial_ratio(mock_df_with_value_counts):
     cleaner = GenderCleaner()
     mock_df = mock_df_with_value_counts(
+        [("male", 4), ("female", 4), ("unknown", 2)],
+    )
+    # 4 + 4 matched out of 10 total occurrences
+    assert cleaner.match_score(mock_df, ("identity",)) == pytest.approx(0.8)
+
+
+def test_gender_cleaner_auto_matching_below_threshold_scores_zero(
+    mock_df_with_value_counts,
+):
+    cleaner = GenderCleaner()
+    mock_df = mock_df_with_value_counts(
         [("male", 3), ("female", 3), ("unknown", 4)],
     )
-    # 3 + 3 matched out of 10 total occurrences
-    assert cleaner.match_score(mock_df, ("identity",)) == pytest.approx(0.6)
+    # 60% matched, under the 70% value-only threshold
+    assert cleaner.match_score(mock_df, ("identity",)) == GenderCleaner.MIN_SCORE
 
 
 def test_gender_cleaner_auto_matching_no_values_match(mock_df_with_value_counts):
@@ -251,3 +262,12 @@ def test_gender_cleaner_instances_do_not_share_defaults():
     second = GenderCleaner()
     assert first.clean_row("mx") == "Other"
     assert second.clean_row("mx") is None
+
+
+def test_gender_cleaner_does_not_claim_an_id_like_digit_column(
+    mock_df_with_value_counts,
+):
+    # "contacttypeid" holds 1 to 5; only 1 and 2 are gender codes.
+    mock_df = mock_df_with_value_counts([("1", 5), ("2", 4), ("3", 3), ("5", 2)])
+    cleaner = GenderCleaner()
+    assert cleaner.match_score(mock_df, ("contacttypeid",)) == GenderCleaner.MIN_SCORE
