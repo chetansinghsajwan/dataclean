@@ -1,3 +1,4 @@
+import os
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import ClassVar, Self, override
@@ -14,6 +15,31 @@ from dataclean.utils.patterns import (
 from dataclean_databricks.dataframe import PysparkDataFrame
 from dataclean_databricks.types import SparkSession
 
+# Set to a true value to let a new session upload local packages (including
+# dataclean) to the workspace so the UDF workers can import them. Off by
+# default, because the upload writes to the workspace.
+UPLOAD_LOCAL_ENV = "DATACLEAN_DATABRICKS_UPLOAD_LOCAL"
+
+
+def upload_local_enabled() -> bool:
+    """Whether ``UPLOAD_LOCAL_ENV`` asks sessions to upload local packages."""
+    return os.environ.get(UPLOAD_LOCAL_ENV, "").strip().lower() in {"1", "true", "yes"}
+
+
+def new_session() -> SparkSession:
+    """Open a Databricks Connect session from the environment's credentials.
+
+    Local packages are uploaded to the workspace only when
+    ``UPLOAD_LOCAL_ENV`` is set. Otherwise ``dataclean`` must already be
+    installed on the cluster for cleaners to run in UDFs.
+    """
+    builder = DatabricksSession.builder
+    if upload_local_enabled():
+        builder = builder.withEnvironment(
+            DatabricksEnv().withAutoDependencies(upload_local=True)
+        )
+    return builder.getOrCreate()
+
 
 @checked
 @dataclass
@@ -26,10 +52,7 @@ class UnityCatalog(Catalog):
     @classmethod
     @override
     def instantiate(cls) -> Self | None:
-        spark_env = DatabricksEnv().withAutoDependencies(upload_local=True)
-        spark = DatabricksSession.builder.withEnvironment(spark_env).getOrCreate()
-
-        return cls(spark=spark)
+        return cls(spark=new_session())
 
     @override
     def expand_paths(self, paths: Iterable[str]) -> set[str]:

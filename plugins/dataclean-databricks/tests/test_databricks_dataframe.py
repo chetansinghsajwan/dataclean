@@ -1,10 +1,11 @@
+import os
 from collections.abc import Generator
 
 import pandas as pd
 import pyspark.sql.types as spt
 import pytest
-from databricks.connect import DatabricksEnv, DatabricksSession
 from dataclean_databricks import PysparkDataFrame
+from dataclean_databricks.catalog import new_session
 from pyspark.sql import SparkSession
 
 from dataclean import DataType
@@ -13,8 +14,11 @@ from dataclean.testing import RAW_TEST_DATA, BaseDataFrameTests, FrameFactory
 
 @pytest.fixture(scope="session")
 def spark() -> Generator[SparkSession, None, None]:
-    spark_env = DatabricksEnv().withAutoDependencies(upload_local=True)
-    session = DatabricksSession.builder.withEnvironment(spark_env).getOrCreate()
+    # Without credentials, opening a session hangs instead of failing.
+    if not (os.environ.get("DATABRICKS_HOST") and os.environ.get("DATABRICKS_TOKEN")):
+        pytest.skip("needs a Databricks workspace (DATABRICKS_HOST, DATABRICKS_TOKEN)")
+
+    session = new_session()
 
     yield session
     session.stop()
