@@ -174,9 +174,9 @@ class TextCleaner(Cleaner):
 
     def _limit_combining_marks(self, value: str) -> str:
         """Drop combining marks beyond ``max_combining_marks`` on one character."""
-        if value.isascii():
-            return value
         limit = self.max_combining_marks
+        if limit is None or value.isascii():
+            return value
         kept: list[str] = []
         run = 0
         for char in value:

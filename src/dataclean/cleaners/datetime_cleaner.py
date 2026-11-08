@@ -196,6 +196,8 @@ class DateTimeCleaner(Cleaner):
             case DateTimeCleaner.Format.ISO_DATETIME:
                 if value is None and clock is not None:
                     return datetime.combine(date.min, clock).isoformat()
+                if value is None:
+                    return None
                 if isinstance(value, datetime):
                     return value.isoformat()
                 return datetime.combine(value, time()).isoformat()

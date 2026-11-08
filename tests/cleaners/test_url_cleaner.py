@@ -1,3 +1,5 @@
+from typing import Any
+
 import pandas as pd
 import pytest
 from dataclean_pandas import PandasDataFrame
@@ -7,8 +9,8 @@ from dataclean.pipeline import Pipeline
 from dataclean.pipeline.cleaner_resolver import Resolver
 
 
-def _clean(value: str, **kwargs: object) -> str | None:
-    return UrlCleaner(**kwargs).clean_row(value)  # type: ignore[arg-type]
+def _clean(value: str, **kwargs: Any) -> str | None:
+    return UrlCleaner(**kwargs).clean_row(value)
 
 
 # ==============================================================================

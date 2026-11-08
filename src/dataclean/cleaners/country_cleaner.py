@@ -5,7 +5,7 @@ import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import ClassVar, override
+from typing import Any, ClassVar, override
 
 import pycountry
 from rapidfuzz import fuzz, process
@@ -336,14 +336,14 @@ class CountryCleaner(Cleaner):
         return tuple(pipeline)
 
     @staticmethod
-    def _details(country: object) -> Details:
+    def _details(country: Any) -> Details:
         """Build Details from a pycountry country record."""
         return CountryCleaner.Details(
-            name=country.name,  # type: ignore[attr-defined]
-            alpha2=country.alpha_2,  # type: ignore[attr-defined]
-            alpha3=country.alpha_3,  # type: ignore[attr-defined]
+            name=country.name,
+            alpha2=country.alpha_2,
+            alpha3=country.alpha_3,
             common_name=getattr(country, "common_name", None)
-            or _COMMON_NAMES.get(country.alpha_2),  # type: ignore[attr-defined]
+            or _COMMON_NAMES.get(country.alpha_2),
         )
 
     @staticmethod

@@ -24,7 +24,7 @@ class FakeSpark(SparkSession):
         self.rows = rows or []
         self.calls: list[tuple[str, dict[str, Any]]] = []
 
-    def sql(self, query: str, args: Any = None, **kwargs: Any) -> _Result:  # type: ignore[override]
+    def sql(self, query: str, args: Any = None, **kwargs: Any) -> _Result:  # ty: ignore[invalid-method-override]
         self.calls.append((query, dict(args or {})))
         return _Result(self.rows)
 
