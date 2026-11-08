@@ -372,27 +372,6 @@ TextCleaner(remove_html=True, remove_urls=True, remove_emails=True).clean_row(
 
 ::: dataclean.cleaners.TextCleaner
 
-## UuidCleaner
-
-- **Params**: `out_format` (`Format.STANDARD` (default, hyphenated),
-  `COMPACT` (32 raw hex chars), `URN` (`urn:uuid:...`)), `allowed_versions`
-  (`set[int] | None`, e.g. `{4, 7}`; `None` accepts any valid version).
-- **Output**: single STR column.
-- **Behavior**: strips surrounding quote/bracket characters and a leading
-  `urn:uuid:` prefix, lowercases, and parses as a UUID; falls back to
-  extracting exactly 32 hex characters from stray-delimited text if direct
-  parsing fails. Filters by `allowed_versions` if set.
-
-```python
-from dataclean import UuidCleaner
-
-UuidCleaner().clean_row("{123E4567-E89B-12D3-A456-426614174000}")
-# -> "123e4567-e89b-12d3-a456-426614174000"
-UuidCleaner(allowed_versions={7}).clean_row(some_v4_uuid)  # -> None (wrong version)
-```
-
-::: dataclean.cleaners.UuidCleaner
-
 ## UrlCleaner
 
 - **Params**: `out_format` (`Format.FULL` (default) or `DOMAIN`, the host
@@ -417,7 +396,26 @@ UrlCleaner().clean_row("WWW.Example.com:443/")  # -> "https://www.example.com"
 
 ::: dataclean.cleaners.UrlCleaner
 
-## What's next
+## UuidCleaner
+
+- **Params**: `out_format` (`Format.STANDARD` (default, hyphenated),
+  `COMPACT` (32 raw hex chars), `URN` (`urn:uuid:...`)), `allowed_versions`
+  (`set[int] | None`, e.g. `{4, 7}`; `None` accepts any valid version).
+- **Output**: single STR column.
+- **Behavior**: strips surrounding quote/bracket characters and a leading
+  `urn:uuid:` prefix, lowercases, and parses as a UUID; falls back to
+  extracting exactly 32 hex characters from stray-delimited text if direct
+  parsing fails. Filters by `allowed_versions` if set.
+
+```python
+from dataclean import UuidCleaner
+
+UuidCleaner().clean_row("{123E4567-E89B-12D3-A456-426614174000}")
+# -> "123e4567-e89b-12d3-a456-426614174000"
+UuidCleaner(allowed_versions={7}).clean_row(some_v4_uuid)  # -> None (wrong version)
+```
+
+::: dataclean.cleaners.UuidCleaner
 
 ## What's next
 
