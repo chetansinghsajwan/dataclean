@@ -11,7 +11,7 @@ def test_numeric_cleaner_metadata():
     cleaner_float = NumericCleaner(out_format=NumericCleaner.Format.FLOAT)
     assert cleaner_float.name == "NumericCleaner"
     assert len(cleaner_float.outputs.cols) == 1
-    assert cleaner_float.outputs.cols[0].dtype == DataType.FLOAT
+    assert cleaner_float.outputs.cols[0].dtype == DataType.DOUBLE
 
 
 # ==============================================================================

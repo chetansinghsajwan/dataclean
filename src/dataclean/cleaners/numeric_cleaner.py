@@ -127,7 +127,7 @@ class NumericCleaner(Cleaner):
                 Cleaner.OutputSchema.Column(
                     dtype=DataType.INT
                     if self.out_format == NumericCleaner.Format.INT
-                    else DataType.FLOAT
+                    else DataType.DOUBLE
                 ),
             )
         )

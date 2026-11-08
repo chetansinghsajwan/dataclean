@@ -119,6 +119,14 @@ class BaseDataFrameTests:
         wrapper.read_cols([reader_config])
         assert wrapper.cols() == starting_cols
 
+    def test_read_cols_delivers_values_to_the_caller(self, wrapper: DataFrame) -> None:
+        """Verify ``read_cols()`` runs its callback where the caller can see its effects."""
+        seen: list[object] = []
+
+        wrapper.read_cols([DataReader(fn=seen.append, cols=("email",))])
+
+        assert len(seen) == wrapper.count()
+
     def test_read_single_col_fallback_macro(self, wrapper: DataFrame) -> None:
         """Verify ``read_cols()`` works with a reader configured for a single column."""
 

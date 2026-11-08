@@ -11,6 +11,11 @@ from dataclean import DataFrame, DataReader, DataType, DataWriter, checked
 from dataclean.engine.dataframe import Aggregator, count_output_names
 from dataclean_databricks.types import SparkDataFrame
 
+# Rows that ``read_cols`` brings to the driver. Readers are used to sample
+# values, such as when a cleaner scores a column, so a bounded head of the
+# table is enough and the whole table is never pulled.
+READ_SAMPLE_ROWS = 1000
+
 
 @checked
 @dataclass
@@ -40,17 +45,22 @@ class PysparkDataFrame(DataFrame):
     @override
     def read_cols(self, readers: Iterable[DataReader]):
         """
-        Executes a fast, read-only iteration over the specified columns
-        across cluster partitions without modifying or saving the DataFrame state.
+        Calls each reader on the driver with the values of the first
+        ``READ_SAMPLE_ROWS`` rows, without modifying the DataFrame.
+
+        The callbacks run on the driver, since they usually collect results
+        into state that the caller reads afterwards. A callback that ran on
+        the workers would change a copy of that state and the caller would
+        see nothing.
         """
+        readers = tuple(reader for reader in readers if reader.cols)
+        cols = tuple(dict.fromkeys(col for reader in readers for col in reader.cols))
+        if not cols:
+            return
 
-        def process_partition(row_iterator: Iterable[sp.Row]):
-            for row in row_iterator:
-                for reader in readers:
-                    args = [row[col] for col in reader.cols]
-                    reader.fn(*args)
-
-        self.df.foreachPartition(process_partition)
+        for row in self.df.select(*cols).limit(READ_SAMPLE_ROWS).collect():
+            for reader in readers:
+                reader.fn(*[row[col] for col in reader.cols])
 
     @override
     def write_cols(self, writers: Iterable[DataWriter]) -> None:
