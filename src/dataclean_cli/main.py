@@ -28,7 +28,7 @@ def clean(
     paths: Annotated[
         list[str],
         typer.Argument(
-            help="Path pattern(s) to expand via the catalog (e.g. glob-style wildcards)."
+            help="Path pattern(s) to expand via the catalog (e.g. glob wildcards, or a regex written re:<regex>)."
         ),
     ],
     write_path: Annotated[

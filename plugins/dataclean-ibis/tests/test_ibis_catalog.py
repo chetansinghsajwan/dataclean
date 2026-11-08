@@ -89,3 +89,14 @@ def test_dotted_parquet_name(catalog: IbisCatalog, tmp_path: Path) -> None:
 
 def test_uppercase_extension(catalog: IbisCatalog, tmp_path: Path) -> None:
     _roundtrip(catalog, tmp_path / "X.CSV")
+
+
+def test_expand_paths_expands_globs_and_regexes(
+    catalog: IbisCatalog, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    for name in ("a.csv", "b.csv", "c.txt"):
+        (tmp_path / name).write_text("x")
+    monkeypatch.chdir(tmp_path)
+
+    assert catalog.expand_paths(["*.csv"]) == {"a.csv", "b.csv"}
+    assert catalog.expand_paths([r"re:[ab]\.csv"]) == {"a.csv", "b.csv"}

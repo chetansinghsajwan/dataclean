@@ -71,8 +71,9 @@ for anything engine-specific that the shared suite doesn't cover.
 A `Catalog` (`src/dataclean/engine/catalog.py`) lets `clean_paths()` discover
 and read/write data without knowing the storage backend:
 
-- `expand_paths(paths) -> set[str]` — expand glob-style patterns into
-  concrete paths (`@abstractmethod`).
+- `expand_paths(paths) -> set[str]` — expand glob-style and `re:` regex
+  patterns into concrete paths (`@abstractmethod`). Local catalogs can call
+  `dataclean.utils.expand_local_paths`.
 - `read_df(path) -> DataFrame` / `write_df(df, path)` (`@abstractmethod`).
 - `instantiate() -> Self | None` (classmethod, default `None`) — override
   so `clean_paths()` can construct your catalog from the environment (e.g. an

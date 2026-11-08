@@ -45,7 +45,11 @@ class Catalog(ABC):
 
     @abstractmethod
     def expand_paths(self, paths: Iterable[str]) -> set[str]:
-        """Expand path patterns (e.g. globs) into the concrete set of paths they match."""
+        """Expand path patterns into the concrete set of paths they match.
+
+        A pattern is a literal path, a glob, or a regex written ``re:<regex>``
+        that must match the whole path.
+        """
         pass
 
     @abstractmethod

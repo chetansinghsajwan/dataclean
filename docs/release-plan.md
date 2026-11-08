@@ -62,11 +62,17 @@ Status: done. `keep_original=True` with `original_suffix` (default
 
 ### 5. List datasets by regex
 
-- Support regex alongside globs in `Catalog.expand_paths`, for example with an
-  `re:` pattern prefix.
-- Local catalogs match against the directory listing.
-- Unity Catalog filters `information_schema` with parameterized queries. This
-  also removes the SQL string interpolation in `UnityCatalog._expand_paths`.
+Status: done, except a run against a real workspace.
+
+- A `re:<regex>` prefix selects a regex that must match the whole path, next
+  to globs, in `Catalog.expand_paths`.
+- Local catalogs (pandas, ibis) now expand globs and regexes against the file
+  system through the shared `dataclean.utils.expand_local_paths`. Before, they
+  returned the patterns unchanged.
+- Unity Catalog filters `information_schema` with bound query parameters
+  (`LIKE` for globs, `RLIKE` for regexes), which removes the SQL string
+  interpolation. The parameterized query is tested with a fake Spark session
+  only, since there is no workspace baseline yet.
 
 ### 6. Databricks support
 

@@ -89,6 +89,20 @@ unprefixed paths go to the catalog that lists `""`. An unknown scheme raises
     while still expanding paths, mapping write paths, and logging as normal
     — useful for previewing what a run would touch.
 
+### Path patterns
+
+`paths` accepts literal paths, globs and regexes. A literal path is passed
+through without checking that it exists. A regex is written `re:<regex>` and
+must match the whole path.
+
+| Catalog | Glob | Regex |
+|---|---|---|
+| Local (`pandas`, `ibis`) | `*`, `?`, `[...]`, `**` for any depth, files only | `re:data/report_\d+\.csv`, matched against the path written with `/`, searching below the regex's literal leading directory (or the working directory) |
+| Unity (`databricks`) | `*` and `?` in each of `catalog.schema.table` (missing parts mean `*`) | `re:prod\.raw\.cust_\d+`, matched against the full `catalog.schema.table` name with `RLIKE` |
+
+Unity patterns reach the metastore only as bound query parameters, and `_` and
+`%` in a name are matched literally.
+
 ### Keeping the original values
 
 `keep_original=True` (CLI: `--keep-original`) keeps the raw values of every

@@ -262,7 +262,7 @@ def clean_paths(
 ) -> CleanPathResult:
     """Discover, clean, and write dataframes for a set of catalog paths.
 
-    Expands ``paths`` (e.g. glob-style patterns) via ``catalog``, reads each
+    Expands ``paths`` (glob patterns, or regexes written ``re:<regex>``) via ``catalog``, reads each
     resulting path as a :class:`~dataclean.engine.DataFrame`, cleans it
     (using the globally configured cleaners, with auto-detection enabled),
     and writes the cleaned result to the path(s) derived from

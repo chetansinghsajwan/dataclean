@@ -9,7 +9,7 @@ import ibis.backends.duckdb
 
 from dataclean import Catalog, DataFrame
 from dataclean.types import checked
-from dataclean.utils import file_extension
+from dataclean.utils import expand_local_paths, file_extension
 from dataclean_ibis.dataframe import IbisDataFrame
 
 _READERS: dict[str, str] = {".csv": "read_csv", ".parquet": "read_parquet"}
@@ -41,7 +41,7 @@ class IbisCatalog(Catalog):
 
     @override
     def expand_paths(self, paths: Iterable[str]) -> set[str]:
-        return set(paths)
+        return expand_local_paths(paths)
 
     @override
     def read_df(self, path: str) -> IbisDataFrame:

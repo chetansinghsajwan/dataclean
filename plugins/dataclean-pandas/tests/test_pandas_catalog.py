@@ -82,3 +82,14 @@ def test_dotted_parquet_name(tmp_path: Path) -> None:
 
 def test_uppercase_extension(tmp_path: Path) -> None:
     _roundtrip(tmp_path / "X.CSV")
+
+
+def test_expand_paths_expands_globs_and_regexes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    for name in ("a.csv", "b.csv", "c.txt"):
+        (tmp_path / name).write_text("x")
+    monkeypatch.chdir(tmp_path)
+
+    assert PandasCatalog().expand_paths(["*.csv"]) == {"a.csv", "b.csv"}
+    assert PandasCatalog().expand_paths([r"re:[ab]\.csv"]) == {"a.csv", "b.csv"}

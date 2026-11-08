@@ -5,7 +5,7 @@ from typing import ClassVar, Self, override
 import pandas as pd
 
 from dataclean import Catalog, DataFrame, checked
-from dataclean.utils import file_extension
+from dataclean.utils import expand_local_paths, file_extension
 from dataclean_pandas.dataframe import PandasDataFrame
 
 
@@ -35,7 +35,7 @@ class PandasCatalog(Catalog):
 
     @override
     def expand_paths(self, paths: Iterable[str]) -> set[str]:
-        return set(paths)
+        return expand_local_paths(paths)
 
     @override
     def read_df(self, path: str) -> PandasDataFrame:

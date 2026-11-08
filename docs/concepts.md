@@ -186,7 +186,7 @@ method list.
 
 A `Catalog` (`src/dataclean/engine/catalog.py`) is how `clean_paths()`
 discovers, reads, and writes tables/files without knowing what storage
-platform it's talking to: `expand_paths` (glob-style pattern expansion),
+platform it's talking to: `expand_paths` (glob and `re:` regex pattern expansion),
 `read_df`/`write_df`, plus an optional `instantiate()` hook that builds the
 catalog from the environment.
 
