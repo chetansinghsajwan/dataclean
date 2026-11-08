@@ -421,3 +421,23 @@ def test_clean_paths_logs_expanded_and_mapped_paths(
         )
 
     assert "in.csv -> out.csv" in caplog.text
+
+
+def test_clean_paths_keep_original_adds_uncleaned_columns(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(config, "auto_load_plugins", False)
+    catalog = InMemoryCatalog({"in.csv": pd.DataFrame({"country": ["india"]})})
+
+    clean_paths(
+        paths=["in.csv"],
+        write_path="out.csv",
+        catalog=catalog,
+        rename_cols=False,
+        keep_original=True,
+    )
+
+    written = catalog.written["out.csv"]
+    assert written.df is not None
+    assert written.df["country"].iloc[0] == "India"
+    assert written.df["country_uncleaned"].iloc[0] == "india"

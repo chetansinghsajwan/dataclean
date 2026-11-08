@@ -126,6 +126,12 @@ class PandasDataFrame(DataFrame):
         return wrapped
 
     @override
+    def copy_cols(self, cols: Mapping[str, str]) -> None:
+        for source, copy in cols.items():
+            self.df[copy] = self.df[source].copy()
+        self._update_cols()
+
+    @override
     def remove_cols(self, cols: Iterable[str]) -> None:
         self.df = self.df.drop(columns=cols)
         self._update_cols()

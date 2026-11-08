@@ -78,6 +78,15 @@ def clean(
             help="Expand and map paths, but skip reading, cleaning, and writing."
         ),
     ] = False,
+    keep_original: Annotated[
+        bool,
+        typer.Option(
+            help="Keep the raw values of cleaned columns as COLUMN<suffix> copies."
+        ),
+    ] = False,
+    original_suffix: Annotated[
+        str, typer.Option(help="Suffix of the retained original columns.")
+    ] = "_uncleaned",
     log: Annotated[
         logs.LevelNames, typer.Option(help="Log level.")
     ] = logs.defaultLevel,
@@ -103,6 +112,8 @@ def clean(
         use_global_config=use_global_config,
         cleaners=cleaners,
         dry_run=dry_run,
+        keep_original=keep_original,
+        original_suffix=original_suffix,
     )
 
 

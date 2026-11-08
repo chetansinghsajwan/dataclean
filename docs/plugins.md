@@ -15,7 +15,9 @@ abstract methods against your dataframe library's native API:
 - `supports(df) -> bool` (`staticmethod`) — type-detection predicate; this is
   what `Pipeline` uses to pick an adapter for a raw object.
 - `cols() -> tuple[tuple[str, DataType], ...]`, `rename_cols`, `read_cols`,
-  `write_cols`, `remove_cols`, `cast_cols` — column management. Most other
+  `write_cols`, `copy_cols`, `remove_cols`, `cast_cols` — column management.
+  `copy_cols(mapping)` copies each source column to a new name, keeping its
+  values and type exactly (no conversion through text). Most other
   methods mutate the wrapped dataframe in place; the query-style ones
   (`group_by`, `agg`, `distinct`, `select`, `strip`, `nullif`, `order_by`,
   `limit`, `filter_null`) return a **new** `DataFrame` to support chaining.

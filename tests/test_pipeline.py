@@ -270,3 +270,83 @@ def test_username_column_is_left_untouched_by_the_default_cleaners() -> None:
 
     assert cleaned.df is not None
     assert cleaned.df["username"].tolist() == ["JSmith2", "  j.smith  "]
+
+
+# ==============================================================================
+# KEEP ORIGINAL
+# ==============================================================================
+
+
+def test_keep_original_copies_in_place_columns_before_cleaning() -> None:
+    df = PandasDataFrame(df=pd.DataFrame({"email": [" A@B.COM ", "junk"]}))
+
+    cleaned = Pipeline(cleaners=(EmailCleaner(),), keep_original=True).fit_transform(df)
+
+    assert cleaned.df is not None
+    assert cleaned.df["email"].tolist() == ["a@b.com", None]
+    assert cleaned.df["email_uncleaned"].tolist() == [" A@B.COM ", "junk"]
+
+
+def test_keep_original_is_off_by_default() -> None:
+    df = PandasDataFrame(df=pd.DataFrame({"email": ["A@B.COM"]}))
+
+    cleaned = Pipeline(cleaners=(EmailCleaner(),)).fit_transform(df)
+
+    assert cleaned.df is not None
+    assert list(cleaned.df.columns) == ["email"]
+
+
+def test_keep_original_suffix_is_configurable() -> None:
+    df = PandasDataFrame(df=pd.DataFrame({"email": ["A@B.COM"]}))
+
+    cleaned = Pipeline(
+        cleaners=(EmailCleaner(),), keep_original=True, original_suffix="_raw"
+    ).fit_transform(df)
+
+    assert cleaned.df is not None
+    assert cleaned.df["email_raw"].tolist() == ["A@B.COM"]
+
+
+def test_keep_original_leaves_uncleaned_and_added_columns_alone() -> None:
+    from dataclean import AddressCleaner
+
+    df = PandasDataFrame(
+        df=pd.DataFrame(
+            {"address1": ["12 High Street"], "postcode": ["br1 1aa"], "note": ["x"]}
+        )
+    )
+
+    cleaned = Pipeline(
+        cleaners=(AddressCleaner(),), keep_original=True, ignore_cols=["note"]
+    ).fit_transform(df)
+
+    assert cleaned.df is not None
+    assert not any(col.endswith("_uncleaned") for col in cleaned.df.columns)
+
+
+def test_keep_original_copies_before_context_cleaners_run() -> None:
+    from dataclean import PhoneCleaner
+
+    df = PandasDataFrame(
+        df=pd.DataFrame({"tel": ["020 7946 0958"], "country": ["united kingdom"]})
+    )
+
+    cleaned = Pipeline(
+        cleaners=(PhoneCleaner(), CountryCleaner()), keep_original=True
+    ).fit_transform(df)
+
+    assert cleaned.df is not None
+    assert cleaned.df["tel_uncleaned"].tolist() == ["020 7946 0958"]
+    assert cleaned.df["country_uncleaned"].tolist() == ["united kingdom"]
+    assert cleaned.df["tel"].tolist() == ["+442079460958"]
+
+
+def test_keep_original_rejects_a_name_collision() -> None:
+    from dataclean.pipeline.exceptions import PipelineConfigError
+
+    df = PandasDataFrame(
+        df=pd.DataFrame({"email": ["A@B.COM"], "email_uncleaned": ["taken"]})
+    )
+
+    with pytest.raises(PipelineConfigError, match="email_uncleaned"):
+        Pipeline(cleaners=(EmailCleaner(),), keep_original=True).fit_transform(df)

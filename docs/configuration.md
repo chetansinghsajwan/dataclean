@@ -89,6 +89,16 @@ unprefixed paths go to the catalog that lists `""`. An unknown scheme raises
     while still expanding paths, mapping write paths, and logging as normal
     — useful for previewing what a run would touch.
 
+### Keeping the original values
+
+`keep_original=True` (CLI: `--keep-original`) keeps the raw values of every
+column that a cleaner overwrites in place, as a copy named `<column>_uncleaned`
+(change it with `original_suffix=` or `--original-suffix`). The copy is taken
+before any cleaner runs. Columns that a cleaner only adds new columns for, such
+as the address parts, are not copied, since the original is still there. If a
+copy's name is already a column, a `PipelineConfigError` is raised. `clean()`
+and `Pipeline` take the same two options.
+
 ```python
 import dataclean
 

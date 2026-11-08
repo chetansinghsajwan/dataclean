@@ -179,6 +179,13 @@ class PysparkDataFrame(DataFrame):
         self._update_cols()
 
     @override
+    def copy_cols(self, cols: Mapping[str, str]):
+        self.df = self.df.withColumns(
+            {copy: spf.col(source) for source, copy in cols.items()}
+        )
+        self._update_cols()
+
+    @override
     def remove_cols(self, cols: Iterable[str]):
         self.df = self.df.drop(*cols)
         self._update_cols()

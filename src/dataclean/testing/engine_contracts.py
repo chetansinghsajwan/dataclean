@@ -138,6 +138,24 @@ class BaseDataFrameTests:
         assert "last_name" not in active_names
         assert "email" not in active_names
 
+    def test_copy_cols_keeps_values_and_types(self, make_frame: FrameFactory) -> None:
+        """Verify ``copy_cols()`` adds exact copies and leaves the source as is."""
+        df = make_frame(
+            {"n": [1, 2], "s": ["a", "b"], "ts": [datetime(2024, 1, 2)] * 2}
+        )
+        before = dict(df.cols())
+
+        df.copy_cols({"n": "n_copy", "s": "s_copy", "ts": "ts_copy"})
+
+        types = dict(df.cols())
+        assert types["n_copy"] == before["n"]
+        assert types["s_copy"] == before["s"]
+        assert types["ts_copy"] == before["ts"]
+        assert _column(df, "n_copy") == _column(df, "n")
+        assert _column(df, "s_copy") == ["a", "b"]
+        assert _column(df, "ts_copy") == _column(df, "ts")
+        assert {name: types[name] for name in before} == before
+
     def test_cast_cols_updates_metadata_types(self, wrapper: DataFrame) -> None:
         """Verify ``cast_cols()`` updates the reported :class:`DataType` for a column."""
         wrapper.cast_cols({"first_name": DataType.STR})

@@ -193,3 +193,25 @@ def test_bool_and_int_outputs_keep_nulls() -> None:
     assert wrapper.df["a"].isna().tolist() == [False, True]
     assert wrapper.df["b"].isna().tolist() == [False, True]
     assert dict(wrapper.cols()) == {"a": DataType.BOOL, "b": DataType.INT}
+
+
+def test_copy_cols_keeps_values_and_types_exactly() -> None:
+    from dataclean import DataType
+
+    wrapper = PandasDataFrame(
+        df=pd.DataFrame({"n": pd.array([1, None], dtype="Int64"), "s": ["a", None]})
+    )
+    wrapper.copy_cols({"n": "n_copy", "s": "s_copy"})
+
+    assert wrapper.df["n_copy"].tolist() == [1, pd.NA]
+    assert str(wrapper.df["n_copy"].dtype) == "Int64"
+    assert wrapper.df["s_copy"].tolist() == ["a", None]
+    assert dict(wrapper.cols())["n_copy"] == DataType.INT
+
+
+def test_copy_cols_is_independent_of_the_source() -> None:
+    wrapper = PandasDataFrame(df=pd.DataFrame({"a": ["x", "y"]}))
+    wrapper.copy_cols({"a": "a_copy"})
+    wrapper.df["a"] = ["changed", "changed"]
+
+    assert wrapper.df["a_copy"].tolist() == ["x", "y"]

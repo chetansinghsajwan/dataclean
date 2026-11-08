@@ -14,6 +14,7 @@ from .assignments import Assignment
 from .cleaner_resolver import Resolver
 from .dependency_resolver import DependencyResolver
 from .entity_extractor import EntityExtractor
+from .exceptions import PipelineConfigError
 
 PRIMARY = "value"
 
@@ -65,6 +66,9 @@ class Pipeline:
             resolution.
         _auto_detect: Whether to keep assignments that were auto-matched
             rather than only explicit ones.
+        _keep_original: Whether to keep a copy of each column that a cleaner
+            overwrites in place, under its name plus ``_original_suffix``.
+        _original_suffix: Suffix of the retained original columns.
         _resolver: Resolves dataframe columns to cleaner assignments.
         _dependency_resolver: Resolves context dependencies between
             assignments and orders them into execution waves.
@@ -74,6 +78,8 @@ class Pipeline:
     _column_cleaners: dict[str, Cleaner]
     _context_overrides: dict[str, dict[str, str]]
     _auto_detect: bool
+    _keep_original: bool
+    _original_suffix: str
     _ignore_cols: frozenset[str]
     _resolver: Resolver
     _dependency_resolver: DependencyResolver
@@ -85,6 +91,8 @@ class Pipeline:
         context_overrides: dict[str, dict[str, str]] | None = None,
         auto_detect: bool = True,
         ignore_cols: Iterable[str] | None = None,
+        keep_original: bool = False,
+        original_suffix: str = "_uncleaned",
     ) -> None:
         """Initialize the pipeline with its candidate cleaners and options.
 
@@ -105,11 +113,20 @@ class Pipeline:
             ignore_cols: Column names to exclude from cleaner resolution
                 entirely, so no cleaner is assigned to them. Defaults to
                 None (no columns excluded).
+            keep_original: Whether to keep the raw values of every column a
+                cleaner overwrites in place, as a copy named after the
+                column plus ``original_suffix`` (e.g. ``email_uncleaned``),
+                taken before any cleaner runs. Columns that cleaners only
+                add new columns for are not copied. Defaults to False.
+            original_suffix: Suffix of the retained original columns.
+                Defaults to ``"_uncleaned"``.
         """
         self._cleaners = tuple(cleaners)
         self._column_cleaners = column_cleaners or {}
         self._context_overrides = context_overrides or {}
         self._auto_detect = auto_detect
+        self._keep_original = keep_original
+        self._original_suffix = original_suffix
         self._ignore_cols = frozenset(ignore_cols) if ignore_cols else frozenset()
         self._resolver = Resolver(cleaners=self._cleaners)
 
@@ -143,6 +160,8 @@ class Pipeline:
                 producers that cannot be disambiguated.
             CycleDetectedError: If the resolved cleaner dependencies contain
                 a cycle.
+            PipelineConfigError: If ``keep_original`` is set and a retained
+                column's name is already used by another column.
         """
 
         _logger.info("Starting pipeline with %d cleaner(s)...", len(self._cleaners))
@@ -167,19 +186,59 @@ class Pipeline:
                 )
 
         waves = self._dependency_resolver.resolve(assignments, self._context_overrides)
+        writers_by_wave = tuple(
+            tuple(self._writer_for(assignment) for assignment in wave) for wave in waves
+        )
+        if self._keep_original:
+            self._retain_originals(df, writers_by_wave)
+
         _logger.info("Executing %d wave(s)...", len(waves))
-        for wave_index, wave in enumerate(waves, start=1):
+        for wave_index, (wave, writers) in enumerate(
+            zip(waves, writers_by_wave, strict=True), start=1
+        ):
             _logger.debug(
                 "[wave %d/%d] Cleaners: %s",
                 wave_index,
                 len(waves),
                 [assignment.cleaner.name for assignment in wave],
             )
-            writers = tuple(self._writer_for(assignment) for assignment in wave)
             df.write_cols(writers)
 
         _logger.info("Pipeline finished.")
         return df
+
+    def _retain_originals(
+        self, df: DataFrame, writers_by_wave: tuple[tuple[DataWriter, ...], ...]
+    ) -> None:
+        """Copy every column the writers overwrite in place, before they run.
+
+        Args:
+            df: The dataframe about to be cleaned.
+            writers_by_wave: The writers of every wave.
+
+        Raises:
+            PipelineConfigError: If a copy's name is already a column, or is
+                also written by a cleaner.
+        """
+        existing = set(df.col_names())
+        written = {
+            name
+            for writers in writers_by_wave
+            for w in writers
+            for name, _ in w.write_cols
+        }
+        copies = {
+            name: f"{name}{self._original_suffix}"
+            for name in sorted(written & existing)
+        }
+        taken = (existing | written) & set(copies.values())
+        if taken:
+            raise PipelineConfigError(
+                f"Cannot keep originals: column(s) {sorted(taken)} already exist. "
+                "Choose a different original_suffix."
+            )
+        if copies:
+            df.copy_cols(copies)
 
     def _wrap_df(self, df: Any) -> DataFrame:
         """Wrap a raw dataframe in the appropriate configured `DataFrame` API.

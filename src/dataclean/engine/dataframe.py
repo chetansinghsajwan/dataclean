@@ -241,6 +241,16 @@ class DataFrame(ABC):
         pass
 
     @abstractmethod
+    def copy_cols(self, cols: Mapping[str, str]):
+        """Copy columns in place, as new columns named per ``cols``.
+
+        ``cols`` maps each source column name to the name of its copy. The
+        copy keeps the source's values and type exactly, with no conversion
+        through text, and the source column is left as is.
+        """
+        pass
+
+    @abstractmethod
     def remove_cols(self, cols: Iterable[str]):
         """Drop the given columns from the dataframe in place."""
         pass

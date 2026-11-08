@@ -184,6 +184,13 @@ class IbisDataFrame(DataFrame):
         self._update_cols()
 
     @override
+    def copy_cols(self, cols: Mapping[str, str]) -> None:
+        self.df = self.df.mutate(
+            **{copy: self.df[source] for source, copy in cols.items()}
+        )
+        self._update_cols()
+
+    @override
     def remove_cols(self, cols: Iterable[str]) -> None:
         self.df = self.df.drop(*cols)
         self._update_cols()

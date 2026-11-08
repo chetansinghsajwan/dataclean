@@ -51,11 +51,14 @@ publish. The two contact files and the case list were reviewed value by value.
 
 ### 4. Retain original values
 
-- Add `keep_original=True` with a column suffix such as `_raw`, so cleaned and
-  uncleaned data can be compared side by side.
-- Implement it by copying the column before cleaning, using `write_cols` with
-  an identity function, so the `DataFrame` interface does not change.
-- Decide how name collisions are handled.
+Status: done. `keep_original=True` with `original_suffix` (default
+`_uncleaned`) is available on `Pipeline`, `clean`, `clean_paths` and the CLI.
+
+- Only columns that a cleaner overwrites in place are copied, before any
+  cleaner runs. Multi-output cleaners add new columns, so their input is kept.
+- The copy uses a new `DataFrame.copy_cols`, because an identity `write_cols`
+  passes values through text and would change non-string columns.
+- A name collision raises `PipelineConfigError`.
 
 ### 5. List datasets by regex
 

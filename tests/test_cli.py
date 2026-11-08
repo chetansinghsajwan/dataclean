@@ -46,12 +46,17 @@ def test_cli_wires_options_into_clean_paths(monkeypatch: pytest.MonkeyPatch) -> 
             "--cleaners",
             "EmailCleaner",
             "--dry-run",
+            "--keep-original",
+            "--original-suffix",
+            "_raw",
             "--log",
             "error",
         ],
     )
 
     assert result.exit_code == 0, result.output
+    assert captured["keep_original"] is True
+    assert captured["original_suffix"] == "_raw"
     assert captured["paths"] == ["in1.csv", "in2.csv"]
     assert captured["write_path"] == "out.csv"
     assert captured["catalog"] == "pandas"

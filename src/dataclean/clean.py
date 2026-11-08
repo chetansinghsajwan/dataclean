@@ -164,7 +164,12 @@ def _select_cleaners(names: Iterable[str] | None) -> list[Cleaner]:
     return selected
 
 
-def clean(df, auto_detect: bool = True):
+def clean(
+    df,
+    auto_detect: bool = True,
+    keep_original: bool = False,
+    original_suffix: str = "_uncleaned",
+):
     """
     Clean a dataframe with automatic cleaner detection.
 
@@ -174,6 +179,9 @@ def clean(df, auto_detect: bool = True):
     Args:
         df: DataFrame to clean (pandas, pyspark, or DataFrame-compatible).
         auto_detect: If True, auto-detect cleaners for columns.
+        keep_original: If True, keep the raw values of every column that is
+            cleaned in place as ``<column><original_suffix>``.
+        original_suffix: Suffix of the retained original columns.
 
     Returns:
         Cleaned DataFrame.
@@ -192,6 +200,8 @@ def clean(df, auto_detect: bool = True):
     pipeline = Pipeline(
         cleaners=config.cleaners,
         auto_detect=auto_detect,
+        keep_original=keep_original,
+        original_suffix=original_suffix,
     )
     return pipeline.fit_transform(df)
 
@@ -208,6 +218,8 @@ def _clean_df(
     df: DataFrame,
     cleaners: Iterable[str] | None = None,
     ignore_cols: Iterable[str] | None = None,
+    keep_original: bool = False,
+    original_suffix: str = "_uncleaned",
 ) -> DataFrame:
     """Clean ``df``, with auto-detection enabled.
 
@@ -217,12 +229,16 @@ def _clean_df(
             :func:`_select_cleaners`). If None, every globally configured
             cleaner is a candidate.
         ignore_cols: Columns to exclude from cleaning entirely.
+        keep_original: Whether to keep the raw values of cleaned columns.
+        original_suffix: Suffix of the retained original columns.
     """
 
     pipeline = Pipeline(
         cleaners=_select_cleaners(cleaners),
         ignore_cols=ignore_cols,
         auto_detect=True,
+        keep_original=keep_original,
+        original_suffix=original_suffix,
     )
     return pipeline.fit_transform(df)
 
@@ -241,6 +257,8 @@ def clean_paths(
     inplace: bool | None = None,
     cleaners: Iterable[str] | None = None,
     dry_run: bool = False,
+    keep_original: bool = False,
+    original_suffix: str = "_uncleaned",
 ) -> CleanPathResult:
     """Discover, clean, and write dataframes for a set of catalog paths.
 
@@ -287,6 +305,10 @@ def clean_paths(
         dry_run: If True, skip reading and writing dataframes (path
             expansion/mapping and logging still occur, but no cleaning
             actually happens).
+        keep_original: If True, every column that is cleaned in place keeps
+            its raw values in a copy named ``<column><original_suffix>``,
+            so cleaned and uncleaned data can be compared side by side.
+        original_suffix: Suffix of the retained original columns.
 
     Returns:
         A :class:`CleanPathResult` describing the outcome.
@@ -296,6 +318,8 @@ def clean_paths(
             the global config or the environment, if ``catalog`` is a name
             that matches no registered catalog type, or if ``cleaners``
             names an unknown cleaner.
+        PipelineConfigError: If ``keep_original`` is set and a retained
+            column's name is already taken by another column.
     """
 
     _log_args(
@@ -313,6 +337,8 @@ def clean_paths(
         use_global_config=use_global_config,
         cleaners=cleaners,
         dry_run=dry_run,
+        keep_original=keep_original,
+        original_suffix=original_suffix,
     )
 
     if config.auto_load_plugins and config.plugin_loader is not None:
@@ -414,7 +440,11 @@ def clean_paths(
                 path,
             )
             cleaned_dfs[path] = _clean_df(
-                df, cleaners=cleaners, ignore_cols=ignore_cols
+                df,
+                cleaners=cleaners,
+                ignore_cols=ignore_cols,
+                keep_original=keep_original,
+                original_suffix=original_suffix,
             )
         else:
             cleaned_dfs[path] = df
