@@ -62,7 +62,7 @@ Status: done. `keep_original=True` with `original_suffix` (default
 
 ### 5. List datasets by regex
 
-Status: done, except a run against a real workspace.
+Status: done, and checked against a real Unity workspace (Spark 4.1.0).
 
 - A `re:<regex>` prefix selects a regex that must match the whole path, next
   to globs, in `Catalog.expand_paths`.
@@ -71,8 +71,9 @@ Status: done, except a run against a real workspace.
   returned the patterns unchanged.
 - Unity Catalog filters `information_schema` with bound query parameters
   (`LIKE` for globs, `RLIKE` for regexes), which removes the SQL string
-  interpolation. The parameterized query is tested with a fake Spark session
-  only, since there is no workspace baseline yet.
+  interpolation. It is tested with a fake Spark session, and was also run
+  read-only against a real workspace, covering literals, globs, regexes, a
+  quote in a pattern, and several patterns in one query.
 
 ### 6. Databricks support
 
