@@ -22,6 +22,7 @@ from .cleaners import (
     DateTimeCleaner,
     EmailCleaner,
     EnumCleaner,
+    FilePathCleaner,
     GenderCleaner,
     NameCleaner,
     NumericCleaner,

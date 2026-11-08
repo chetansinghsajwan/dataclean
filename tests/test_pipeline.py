@@ -259,3 +259,14 @@ def test_phone_uses_the_country_column_when_several_country_columns_exist() -> N
 
     assert cleaned.df is not None
     assert cleaned.df["tel"].tolist() == ["+442079460958", "+919876543210"]
+
+
+def test_username_column_is_left_untouched_by_the_default_cleaners() -> None:
+    from dataclean.config import config
+
+    df = PandasDataFrame(df=pd.DataFrame({"username": ["JSmith2", "  j.smith  "]}))
+
+    cleaned = Pipeline(cleaners=tuple(config.cleaners)).fit_transform(df)
+
+    assert cleaned.df is not None
+    assert cleaned.df["username"].tolist() == ["JSmith2", "  j.smith  "]

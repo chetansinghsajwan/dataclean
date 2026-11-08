@@ -16,6 +16,7 @@ from .cleaners import (
     CountryCleaner,
     DateTimeCleaner,
     EmailCleaner,
+    FilePathCleaner,
     GenderCleaner,
     NameCleaner,
     NumericCleaner,
@@ -83,6 +84,7 @@ class Config:
         self.register_cleaner(CountryCleaner())
         self.register_cleaner(DateTimeCleaner())
         self.register_cleaner(EmailCleaner())
+        self.register_cleaner(FilePathCleaner())
         self.register_cleaner(GenderCleaner())
         self.register_cleaner(NameCleaner())
         self.register_cleaner(NumericCleaner())

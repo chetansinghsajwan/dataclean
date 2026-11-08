@@ -1,6 +1,6 @@
 # Built-in Cleaners
 
-All 13 cleaners live under `dataclean.cleaners`. Their constructor
+All 14 cleaners live under `dataclean.cleaners`. Their constructor
 parameters, expected input/output roles, and `match_score` heuristics are
 summarized here; see [Concepts](concepts.md) for how `match_score` and
 auto-detection fit together generally.
@@ -13,6 +13,7 @@ auto-detection fit together generally.
 | `DateTimeCleaner` | Parses/reformats dates, times, datetimes | `date`/`time`/`timestamp`/`_at` in column name | Yes |
 | `EmailCleaner` | Extracts/normalizes an email address | `"email"` in column name | Yes |
 | `EnumCleaner` | Generic categorical value normalizer | name prefix/suffix/word + value sampling | **No** — needs `cases=` |
+| `FilePathCleaner` | Normalizes file names and paths | `file`/`path`/`dir`/`folder` word in column name | Yes |
 | `GenderCleaner` | Normalizes gender values | `gender`/`sex` in column name + value sampling | Yes |
 | `NameCleaner` | Recognizes personal-name columns (values unchanged) | person-name column tokens (`fname`/`lname`/`first_name`/`surname`/...) | Yes |
 | `NumericCleaner` | Parses/reformats numeric values | name tokens (30%) + value sampling (70%) | Yes |
@@ -220,6 +221,31 @@ EnumCleaner(cases={"active": ["active", "1"], "inactive": ["inactive", "0"]}).cl
 ```
 
 ::: dataclean.cleaners.EnumCleaner
+
+## FilePathCleaner
+
+- **Params**: `separator` (`"/"` (default) or `"\\"`), `lowercase_extension`
+  (default `True`).
+- **Output**: single STR column, cleaned in place.
+- **Behavior**: trims whitespace, invisible characters and wrapping quotes,
+  turns backslashes into `separator`, collapses repeated separators (a leading
+  pair, as in a network share, is kept), drops `.` segments inside the path
+  and lowercases the file extension. The name keeps its case and `..` segments
+  are kept. Values with control characters, `< > " | ? *`, a colon outside a
+  drive prefix, or only dots and separators become `None`.
+- **Detection**: names with a `file`, `path`, `dir` or `folder` word, or
+  `filename`/`filepath`/`directory`. Names with a `url`, `uri`, `link`,
+  `href` or `id` word (`url_path`, `file_id`) are left alone.
+
+```python
+from dataclean import FilePathCleaner
+
+FilePathCleaner().clean_row(
+    '"C:\\Users\\Ann\\Report.DOCX"'
+)  # -> "C:/Users/Ann/Report.docx"
+```
+
+::: dataclean.cleaners.FilePathCleaner
 
 ## GenderCleaner
 
