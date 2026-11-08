@@ -164,11 +164,39 @@ def _select_cleaners(names: Iterable[str] | None) -> list[Cleaner]:
     return selected
 
 
+def _resolve_column_cleaners(
+    column_cleaners: Mapping[str, str | Cleaner] | None,
+) -> dict[str, Cleaner]:
+    """Turn a column to cleaner mapping into one that holds cleaner instances.
+
+    A string value is a cleaner name, matched the same way as in
+    :func:`_select_cleaners`. A cleaner instance is used as given.
+
+    Raises:
+        ValueError: If a name matches no configured cleaner.
+    """
+    if not column_cleaners:
+        return {}
+
+    names = {value for value in column_cleaners.values() if isinstance(value, str)}
+    by_name: dict[str, Cleaner] = {}
+    for cleaner in _select_cleaners(names):
+        by_name.setdefault(cleaner.name, cleaner)
+        by_name.setdefault(type(cleaner).__name__, cleaner)
+
+    return {
+        column: by_name[value] if isinstance(value, str) else value
+        for column, value in column_cleaners.items()
+    }
+
+
 def clean(
     df,
     auto_detect: bool = True,
     keep_original: bool = False,
     original_suffix: str = "_uncleaned",
+    column_cleaners: Mapping[str, str | Cleaner] | None = None,
+    ignore_cols: Iterable[str] | None = None,
 ):
     """
     Clean a dataframe with automatic cleaner detection.
@@ -182,9 +210,16 @@ def clean(
         keep_original: If True, keep the raw values of every column that is
             cleaned in place as ``<column><original_suffix>``.
         original_suffix: Suffix of the retained original columns.
+        column_cleaners: Column name to cleaner, overriding automatic
+            detection for that column. A cleaner is given by registered name
+            (``"EmailCleaner"``) or as an instance.
+        ignore_cols: Columns to leave uncleaned.
 
     Returns:
         Cleaned DataFrame.
+
+    Raises:
+        ValueError: If ``column_cleaners`` names an unknown cleaner.
 
     Example:
         >>> import pandas as pd
@@ -202,6 +237,8 @@ def clean(
         auto_detect=auto_detect,
         keep_original=keep_original,
         original_suffix=original_suffix,
+        column_cleaners=_resolve_column_cleaners(column_cleaners),
+        ignore_cols=ignore_cols,
     )
     return pipeline.fit_transform(df)
 
@@ -220,6 +257,7 @@ def _clean_df(
     ignore_cols: Iterable[str] | None = None,
     keep_original: bool = False,
     original_suffix: str = "_uncleaned",
+    column_cleaners: Mapping[str, Cleaner] | None = None,
 ) -> DataFrame:
     """Clean ``df``, with auto-detection enabled.
 
@@ -231,10 +269,12 @@ def _clean_df(
         ignore_cols: Columns to exclude from cleaning entirely.
         keep_original: Whether to keep the raw values of cleaned columns.
         original_suffix: Suffix of the retained original columns.
+        column_cleaners: Column name to resolved cleaner overrides.
     """
 
     pipeline = Pipeline(
         cleaners=_select_cleaners(cleaners),
+        column_cleaners=dict(column_cleaners or {}),
         ignore_cols=ignore_cols,
         auto_detect=True,
         keep_original=keep_original,
@@ -259,6 +299,7 @@ def clean_paths(
     dry_run: bool = False,
     keep_original: bool = False,
     original_suffix: str = "_uncleaned",
+    column_cleaners: Mapping[str, str | Cleaner] | None = None,
 ) -> CleanPathResult:
     """Discover, clean, and write dataframes for a set of catalog paths.
 
@@ -309,6 +350,11 @@ def clean_paths(
             its raw values in a copy named ``<column><original_suffix>``,
             so cleaned and uncleaned data can be compared side by side.
         original_suffix: Suffix of the retained original columns.
+        column_cleaners: Column name to cleaner, overriding automatic
+            detection for that column in every dataset. A cleaner is given by
+            registered name (``"EmailCleaner"``) or as an instance. A column
+            that a dataset does not have is skipped. Applied after renaming,
+            so use the renamed column name.
 
     Returns:
         A :class:`CleanPathResult` describing the outcome.
@@ -317,7 +363,7 @@ def clean_paths(
         ValueError: If no catalog is given and none can be resolved from
             the global config or the environment, if ``catalog`` is a name
             that matches no registered catalog type, or if ``cleaners``
-            names an unknown cleaner.
+            or ``column_cleaners`` names an unknown cleaner.
         PipelineConfigError: If ``keep_original`` is set and a retained
             column's name is already taken by another column.
     """
@@ -339,6 +385,7 @@ def clean_paths(
         dry_run=dry_run,
         keep_original=keep_original,
         original_suffix=original_suffix,
+        column_cleaners=column_cleaners,
     )
 
     if config.auto_load_plugins and config.plugin_loader is not None:
@@ -403,6 +450,7 @@ def clean_paths(
                 )
 
     renamer = col_renamer or config.col_renamer
+    resolved_column_cleaners = _resolve_column_cleaners(column_cleaners)
 
     dfs: dict[str, DataFrame] = {}
     for count, (path, source) in enumerate(sources.items(), start=1):
@@ -445,6 +493,7 @@ def clean_paths(
                 ignore_cols=ignore_cols,
                 keep_original=keep_original,
                 original_suffix=original_suffix,
+                column_cleaners=resolved_column_cleaners,
             )
         else:
             cleaned_dfs[path] = df

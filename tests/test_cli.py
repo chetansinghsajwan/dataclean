@@ -43,6 +43,8 @@ def test_cli_wires_options_into_clean_paths(monkeypatch: pytest.MonkeyPatch) -> 
             "country",
             "--ignore-col",
             "email",
+            "--col",
+            "contact=EmailCleaner",
             "--cleaners",
             "EmailCleaner",
             "--dry-run",
@@ -64,6 +66,7 @@ def test_cli_wires_options_into_clean_paths(monkeypatch: pytest.MonkeyPatch) -> 
     assert captured["rename_col_map"] == {"Old Name": "new_name"}
     assert captured["ignore_cols"] == ["country", "email"]
     assert captured["cleaners"] == ["EmailCleaner"]
+    assert captured["column_cleaners"] == {"contact": "EmailCleaner"}
     assert captured["dry_run"] is True
 
 
@@ -88,3 +91,32 @@ def test_cli_end_to_end_cleans_a_csv(tmp_path) -> None:
     written = pd.read_csv(dest)
     assert list(written.columns)[1:] == ["client_country"]
     assert written["client_country"].iloc[0] == "India"
+
+
+def test_cli_rejects_malformed_col() -> None:
+    result = runner.invoke(
+        app, ["clean", "in.csv", "out.csv", "--col", "not-a-mapping"]
+    )
+    assert result.exit_code != 0
+
+
+def test_cli_col_overrides_detection_end_to_end(tmp_path) -> None:
+    src = tmp_path / "in.csv"
+    dest = tmp_path / "out.csv"
+    pd.DataFrame({"contact": [" Bob@Example.COM "]}).to_csv(src, index=False)
+
+    result = runner.invoke(
+        app,
+        [
+            "clean",
+            str(src),
+            str(dest),
+            "--catalog",
+            "pandas",
+            "--col",
+            "contact=EmailCleaner",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert pd.read_csv(dest)["contact"].iloc[0] == "bob@example.com"

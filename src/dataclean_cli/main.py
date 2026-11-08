@@ -63,6 +63,15 @@ def clean(
         list[str] | None,
         typer.Option(help="Column(s) to exclude from cleaning. Repeatable."),
     ] = None,
+    col: Annotated[
+        list[str] | None,
+        typer.Option(
+            help=(
+                "Use a cleaner for a column, as COLUMN=CLEANER "
+                "(e.g. 'email=EmailCleaner'). Repeatable."
+            )
+        ),
+    ] = None,
     inplace: Annotated[
         bool | None, typer.Option(help="Whether to clean dataframes in place.")
     ] = None,
@@ -100,6 +109,8 @@ def clean(
         dict(parse_mapping(x) for x in rename_col) if rename_col else {}
     )
 
+    parsed_col_map = dict(parse_mapping(x) for x in col) if col else {}
+
     dataclean.clean_paths(
         paths=paths,
         write_path=write_path,
@@ -114,6 +125,7 @@ def clean(
         dry_run=dry_run,
         keep_original=keep_original,
         original_suffix=original_suffix,
+        column_cleaners=parsed_col_map,
     )
 
 

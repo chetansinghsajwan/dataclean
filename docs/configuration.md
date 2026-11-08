@@ -78,16 +78,10 @@ in that case. Otherwise each path is routed by its scheme prefix
 unprefixed paths go to the catalog that lists `""`. An unknown scheme raises
 `ValueError`.
 
-!!! warning "Several `clean_paths()` parameters are accepted but not yet wired in"
-    `rename_cols`, `rename_col_map`, `col_renamer`, `clean_cols`,
-    `ignore_cols`, `inplace`, and `cleaners` are all accepted by
-    `clean_paths()` and logged for diagnostics, but **do not currently affect
-    cleaning behavior** — cleaning always runs `config.cleaners` with
-    `auto_detect=True` regardless of what you pass for these. This is
-    documented directly in the function's own docstring, not a doc-writing
-    guess. `dry_run` *is* implemented: it skips the actual read/write calls
-    while still expanding paths, mapping write paths, and logging as normal
-    — useful for previewing what a run would touch.
+`inplace` is accepted and logged but is not yet threaded into the cleaning
+pipeline. `dry_run` skips the actual read and write calls while still expanding
+paths, mapping write paths and logging, which is useful for previewing what a
+run would touch.
 
 ### Path patterns
 
@@ -102,6 +96,31 @@ must match the whole path.
 
 Unity patterns reach the metastore only as bound query parameters, and `_` and
 `%` in a name are matched literally.
+
+### Choosing the cleaner for a column
+
+Detection picks a cleaner for each column from its name and values.
+`column_cleaners` overrides it for the columns you name (CLI: `--col
+COLUMN=CLEANER`, repeatable). A cleaner is given by its registered name, such
+as `"EmailCleaner"`, or as an instance, which is how an `EnumCleaner` with
+`cases=` is used. An unknown name raises `ValueError`. A column that a dataset
+does not have is skipped, so one mapping can cover many datasets. In
+`clean_paths()` and the CLI the name is the column's name after renaming.
+
+To leave a column alone, use `ignore_cols` (CLI: `--ignore-col`). It wins over
+`column_cleaners`. `clean()` takes both options too.
+
+```python
+dataclean.clean_paths(
+    paths=["prod.raw.*"],
+    column_cleaners={"contact": "EmailCleaner"},
+    ignore_cols=["notes"],
+)
+```
+
+```bash
+dataclean clean "prod.raw.*" --col contact=EmailCleaner --ignore-col notes
+```
 
 ### Keeping the original values
 

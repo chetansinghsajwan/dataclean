@@ -9,6 +9,7 @@ from dataclean import (
     CleanPathResult,
     ColRenamer,
     DataFrame,
+    EmailCleaner,
     clean_paths,
     config,
 )
@@ -441,3 +442,105 @@ def test_clean_paths_keep_original_adds_uncleaned_columns(
     assert written.df is not None
     assert written.df["country"].iloc[0] == "India"
     assert written.df["country_uncleaned"].iloc[0] == "india"
+
+
+def test_clean_paths_column_cleaners_override_detection_by_name(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(config, "auto_load_plugins", False)
+    # "contact" gives no hint that it holds emails, so only the override cleans it.
+    catalog = InMemoryCatalog(
+        {"in.csv": pd.DataFrame({"contact": [" Bob@Example.COM "]})}
+    )
+
+    clean_paths(
+        paths=["in.csv"],
+        write_path="out.csv",
+        catalog=catalog,
+        rename_cols=False,
+        column_cleaners={"contact": "EmailCleaner"},
+    )
+
+    written = catalog.written["out.csv"]
+    assert written.df is not None
+    assert written.df["contact"].iloc[0] == "bob@example.com"
+
+
+def test_clean_paths_column_cleaners_accept_a_cleaner_instance(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(config, "auto_load_plugins", False)
+    catalog = InMemoryCatalog(
+        {"in.csv": pd.DataFrame({"contact": [" Bob@Example.COM "]})}
+    )
+
+    clean_paths(
+        paths=["in.csv"],
+        write_path="out.csv",
+        catalog=catalog,
+        rename_cols=False,
+        column_cleaners={"contact": EmailCleaner()},
+    )
+
+    written = catalog.written["out.csv"]
+    assert written.df is not None
+    assert written.df["contact"].iloc[0] == "bob@example.com"
+
+
+def test_clean_paths_column_cleaners_skip_a_column_a_dataset_lacks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(config, "auto_load_plugins", False)
+    catalog = InMemoryCatalog(
+        {
+            "a.csv": pd.DataFrame({"contact": ["Bob@Example.COM"]}),
+            "b.csv": pd.DataFrame({"other": ["x"]}),
+        }
+    )
+
+    clean_paths(
+        paths=["a.csv", "b.csv"],
+        write_path="out.csv",
+        catalog=catalog,
+        rename_cols=False,
+        column_cleaners={"contact": "EmailCleaner"},
+    )
+
+    assert "out.csv" in catalog.written
+
+
+def test_clean_paths_column_cleaners_unknown_name_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(config, "auto_load_plugins", False)
+    catalog = InMemoryCatalog({"in.csv": pd.DataFrame({"contact": ["x"]})})
+
+    with pytest.raises(ValueError, match="Unknown cleaner"):
+        clean_paths(
+            paths=["in.csv"],
+            write_path="out.csv",
+            catalog=catalog,
+            column_cleaners={"contact": "NotARealCleaner"},
+        )
+
+
+def test_clean_paths_ignore_cols_win_over_column_cleaners(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(config, "auto_load_plugins", False)
+    catalog = InMemoryCatalog(
+        {"in.csv": pd.DataFrame({"contact": ["Bob@Example.COM"]})}
+    )
+
+    clean_paths(
+        paths=["in.csv"],
+        write_path="out.csv",
+        catalog=catalog,
+        rename_cols=False,
+        column_cleaners={"contact": "EmailCleaner"},
+        ignore_cols=["contact"],
+    )
+
+    written = catalog.written["out.csv"]
+    assert written.df is not None
+    assert written.df["contact"].iloc[0] == "Bob@Example.COM"

@@ -11,9 +11,9 @@ This plan covers what must be done before the first public release of
 | --- | --- | --- | --- |
 | 1 | Collect sample datasets (done) | none | S |
 | 2 | Cleaner audit: implement and auto-detect | 1 | L |
-| 3 | Override automatic cleaner allocation | none | S |
-| 4 | Retain original values | none | M |
-| 5 | List datasets by regex | none | M |
+| 3 | Override automatic cleaner allocation (done) | none | S |
+| 4 | Retain original values (done) | none | M |
+| 5 | List datasets by regex (done) | none | M |
 | 6 | Databricks support | 2, 5 | L |
 | 7 | dbt usage | 6 | M to L |
 | 8 | README | 3, 4, 5, 7 | S |
@@ -35,6 +35,10 @@ publish. The two contact files and the case list were reviewed value by value.
 
 ### 2. Cleaner audit
 
+Status: nearly done. 13 cleaners are registered and audited. Still open: the
+`null_tokens` field on the base `Cleaner` (it blocks `NameCleaner`), the
+`EnumCleaner` explicit-only decision, and the `match_score` audit list.
+
 - Run every cleaner against the datasets and list the gaps: missing cleaners
   and weak `match_score` implementations.
 - Fix the gaps so each cleaner is both correct and auto-detecting.
@@ -44,10 +48,14 @@ publish. The two contact files and the case list were reviewed value by value.
 
 ### 3. Override automatic allocation
 
-- `Pipeline` already accepts `column_cleaners`.
-- Expose it in `clean_paths` and the CLI, for example
-  `--col email=EmailCleaner`.
-- Add a per-column skip, beyond the existing `ignore_cols`.
+Status: done. `column_cleaners` is available on `clean` and `clean_paths`, and
+the CLI has a repeatable `--col COLUMN=CLEANER`.
+
+- A cleaner is given by registered name or as an instance. An unknown name
+  raises `ValueError`. A column a dataset lacks is skipped.
+- The per-column skip already existed as `ignore_cols` and `--ignore-col`, so
+  no new option was added. `clean` now takes `ignore_cols` as well, and it wins
+  over `column_cleaners`.
 
 ### 4. Retain original values
 
@@ -76,6 +84,9 @@ Status: done, and checked against a real Unity workspace (Spark 4.1.0).
   quote in a pattern, and several patterns in one query.
 
 ### 6. Databricks support
+
+Status: not started. Only the Unity path expansion has been checked against a
+real workspace, read-only.
 
 - The databricks plugin tests currently error at setup, so there is no
   working baseline yet.
