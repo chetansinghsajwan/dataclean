@@ -314,7 +314,7 @@ NameCleaner().clean_row("HBOS")  # -> "HBOS"
   (decimal places, half-up rounding; default `3`; `None` skips rounding),
   `parse_suffixes` (default `False` — interpret trailing k/m/b/t as
   ×1e3/1e6/1e9/1e12).
-- **Output**: single column, `DataType.INT` or `DataType.FLOAT` per
+- **Output**: single column, `DataType.LONG` or `DataType.DOUBLE` per
   `out_format`. Note `clean_row` itself returns a numeric *string* — the
   declared output `dtype` is what the engine casts it with downstream.
 - **Behavior**: strips currency symbols/thousands separators, collapses
@@ -446,6 +446,14 @@ UuidCleaner(allowed_versions={7}).clean_row(some_v4_uuid)  # -> None (wrong vers
 ```
 
 ::: dataclean.cleaners.UuidCleaner
+
+## Columns left uncleaned
+
+Some columns have no cleaner on purpose. Identifier-like columns such as
+`username` and `colname` are not claimed by any cleaner, so their values pass
+through unchanged. To clean one anyway, name a cleaner for it with
+`column_cleaners` (see [Configuration](configuration.md)), for example
+`column_cleaners={"colname": TextCleaner()}`.
 
 ## What's next
 

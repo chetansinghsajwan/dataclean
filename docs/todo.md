@@ -4,3 +4,6 @@ Work for later that is not part of the [release plan](release-plan.md).
 
 - Add benchmarks: measure cleaner throughput and detection time per engine
   (pandas, ibis, Spark), so speed changes can be compared.
+- Auto-detect low-cardinality columns in `EnumCleaner`: today it needs `cases=`
+  and is explicit-only. Later it should detect a column with few distinct
+  values (for example `status`) and build its cases from the data.
