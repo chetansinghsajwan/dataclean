@@ -1,9 +1,11 @@
 """Address cleaner for handling multi-column address data."""
 
 import re
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, replace
 from typing import override
 
+from dataclean.engine import DataFrame
 from dataclean.types import checked
 
 from .cleaner import Cleaner
@@ -42,6 +44,20 @@ def _title_case(value: str) -> str:
     return _WORD.sub(lambda match: match.group().capitalize(), value.lower())
 
 
+# The input role each output is made from. An output is only written when its
+# input role was given a column.
+_OUTPUT_INPUTS: dict[str, str] = {
+    "state": "county",
+    "postcode": "postcode",
+    "address_line": "address_line1",
+    "street": "address_line1",
+    "house_no": "address_line1",
+    "town": "town",
+    "address_line2": "address_line2",
+    "address_line3": "address_line3",
+}
+
+
 @checked
 @dataclass
 class AddressCleaner(Cleaner):
@@ -51,15 +67,41 @@ class AddressCleaner(Cleaner):
     ``address_line3``, ``town``, ``county`` and ``postcode`` (all optional, so
     a row is cleaned even when its first line is empty), and produces ``state``, ``postcode``,
     ``address_line``, ``street``, ``house_no``, ``town``, ``address_line2``
-    and ``address_line3`` outputs.
+    and ``address_line3`` outputs. In a pipeline an output is only written
+    when its input role has a column, so a lone ``town`` column gives just a
+    cleaned ``town``.
 
     Country columns are not part of this cleaner. ``CountryCleaner`` owns
     every country column, including the country of an address.
     """
 
+    _given: frozenset[str] | None = None
+
+    @override
+    def fit(self, df: DataFrame, role_columns: Mapping[str, str]) -> Cleaner:
+        """Return a copy that writes only the outputs whose input role has a column."""
+        return replace(self, _given=frozenset(role_columns))
+
     @override
     def _outputs(self) -> Cleaner.OutputSchema:
-        """Return the output schema: state, postcode, lines, street, house number and town."""
+        """Return the output schema: state, postcode, lines, street, house number and town.
+
+        After ``fit``, only the outputs whose input role was given a column.
+        """
+        every = self._all_outputs()
+        if self._given is None:
+            return every
+        return Cleaner.OutputSchema(
+            cols=tuple(
+                col
+                for col in every.cols
+                if _OUTPUT_INPUTS[col.name or ""] in self._given
+            )
+        )
+
+    @staticmethod
+    def _all_outputs() -> Cleaner.OutputSchema:
+        """Return every output column, in the order ``clean_row`` returns them."""
         return Cleaner.OutputSchema(
             cols=(
                 Cleaner.OutputSchema.Column(name="state", roles=("state",)),
@@ -129,7 +171,7 @@ class AddressCleaner(Cleaner):
         town: str | None = None,
         county: str | None = None,
         postcode: str | None = None,
-    ) -> tuple[str | None, ...] | None:  # type: ignore
+    ) -> str | tuple[str | None, ...] | None:  # type: ignore
         """Clean a row of address components.
 
         Cleans each address line, title-cases the town and county, normalizes
@@ -154,7 +196,7 @@ class AddressCleaner(Cleaner):
         address_line = self._clean_address_line(address_line1)
         street, house_no = self._extract_street_and_number(address_line)
 
-        return (
+        everything = (
             self._clean_place(county),
             self._clean_postcode(postcode),
             address_line,
@@ -164,6 +206,15 @@ class AddressCleaner(Cleaner):
             self._clean_address_line(address_line2),
             self._clean_address_line(address_line3),
         )
+        if self._given is None:
+            return everything
+        kept = tuple(
+            value
+            for name, value in zip(_OUTPUT_INPUTS, everything, strict=True)
+            if _OUTPUT_INPUTS[name] in self._given
+        )
+        # A single output is a plain value, as the pipeline expects.
+        return kept[0] if len(kept) == 1 else kept
 
     # Private helper methods
 

@@ -12,7 +12,7 @@ STATE, POSTCODE, LINE, STREET, HOUSE_NO, TOWN, LINE2, LINE3 = range(8)
 
 def _clean(**kwargs: str | None) -> tuple[str | None, ...]:
     result = AddressCleaner().clean_row(**kwargs)
-    assert result is not None
+    assert isinstance(result, tuple)
     return result
 
 
@@ -191,8 +191,8 @@ def test_missing_optional_columns_do_not_shift_values_between_roles() -> None:
     assert row["address1_postcode_cleaned"] == "BR1 1AA"
     assert row["address1_street_cleaned"] == "High Street"
     assert row["address1_house_no_cleaned"] == "12"
-    assert row["address1_state_cleaned"] is None
-    assert row["address1_town_cleaned"] is None
+    assert "address1_state_cleaned" not in cleaned.df.columns
+    assert "address1_town_cleaned" not in cleaned.df.columns
 
 
 def test_country_is_cleaned_in_place_next_to_an_address_group() -> None:
@@ -234,3 +234,13 @@ def test_group_without_a_first_line_column_is_named_after_its_first_column() -> 
     assert cleaned.df is not None
     assert cleaned.df["town_town_cleaned"].tolist() == ["London"]
     assert cleaned.df["town_postcode_cleaned"].tolist() == ["SW1A 1AA"]
+
+
+def test_only_the_roles_that_were_given_a_column_come_out() -> None:
+    cleaned = Pipeline(cleaners=(AddressCleaner(),)).fit_transform(
+        _df(town=["london", "LEEDS"])
+    )
+
+    assert cleaned.df is not None
+    assert list(cleaned.df.columns) == ["town"]
+    assert cleaned.df["town"].tolist() == ["London", "Leeds"]
