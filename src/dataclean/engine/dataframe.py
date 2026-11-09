@@ -29,7 +29,9 @@ class DataType(StrEnum):
     Attributes:
         STR: Text/string data.
         BOOL: Boolean (true/false) data.
-        INT: Integer numeric data.
+        INT: Integer numeric data. 32-bit on engines that have fixed widths
+            (Spark), so it suits small numbers such as flags and counts.
+        LONG: 64-bit integer numeric data, for values of any realistic size.
         FLOAT: Single-precision floating point numeric data.
         DOUBLE: Double-precision floating point numeric data.
         DATE: Calendar date (no time of day).
@@ -40,6 +42,7 @@ class DataType(StrEnum):
     STR = "str"
     BOOL = "bool"
     INT = "int"
+    LONG = "long"
     FLOAT = "float"
     DOUBLE = "double"
     DATE = "date"

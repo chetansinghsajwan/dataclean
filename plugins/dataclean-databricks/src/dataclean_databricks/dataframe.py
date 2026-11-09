@@ -227,6 +227,9 @@ class PysparkDataFrame(DataFrame):
         if data_type == "int":
             return spt.IntegerType()
 
+        if data_type == "long":
+            return spt.LongType()
+
         if data_type == "float":
             return spt.FloatType()
 
@@ -253,9 +256,10 @@ class PysparkDataFrame(DataFrame):
         if data_type == spt.BooleanType():
             return DataType.BOOL
 
-        if isinstance(
-            data_type, (spt.ByteType, spt.ShortType, spt.IntegerType, spt.LongType)
-        ):
+        if isinstance(data_type, spt.LongType):
+            return DataType.LONG
+
+        if isinstance(data_type, (spt.ByteType, spt.ShortType, spt.IntegerType)):
             return DataType.INT
 
         if data_type == spt.FloatType():

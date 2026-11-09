@@ -102,6 +102,8 @@ Done:
   Spark. A new contract test covers this.
 - `NumericCleaner` outputs `DOUBLE`, since 32-bit floats lost digits on Spark
   and ibis.
+- A new `DataType.LONG` (64-bit) is what `NumericCleaner` outputs for integers,
+  since Spark `INT` is 32-bit. Other cleaners keep `INT`.
 
 Left:
 
@@ -113,7 +115,6 @@ Left:
 - `UnityCatalog.write_df` fails on an existing table. Deliberately left as
   is, since a shared write mode would change `Catalog.write_df` for every
   plugin.
-- Spark `INT` is 32-bit, so large integers overflow.
 - Packaging: the placeholder description and the missing README.
 
 ### 7. dbt usage

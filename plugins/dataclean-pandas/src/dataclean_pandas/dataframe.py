@@ -163,6 +163,7 @@ class PandasDataFrame(DataFrame):
             DataType.STR: object,
             DataType.BOOL: "boolean",
             DataType.INT: "Int64",
+            DataType.LONG: "Int64",
             DataType.FLOAT: np.float64,
             DataType.DOUBLE: np.float64,
             DataType.DATE: "datetime64[ns]",

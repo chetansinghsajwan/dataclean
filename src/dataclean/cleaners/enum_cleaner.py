@@ -353,6 +353,7 @@ class EnumCleaner(Cleaner):
 
         if dict(df.cols()).get(cols[0]) in (
             DataType.INT,
+            DataType.LONG,
             DataType.FLOAT,
             DataType.DOUBLE,
         ):

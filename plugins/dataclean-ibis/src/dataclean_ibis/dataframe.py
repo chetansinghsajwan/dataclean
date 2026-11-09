@@ -16,6 +16,7 @@ _TO_IBIS_DTYPE: dict[DataType, dt.DataType] = {
     DataType.STR: dt.String(),
     DataType.BOOL: dt.Boolean(),
     DataType.INT: dt.Int64(),
+    DataType.LONG: dt.Int64(),
     DataType.FLOAT: dt.Float32(),
     DataType.DOUBLE: dt.Float64(),
     DataType.DATE: dt.Date(),

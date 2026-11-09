@@ -255,3 +255,8 @@ def test_numeric_detection_skips_identifier_values():
 def test_numeric_detection_text_scores_low():
     assert _score("notes", ["alpha", "beta", "gamma"]) == 0.0
     assert _score("notes", []) == 0.0
+
+
+def test_numeric_cleaner_int_format_outputs_long():
+    cleaner = NumericCleaner(out_format=NumericCleaner.Format.INT)
+    assert cleaner.outputs.cols[0].dtype == DataType.LONG

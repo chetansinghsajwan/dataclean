@@ -20,7 +20,7 @@ def spark() -> Generator[SparkSession, None, None]:
 
     session = new_session()
 
-    yield session
+    yield session  # ty: ignore[invalid-yield]
     session.stop()
 
 
@@ -219,7 +219,7 @@ class TestDatabricksDataFrameNewMethods:
         (spt.ByteType(), DataType.INT),
         (spt.ShortType(), DataType.INT),
         (spt.IntegerType(), DataType.INT),
-        (spt.LongType(), DataType.INT),
+        (spt.LongType(), DataType.LONG),
         (spt.FloatType(), DataType.FLOAT),
         (spt.DoubleType(), DataType.DOUBLE),
         (spt.DateType(), DataType.DATE),
