@@ -13,6 +13,11 @@ from .cleaner import Cleaner
 _WORD = re.compile(r"[^\W\d_]+(?:['’][^\W\d_]+)?")
 
 
+# A UK postcode with or without its space: outward code, then a digit and two
+# letters of inward code. Written with one space before the inward code.
+_UK_POSTCODE = re.compile(r"([A-Z]{1,2}\d[A-Z\d]?) ?(\d[A-Z]{2})")
+
+
 # Letters joined by spaces, dots, apostrophes and hyphens: the shape of a real
 # place name. Anything else, such as "%s%s" or "<script>", is not title-cased.
 _PLACE_NAME = re.compile(r"[^\W\d_]+(?:[ .'’-]+[^\W\d_]+)*\.?")
@@ -177,14 +182,19 @@ class AddressCleaner(Cleaner):
     def _clean_postcode(self, value: str | None) -> str | None:
         """Upper-case a postcode, drop hyphens and collapse whitespace.
 
-        Spacing inside the postcode is kept, since the right spacing depends
-        on the country. Returns None if nothing with a letter or digit is
+        A UK postcode is written with one space before its last three
+        characters, so a column does not mix `SW1A1AA` and `SW1A 1AA`. Other
+        postcodes keep their spacing, since the right spacing depends on the
+        country. Returns None if nothing with a letter or digit is
         left, as with "???".
         """
         if not value:
             return None
         cleaned = _collapse_whitespace(value.upper().replace("-", ""))
-        return cleaned if any(char.isalnum() for char in cleaned) else None
+        if not any(char.isalnum() for char in cleaned):
+            return None
+        uk = _UK_POSTCODE.fullmatch(cleaned)
+        return f"{uk[1]} {uk[2]}" if uk else cleaned
 
     def _extract_street_and_number(
         self, address_line: str | None

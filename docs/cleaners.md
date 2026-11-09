@@ -36,7 +36,8 @@ components out. No configuration options beyond the base `tags`/`inplace`.
   and `county` when they are written all lower or all upper case and look like
   a place name (mixed case such as "McDonald Heights" is kept); uppercases the
   postcode, drops hyphens, collapses whitespace and nulls a value with no
-  letter or digit (such as `???`), without reformatting the spacing inside it;
+  letter or digit (such as `???`); a UK postcode gets one space before its last
+  three characters, and others keep their spacing;
   splits `address_line1` on whitespace, where a leading numeric token becomes
   `house_no` and the remainder becomes `street`.
 - **Country**: there is no country input or output. `CountryCleaner` owns every
@@ -58,7 +59,7 @@ AddressCleaner().clean_row(
     county="greater london",
     postcode="nw1-6xe",
 )
-# -> ("Greater London", "NW16XE", "221 Baker Street", "Baker Street", "221",
+# -> ("Greater London", "NW1 6XE", "221 Baker Street", "Baker Street", "221",
 #     "London", None, None)
 ```
 
@@ -137,9 +138,11 @@ CountryCleaner(in_format=CountryCleaner.Format.NAME_FUZZY).clean_row(
 
 ## DateTimeCleaner
 
-- **Params**: `out_format` (`Format.ISO_DATETIME` (default, e.g.
+- **Params**: `out_format` (`Format.AUTO` (default), `ISO_DATETIME` (e.g.
   `2026-06-19T22:45:00`), `ISO_DATE`, `ISO_TIME`, `INDIAN_DATE` (e.g.
-  `19-06-2026`)).
+  `19-06-2026`)). With `AUTO` the pipeline reads the whole column and writes
+  one layout: `ISO_DATE` if every value is a date, `ISO_TIME` if every value is
+  a time, otherwise `ISO_DATETIME`. A column never mixes layouts.
 - **Output**: single STR column.
 - **Auto-detection**: matches by column name, but never a column that already
   has a date, datetime or time type — there is nothing to parse, and cleaning

@@ -85,14 +85,17 @@ def test_address_cleaner_keeps_missing_town_and_county_as_none() -> None:
 @pytest.mark.parametrize(
     "raw, expected",
     [
-        ("sw1a1aa", "SW1A1AA"),
+        ("sw1a1aa", "SW1A 1AA"),
         ("SW1A 1AA", "SW1A 1AA"),
         ("sw1a   1aa", "SW1A 1AA"),
+        ("m11ae", "M1 1AE"),
+        ("EC1A-1BB", "EC1A 1BB"),
+        ("12345-6789", "123456789"),
         ("ncr-110001", "NCR110001"),
         ("110001", "110001"),
     ],
 )
-def test_address_cleaner_normalizes_postcode_without_reformatting_spacing(
+def test_address_cleaner_normalizes_postcode_and_spaces_uk_ones(
     raw: str, expected: str
 ) -> None:
     assert _clean(address_line1="1 High Street", postcode=raw)[POSTCODE] == expected
@@ -230,4 +233,4 @@ def test_group_without_a_first_line_column_is_named_after_its_first_column() -> 
 
     assert cleaned.df is not None
     assert cleaned.df["town_town_cleaned"].tolist() == ["London"]
-    assert cleaned.df["town_postcode_cleaned"].tolist() == ["SW1A1AA"]
+    assert cleaned.df["town_postcode_cleaned"].tolist() == ["SW1A 1AA"]
