@@ -14,7 +14,7 @@ This plan covers what must be done before the first public release of
 | 3 | Override automatic cleaner allocation (done) | none | S |
 | 4 | Retain original values (done) | none | M |
 | 5 | List datasets by regex (done) | none | M |
-| 6 | Databricks support | 2, 5 | L |
+| 6 | Databricks support (in progress) | 2, 5 | L |
 | 7 | dbt usage | 6 | M to L |
 | 8 | README | 3, 4, 5, 7 | S |
 | 9 | Agent skill | 8 | S |
@@ -85,14 +85,36 @@ Status: done, and checked against a real Unity workspace (Spark 4.1.0).
 
 ### 6. Databricks support
 
-Status: not started. Only the Unity path expansion has been checked against a
-real workspace, read-only.
+Status: in progress. The plugin now runs end to end on a real workspace and
+matches the pandas results on every column of the contact fixture. Checked in
+a scratch schema, with fake-Spark tests as the default tests.
 
-- The databricks plugin tests currently error at setup, so there is no
-  working baseline yet.
-- End-to-end runs need a Unity workspace or a Databricks Connect profile.
-- Measure Python UDF cost on Spark with the sample datasets. It is the main
-  performance risk.
+Done:
+
+- Workspace tests skip without `DATABRICKS_HOST` and `DATABRICKS_TOKEN`, so the
+  plugin test run no longer hangs.
+- Uploading local packages to the workspace is opt-in
+  (`DATACLEAN_DATABRICKS_UPLOAD_LOCAL`). Without it, `dataclean` must be
+  installed on the cluster. The cluster currently holds an old `dataclean`
+  0.1.0 as a library, and changing it needs a token with the `libraries` scope.
+- The Spark `read_cols` runs its callbacks on the driver. Before, columns
+  detected only from their values, such as numbers, were never cleaned on
+  Spark. A new contract test covers this.
+- `NumericCleaner` outputs `DOUBLE`, since 32-bit floats lost digits on Spark
+  and ibis.
+
+Left:
+
+- Speed: a run takes minutes for 40 rows by 37 columns, almost all in
+  detection. `BoolCleaner` and `GenderCleaner` scan every column, and each
+  dataframe step is a round trip to the cluster. Fetch the schema lazily and
+  share the scans between the enum cleaners, then measure again. The UDFs
+  themselves are cheap.
+- `UnityCatalog.write_df` fails on an existing table. Deliberately left as
+  is, since a shared write mode would change `Catalog.write_df` for every
+  plugin.
+- Spark `INT` is 32-bit, so large integers overflow.
+- Packaging: the placeholder description and the missing README.
 
 ### 7. dbt usage
 
