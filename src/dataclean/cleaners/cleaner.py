@@ -8,6 +8,7 @@ consumes and produces.
 
 import inspect
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 
 from dataclean.engine.dataframe import DataFrame, DataType
@@ -224,6 +225,22 @@ class Cleaner(ABC):
         this to declare their actual output columns, dtypes, and roles.
         """
         return Cleaner.OutputSchema(cols=(Cleaner.OutputSchema.Column(),))
+
+    def fit(self, df: DataFrame, role_columns: Mapping[str, str]) -> "Cleaner":
+        """Return the cleaner to run on the columns it was assigned.
+
+        Called once per assignment before any cleaning. A cleaner whose output
+        format would otherwise depend on each row overrides this to look at the
+        whole column and return a copy with one fixed format, so every value in
+        a column is written the same way. The base implementation returns
+        ``self``.
+
+        Args:
+            df: The dataframe being cleaned.
+            role_columns: The input role keys mapped to the column names that
+                fill them.
+        """
+        return self
 
     def match_score(self, df: DataFrame, cols: tuple[str, ...]) -> float:
         """Score how confident this cleaner is that it applies to cols.

@@ -236,3 +236,35 @@ def test_pipeline_does_not_turn_temporal_columns_into_strings():
     result = cleaned.df
     assert result is not None
     assert result["date_text"].tolist() == ["2024-01-02"]
+
+
+# ==============================================================================
+# ONE LAYOUT PER COLUMN
+# ==============================================================================
+
+
+@pytest.mark.parametrize(
+    "raw, expected",
+    [
+        (
+            ["2026-06-19", "19/06/2026 22:45", "22:45"],
+            ["2026-06-19T00:00:00", "2026-06-19T22:45:00", "0001-01-01T22:45:00"],
+        ),
+        (["19 Jun 2026", "2026-06-20"], ["2026-06-19", "2026-06-20"]),
+        (["10:00", "11:30 pm"], ["10:00:00", "23:30:00"]),
+    ],
+)
+def test_auto_format_writes_one_layout_for_the_whole_column(
+    raw: list[str], expected: list[str]
+) -> None:
+    import pandas as pd
+    from dataclean_pandas import PandasDataFrame
+
+    from dataclean.pipeline import Pipeline
+
+    cleaned = Pipeline(
+        column_cleaners={"d": DateTimeCleaner()}, auto_detect=False
+    ).fit_transform(PandasDataFrame(df=pd.DataFrame({"d": raw})))
+
+    assert cleaned.df is not None
+    assert cleaned.df["d"].tolist() == expected

@@ -1,17 +1,17 @@
 """Cleaner for normalizing messy date/time strings into a canonical format."""
 
 import re
-from collections.abc import Iterable
-from dataclasses import dataclass
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, time, timedelta, timezone, tzinfo
 from enum import StrEnum
 from typing import ClassVar, override
 from zoneinfo import ZoneInfo
 
-from dataclean.engine import DataFrame, DataType
+from dataclean.engine import DataFrame, DataReader, DataType
 from dataclean.types import checked
 
-from .cleaner import Cleaner
+from .cleaner import PRIMARY, Cleaner
 
 
 @checked
@@ -26,7 +26,11 @@ class DateTimeCleaner(Cleaner):
     value with only a time is read as a time of day.
 
     Attributes:
-        out_format: The output layout to render the parsed value as.
+        out_format: The output layout to render the parsed value as. With
+            `AUTO` the pipeline reads the whole column first and picks one
+            layout for it: `ISO_DATE` if every value is a date, `ISO_TIME` if
+            every value is a time, otherwise `ISO_DATETIME`. Called directly
+            on a row, `AUTO` writes that row as it was given.
         day_first: If True, `03/04/2026` is 3 April and `03/14/2026` is
             rejected. If False it is 4 March and `19/06/2026` is rejected.
             Values are never guessed in both orders.
@@ -43,7 +47,7 @@ class DateTimeCleaner(Cleaner):
     class Format(StrEnum):
         """Output layouts supported for cleaned date/time values."""
 
-        AUTO = "auto"  # 2026-06-19, 2026-06-19T22:45:00 or 22:45:00, as the input
+        AUTO = "auto"  # one layout for the column, picked from what it holds
         ISO_DATETIME = "iso_datetime"  # 2026-06-19T22:45:00
         ISO_DATE = "iso_date"  # 2026-06-19
         ISO_TIME = "iso_time"  # 22:45:00
@@ -222,6 +226,35 @@ class DateTimeCleaner(Cleaner):
                 return value.strftime("%d-%m-%Y")
 
         return None
+
+    @override
+    def fit(self, df: DataFrame, role_columns: Mapping[str, str]) -> Cleaner:
+        """Pick one output layout for the column when ``out_format`` is AUTO."""
+        column = role_columns.get(PRIMARY)
+        if self.out_format != DateTimeCleaner.Format.AUTO or column is None:
+            return self
+
+        kinds: set[str] = set()
+
+        def note(value: str | None) -> None:
+            text = str(value).strip() if value is not None else ""
+            parsed = self.clean_row(text) if text else None
+            if parsed is None:
+                return
+            kinds.add(
+                "datetime" if "T" in parsed else "time" if ":" in parsed else "date"
+            )
+
+        df.read_cols([DataReader(fn=note, cols=(column,))])
+        if not kinds:
+            return self
+        if kinds == {"date"}:
+            fixed = DateTimeCleaner.Format.ISO_DATE
+        elif kinds == {"time"}:
+            fixed = DateTimeCleaner.Format.ISO_TIME
+        else:
+            fixed = DateTimeCleaner.Format.ISO_DATETIME
+        return replace(self, out_format=fixed)
 
     @override
     def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:

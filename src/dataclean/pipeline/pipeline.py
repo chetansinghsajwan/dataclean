@@ -2,6 +2,7 @@
 
 import logging
 from collections.abc import Callable, Iterable, Sequence
+from dataclasses import replace
 from typing import Any
 
 from dataclean.cleaners import Cleaner
@@ -174,6 +175,14 @@ class Pipeline:
             assignments = tuple(
                 assignment for assignment in assignments if assignment.explicit
             )
+
+        assignments = tuple(
+            replace(
+                assignment,
+                cleaner=assignment.cleaner.fit(df, assignment.role_columns),
+            )
+            for assignment in assignments
+        )
 
         _logger.info("Resolved %d assignment(s).", len(assignments))
         if _logger.isEnabledFor(logging.DEBUG):
