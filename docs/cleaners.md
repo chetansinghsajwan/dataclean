@@ -15,7 +15,7 @@ auto-detection fit together generally.
 | `EnumCleaner` | Generic categorical value normalizer | name prefix/suffix/word + value sampling | **No** — needs `cases=` |
 | `FilePathCleaner` | Normalizes file names and paths | `file`/`path`/`dir`/`folder` word in column name | Yes |
 | `GenderCleaner` | Normalizes gender values | `gender`/`sex` in column name + value sampling | Yes |
-| `NameCleaner` | Recognizes personal-name columns (values unchanged) | person-name column tokens (`fname`/`lname`/`first_name`/`surname`/...) | Yes |
+| `NameCleaner` | Recognizes personal-name columns (values unchanged, placeholders nulled) | person-name column tokens (`fname`/`lname`/`first_name`/`surname`/...) | Yes |
 | `NumericCleaner` | Parses/reformats numeric values | name tokens (30%) + value sampling (70%) | Yes |
 | `PhoneCleaner` | Parses/reformats phone numbers | `phone`/`tel`/`mobile`/`fax`/`contact_no` in column name | Yes |
 | `TextCleaner` | General free-text normalization | text-ish tokens, else a `0.1` baseline (never `0.0`) | Yes |
@@ -47,21 +47,11 @@ components out. No configuration options beyond the base `tags`/`inplace`.
     The `state` output column is populated from the cleaned **county** value,
     not a separate "state" concept: treat `state` as "cleaned county". Because
     no input is required, a lone column whose name contains a hint such as
-    `city` or `county` is claimed as an address group, and the output columns
-    are named after the first column found when there is no first line.
+    `city` or `county` is claimed as an address group.
 
-```python
-from dataclean import AddressCleaner
-
-AddressCleaner().clean_row(
-    address_line1="221 Baker Street",
-    town="london",
-    county="greater london",
-    postcode="nw1-6xe",
-)
-# -> ("Greater London", "NW1 6XE", "221 Baker Street", "Baker Street", "221",
-#     "London", None, None)
-```
+An output is written only when its input role has a column: a lone `town`
+column is cleaned in place and adds no other columns. With several roles, the
+output columns are named after the first column found.
 
 ::: dataclean.cleaners.AddressCleaner
 
@@ -285,11 +275,15 @@ GenderCleaner().clean_row("boy")  # -> "Male"
 
 ## NameCleaner
 
-Recognizes personal-name columns; it does **not** change their values.
+Recognizes personal-name columns; it does **not** change their values, except
+that placeholders become null.
 
-- **Params**: none beyond the base `tags`/`inplace`.
+- **Params**: `null_tokens` (default `null`, `none`, `undefined`, `n/a`, `-`;
+  compared case-insensitively). `na` and `nan` are not in it, since they are
+  real names.
 - **Output**: single column, same name as the input.
-- **Behavior**: `clean_row` returns the value unchanged. It exists so that
+- **Behavior**: `clean_row` returns the value unchanged, or None for a
+  placeholder. It exists so that
   auto-detection claims name columns (and no other cleaner does). Like every
   cleaner, values still get the pipeline's input normalization: surrounding
   whitespace is stripped and blank strings become null. Casing is

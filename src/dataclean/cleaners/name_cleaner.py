@@ -1,4 +1,4 @@
-"""Cleaner that recognizes personal-name columns; it does not alter the values."""
+"""Cleaner that recognizes personal-name columns and nulls placeholder values."""
 
 import re
 from collections.abc import Iterable
@@ -7,6 +7,7 @@ from typing import ClassVar, override
 
 from dataclean.engine import DataFrame, DataType
 from dataclean.types import checked
+from dataclean.utils import is_null_token, null_token_set
 
 from .cleaner import Cleaner
 
@@ -19,7 +20,8 @@ class NameCleaner(Cleaner):
     For now this cleaner only takes part in auto-detection: it claims
     person-name columns (``fname``, ``lname``, ``mname``, ``first_name``,
     ``surname``, ``full_name``, ...) so that no other cleaner does, and
-    returns each value unchanged. Values still get the pipeline's input
+    returns each value unchanged, except that a placeholder such as ``n/a`` or
+    ``-`` becomes null. Values still get the pipeline's input
     normalization like any other cleaner (surrounding whitespace is
     stripped, blank strings become null). Casing is deliberately not
     touched: person-name fields often hold acronyms, initials and company
@@ -27,7 +29,14 @@ class NameCleaner(Cleaner):
 
     Only string columns are matched, and a bare ``name`` column is not
     (it is often a company or product name).
+
+    Attributes:
+        null_tokens: Placeholder values (compared case-insensitively) that
+            become null. ``na`` and ``nan`` are left out of the default, since
+            they are real names.
     """
+
+    null_tokens: tuple[str, ...] = ("null", "none", "undefined", "n/a", "-")
 
     # Short forms must stand alone (or be concatenated, e.g. "lnamefname") so
     # that "colname" or "filename" never match.
@@ -39,17 +48,24 @@ class NameCleaner(Cleaner):
         r"family_?name|maiden_?name|forename|surname"
     )
 
+    _null_set: frozenset[str] = frozenset()
+
+    def __post_init__(self) -> None:
+        """Initialize base cleaner state and build the placeholder lookup."""
+        super().__post_init__()
+        self._null_set = null_token_set(self.null_tokens)
+
     @override
     def clean_row(self, v: str) -> str | None:  # type: ignore
-        """Return ``v`` unchanged.
+        """Return ``v`` unchanged, or None if it is a placeholder.
 
         Args:
             v: The name value (already stripped and non-blank).
 
         Returns:
-            ``v``.
+            ``v``, or None if it is one of ``null_tokens``.
         """
-        return v
+        return None if is_null_token(v, self._null_set) else v
 
     @override
     def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:

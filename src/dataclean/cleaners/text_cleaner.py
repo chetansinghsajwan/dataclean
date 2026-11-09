@@ -9,6 +9,11 @@ from typing import ClassVar, override
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
+from dataclean.utils.null_tokens import (
+    COMMON_NULL_TOKENS,
+    is_null_token,
+    null_token_set,
+)
 
 from .cleaner import Cleaner
 
@@ -69,17 +74,7 @@ class TextCleaner(Cleaner):
     remove_invisible: bool = True
     normalize_unicode: bool = True
     max_combining_marks: int | None = 2
-    null_tokens: tuple[str, ...] = (
-        "null",
-        "none",
-        "nan",
-        "undefined",
-        "n/a",
-        "na",
-        "-",
-        "''",
-        '""',
-    )
+    null_tokens: tuple[str, ...] = COMMON_NULL_TOKENS
     infinity_as_null: bool = True
 
     _HTML_RE: ClassVar[re.Pattern] = re.compile(
@@ -112,10 +107,10 @@ class TextCleaner(Cleaner):
         """Initialize base cleaner state, then build the regex step pipeline."""
         super().__post_init__()
         self._pipeline = self._build_pipeline()
-        tokens = {token.lower() for token in self.null_tokens}
+        tokens = set(self.null_tokens)
         if self.infinity_as_null:
             tokens.update(self._INFINITY_TOKENS)
-        self._null_set = frozenset(tokens)
+        self._null_set = null_token_set(tokens)
 
     def _build_pipeline(self) -> tuple[Callable[[str], str], ...]:
         """Evaluate configuration flags once and build a linear regex step pipeline.
@@ -219,7 +214,7 @@ class TextCleaner(Cleaner):
         for step in self._pipeline:
             v = step(v)
 
-        if not v or v.lower() in self._null_set:
+        if is_null_token(v, self._null_set):
             return None
         return v
 

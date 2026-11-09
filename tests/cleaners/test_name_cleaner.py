@@ -77,7 +77,6 @@ def test_name_cleaner_empty_cols_scores_zero() -> None:
         "HBOS",
         "R.P.",
         "GM & JW",
-        "n/a",
         "O'Neil",
         "123",
     ],
@@ -100,7 +99,9 @@ def test_name_cleaner_is_assigned_by_the_resolver() -> None:
     assert {a.role_columns["value"] for a in assignments} == {"fname", "lname", "mname"}
 
 
-def test_name_cleaner_in_the_pipeline_only_gets_input_normalization() -> None:
+def test_name_cleaner_in_the_pipeline_gets_input_normalization_and_placeholders_nulled() -> (
+    None
+):
     df = PandasDataFrame(
         df=pd.DataFrame(
             {
@@ -117,7 +118,23 @@ def test_name_cleaner_in_the_pipeline_only_gets_input_normalization() -> None:
     fname = result["fname"].tolist()
     lname = result["lname"].tolist()
 
-    # Case is untouched; whitespace is stripped and blanks become null by the pipeline.
+    # Case is untouched; whitespace is stripped, blanks and placeholders become null.
     assert fname[:2] == ["JOHN", "mary"]
     assert pd.isna(fname[2]) and pd.isna(fname[3])
-    assert lname == ["HBOS", "R.P.", "McDonald", "n/a"]
+    assert lname[:3] == ["HBOS", "R.P.", "McDonald"]
+    assert pd.isna(lname[3])
+
+
+@pytest.mark.parametrize("raw", ["N/A", "null", "-", "None", "undefined"])
+def test_name_cleaner_nulls_placeholders(raw: str) -> None:
+    assert NameCleaner().clean_row(raw) is None
+
+
+@pytest.mark.parametrize("raw", ["Na", "Nan", "Null Singh"])
+def test_name_cleaner_keeps_names_that_look_like_placeholders(raw: str) -> None:
+    assert NameCleaner().clean_row(raw) == raw
+
+
+def test_name_cleaner_null_tokens_can_be_set() -> None:
+    assert NameCleaner(null_tokens=("unknown",)).clean_row("Unknown") is None
+    assert NameCleaner(null_tokens=("unknown",)).clean_row("N/A") == "N/A"

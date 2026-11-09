@@ -15,7 +15,7 @@ This plan covers what must be done before the first public release of
 | 4 | Retain original values (done) | none | M |
 | 5 | List datasets by regex (done) | none | M |
 | 6 | Databricks support (in progress) | 2, 5 | L |
-| 7 | dbt usage | 6 | M to L |
+| 7 | dbt usage (approach only) | 6 | S |
 | 8 | README | 3, 4, 5, 7 | S |
 | 9 | Agent skill | 8 | S |
 
@@ -35,16 +35,19 @@ publish. The two contact files and the case list were reviewed value by value.
 
 ### 2. Cleaner audit
 
-Status: nearly done. 13 cleaners are registered and audited. Still open: the
-`null_tokens` field on the base `Cleaner` (it blocks `NameCleaner`), the
-`EnumCleaner` explicit-only decision, and the `match_score` audit list.
+Status: nearly done. 13 cleaners are registered and audited, and the
+`match_score` audit is closed. The shared null-token helper is in
+`dataclean.utils`; `NameCleaner` can adopt it, and `AddressCleaner` writes only
+the outputs whose input role has a column.
 
 - Run every cleaner against the datasets and list the gaps: missing cleaners
   and weak `match_score` implementations.
 - Fix the gaps so each cleaner is both correct and auto-detecting.
-- `EnumCleaner` needs `cases=`, so it cannot auto-detect without
-  configuration. Decide whether it is explicit-only.
-- Not yet checked: which built-in cleaners lack `match_score`.
+- `EnumCleaner` needs `cases=`, so it is explicit-only for v1. Auto-detecting
+  low-cardinality columns is in `docs/todo.md`.
+- A column gets one output layout: `DateTimeCleaner` picks it per column
+  through the new `Cleaner.fit` hook, and UK postcodes use one spacing.
+- The sample fixtures are inputs only. They have no expected-output files.
 
 ### 3. Override automatic allocation
 
@@ -119,11 +122,14 @@ Left:
 
 ### 7. dbt usage
 
+Status: approach only. This is the plan, not an implementation.
+
 - Option A: a dbt Python model that calls dataclean on Databricks. Quick, but
   specific to dbt Python models.
 - Option B: SQL macros. Needs native expressions in the cleaner contract, so
   it is a larger redesign.
-- Proposed for v1: option A, with option B documented as future work.
+- Proposed for v1: option A, with option B documented as future work. Neither
+  is built yet.
 
 ### 8. README
 
