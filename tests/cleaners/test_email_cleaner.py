@@ -187,3 +187,38 @@ def test_email_international_domains_are_kept(input_value, expected):
 def test_email_components_output_for_international_domain():
     cleaner = EmailCleaner(output_format=EmailCleaner.OutputFormat.COMPONENTS)
     assert cleaner.clean_row("a+t@münchen.de") == ("a", "t", "münchen.de")
+
+
+@pytest.mark.parametrize(
+    "input_value, expected",
+    [
+        ("john@gmial.com", "john@gmail.com"),
+        ("john@gmail.con", "john@gmail.com"),
+        ("john@gmial.con", "john@gmail.com"),
+        ("john@Yahooo.com", "john@yahoo.com"),
+        ("john@hotmial.com", "john@hotmail.com"),
+        ("john@outlok.com", "john@outlook.com"),
+        ("john@rediffmial.com", "john@rediffmail.com"),
+        ("john@gmail.com", "john@gmail.com"),
+        ("john@example.com", "john@example.com"),
+        ("john@msn.com", "john@msn.com"),
+        ("john@mns.com", "john@msn.com"),
+        ("john@gmai.com", "john@gmail.com"),
+        ("john@live.co", "john@live.com"),
+        ("john@mon.co", "john@mon.co"),
+        ("john@aoo.co", "john@aoo.co"),
+        ("john@gmail.co.in", "john@gmail.co.in"),
+    ],
+)
+def test_email_fixes_domain_typos_of_known_providers(input_value, expected):
+    assert EmailCleaner().clean_row(input_value) == expected
+
+
+def test_email_domain_typo_fix_can_be_turned_off():
+    cleaner = EmailCleaner(fix_domain_typos=False)
+    assert cleaner.clean_row("john@gmial.com") == "john@gmial.com"
+
+
+def test_email_domain_typo_fix_keeps_local_part_and_tag():
+    cleaner = EmailCleaner(output_format=EmailCleaner.OutputFormat.COMPONENTS)
+    assert cleaner.clean_row("Jo.Hn+x@gmial.com") == ("jo.hn", "x", "gmail.com")

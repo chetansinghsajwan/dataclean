@@ -6,10 +6,40 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import override
 
+from rapidfuzz.distance import OSA
+
 from dataclean.engine import DataFrame
 from dataclean.types import checked
 
 from .cleaner import Cleaner
+
+# Well-known mailbox providers. A domain on this list is never changed, and a
+# typo is only corrected towards a domain on it.
+KNOWN_EMAIL_DOMAINS = frozenset(
+    {
+        "gmail.com",
+        "googlemail.com",
+        "yahoo.com",
+        "yahoo.co.in",
+        "yahoo.co.uk",
+        "ymail.com",
+        "outlook.com",
+        "hotmail.com",
+        "live.com",
+        "msn.com",
+        "icloud.com",
+        "aol.com",
+        "rediffmail.com",
+        "protonmail.com",
+        "proton.me",
+    }
+)
+
+# Domains shorter than this allow one edit, since two edits to a short domain
+# such as ``msn.com`` often give another real domain. Longer ones allow two.
+_LONG_DOMAIN_LENGTH = 9
+_SHORT_DOMAIN_EDITS = 1
+_LONG_DOMAIN_EDITS = 2
 
 
 # TODO: Need to add functionality to parse display name
@@ -40,6 +70,11 @@ class EmailCleaner(Cleaner):
             that start or end with a hyphen, and a domain over 253 characters.
             If False, only the basic ``local@domain.tld`` shape is required.
             Internationalized domains are accepted either way.
+        fix_domain_typos: If True, a domain that is not a known mailbox
+            provider but is one or two edits (a swap counts as one) from
+            exactly one, such as ``gmial.com`` or ``gmail.con``, is corrected
+            to that provider (one edit for short domains, two for longer ones).
+            Known domains are never changed.
     """
 
     class OutputFormat(StrEnum):
@@ -53,6 +88,7 @@ class EmailCleaner(Cleaner):
     lowercase: bool = True
     output_format: OutputFormat = OutputFormat.FULL
     strict: bool = True
+    fix_domain_typos: bool = True
 
     _INVISIBLE_RE = re.compile("[\ufeff\u200b\u2060]")
     _ANGLE_RE = re.compile(r"<([^<>]*@[^<>]*)>")
@@ -130,6 +166,13 @@ class EmailCleaner(Cleaner):
                 domain=email.domain.lower(),
             )
 
+        if self.fix_domain_typos:
+            email = self.EmailComponents(
+                local=email.local,
+                tag=email.tag,
+                domain=self._fix_domain(email.domain),
+            )
+
         if self.output_format == "components":
             return (email.local, email.tag, email.domain)
 
@@ -177,6 +220,31 @@ class EmailCleaner(Cleaner):
             tag = None
 
         return self.EmailComponents(local=local, tag=tag, domain=domain)
+
+    @staticmethod
+    def _fix_domain(domain: str) -> str:
+        """Return the known provider ``domain`` is a typo of, else ``domain``.
+
+        A typo is one edit for a short domain and two for a longer one (a
+        swap counts as one), and the provider must be strictly the closest, so
+        a domain equally close to two is left as is.
+        """
+        lowered = domain.lower()
+        if lowered in KNOWN_EMAIL_DOMAINS:
+            return domain
+
+        max_edits = (
+            _LONG_DOMAIN_EDITS
+            if len(lowered) >= _LONG_DOMAIN_LENGTH
+            else _SHORT_DOMAIN_EDITS
+        )
+        distances = sorted(
+            (OSA.distance(lowered, known), known) for known in KNOWN_EMAIL_DOMAINS
+        )
+        best, runner_up = distances[0], distances[1]
+        if best[0] > max_edits or best[0] == runner_up[0]:
+            return domain
+        return best[1]
 
     def _extract_candidate(self, v: str) -> str:
         """Unwrap ``Name <a@b.com>``, ``mailto:``, lists, notes and quotes."""

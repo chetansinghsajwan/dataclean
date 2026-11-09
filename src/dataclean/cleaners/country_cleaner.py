@@ -9,6 +9,7 @@ from typing import Any, ClassVar, override
 
 import pycountry
 from rapidfuzz import fuzz, process
+from rapidfuzz.distance import OSA
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
@@ -372,6 +373,28 @@ class CountryCleaner(Cleaner):
         return CountryCleaner._details(pycountry.countries.get(alpha_2=alpha2))
 
     @staticmethod
+    def _find_country_name_one_edit(v: str) -> Details | None:
+        """Look up a country whose name is one edit away from ``v``.
+
+        The similarity score counts a swapped pair of letters ("indai") as two
+        edits and rejects it, so this accepts one edit, where a swap counts as
+        one. It needs exactly one country within that distance.
+        """
+        codes = {
+            CountryCleaner._NAME_INDEX[name]
+            for name, _, _ in process.extract(
+                v,
+                CountryCleaner._NAME_INDEX.keys(),
+                scorer=OSA.distance,
+                score_cutoff=1,
+                limit=None,
+            )
+        }
+        if len(codes) != 1:
+            return None
+        return CountryCleaner._details(pycountry.countries.get(alpha_2=codes.pop()))
+
+    @staticmethod
     def _find_country_name_fuzzy(v: str, threshold: float) -> Details | None:
         """Look up a country by fuzzy string matching against known country names.
 
@@ -393,7 +416,7 @@ class CountryCleaner(Cleaner):
             v, CountryCleaner._NAME_INDEX.keys(), scorer=fuzz.WRatio
         )
         if match is None or match[1] < (threshold * 100):
-            return None
+            return CountryCleaner._find_country_name_one_edit(v)
 
         return CountryCleaner._details(
             pycountry.countries.get(alpha_2=CountryCleaner._NAME_INDEX[match[0]])

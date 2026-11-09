@@ -1300,7 +1300,7 @@ contactid,column,case
 37,lname,unicode
 37,lnamefname,naughty: word Infinity
 37,sex,other
-37,email,valid
+37,email,domain typo
 37,tel,too long
 37,mobile,uk compact
 37,fax,uk national
@@ -1336,7 +1336,7 @@ contactid,column,case
 38,lname,naughty: word null
 38,lnamefname,naughty: word true
 38,sex,unknown
-38,email,uppercase
+38,email,uppercase domain typo
 38,tel,de intl
 38,mobile,trunk zero
 38,fax,placeholder

@@ -165,20 +165,24 @@ DateTimeCleaner(out_format=DateTimeCleaner.Format.ISO_TIME).clean_row(
 
 ## EmailCleaner
 
-- **Params**: `keep_tags` (default `True`, keep `+tag` in the local part),
-  `keep_dots` (default `True`), `lowercase` (default `True`),
-  `output_format` (`FULL` (default, single combined string) or `COMPONENTS`
-  (separate `local`/`tag`/`domain` columns)).
+- **Params**: `keep_tags` (default `True`, keep `+tag` in the local part), `keep_dots` (default
+  `True`), `lowercase` (default `True`), `output_format` (`FULL` (default, single combined string)
+  or `COMPONENTS` (separate `local`/`tag`/`domain` columns)), `fix_domain_typos` (default `True`,
+  correct a domain one edit (short domains) or two edits (9+ characters) from a known provider).
 - **Output**: `FULL` → one column; `COMPONENTS` → `local`, `tag`, `domain`.
 - **Behavior**: finds the first email-shaped substring in the value (regex
   search, not full-string match — extra text around the address is fine but
   a *second* email in the same value is ignored), splits it into
   local/tag/domain, applies the configured options, and reassembles.
+- **Domain typos**: `gmial.com` and `gmail.con` become `gmail.com`. Only
+  domains from `KNOWN_EMAIL_DOMAINS` are targets, a known domain is never
+  changed, and a domain equally close to two providers is left as is.
 
 ```python
 from dataclean import EmailCleaner
 
 EmailCleaner().clean_row(" User.Name+Tag@Gmail.com ")  # -> "user.name+tag@gmail.com"
+EmailCleaner().clean_row("john@gmial.com")  # -> "john@gmail.com"
 ```
 
 ::: dataclean.cleaners.EmailCleaner

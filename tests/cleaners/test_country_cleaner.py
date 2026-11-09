@@ -231,3 +231,21 @@ def test_common_names_can_be_turned_off():
 def test_alpha_output_is_unaffected_by_common_names():
     cleaner = CountryCleaner(out_format=CountryCleaner.Format.ALPHA3)
     assert cleaner.clean_row("South Korea") == "KOR"
+
+
+@pytest.mark.parametrize(
+    "input_value, expected",
+    [
+        ("Indai", "India"),
+        ("Gremany", "Germany"),
+        ("Frnace", "France"),
+        ("Austrlia", "Australia"),
+    ],
+)
+def test_a_name_one_edit_away_is_matched(input_value, expected):
+    assert CountryCleaner().clean_row(input_value) == expected
+
+
+def test_a_name_one_edit_from_two_countries_is_not_matched():
+    # "Jambia" is one edit from both Gambia and Zambia.
+    assert CountryCleaner().clean_row("Jambia") is None
