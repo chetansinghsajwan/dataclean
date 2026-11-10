@@ -9,6 +9,7 @@ from typing import ClassVar, override
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
+from dataclean.utils.markup import strip_html
 from dataclean.utils.null_tokens import (
     COMMON_NULL_TOKENS,
     is_null_token,
@@ -29,7 +30,8 @@ class TextCleaner(Cleaner):
 
     Attributes:
         lowercase: If True, lowercases the text as the final step.
-        remove_html: If True, strips HTML tags.
+        remove_html: If True, strips HTML tags, and the content of ``script``
+            and ``style`` elements.
         remove_urls: If True, strips http(s):// and www. URLs.
         remove_emails: If True, strips email-shaped substrings.
         remove_punctuation: If True, strips non-word, non-whitespace
@@ -77,9 +79,6 @@ class TextCleaner(Cleaner):
     null_tokens: tuple[str, ...] = COMMON_NULL_TOKENS
     infinity_as_null: bool = True
 
-    _HTML_RE: ClassVar[re.Pattern] = re.compile(
-        r"<!--.*?-->|<[!?][^<>]*>|</?[A-Za-z][^<>]*>", re.DOTALL
-    )
     _URL_RE: ClassVar[re.Pattern] = re.compile(r"http[s]?://\S+|www\.\S+")
     _EMAIL_RE: ClassVar[re.Pattern] = re.compile(r"\S+@\S+")
     _DIGIT_RE: ClassVar[re.Pattern] = re.compile(r"\d+")
@@ -127,7 +126,7 @@ class TextCleaner(Cleaner):
             steps.append(lambda x: self._INVISIBLE_RE.sub("", x))
 
         if self.remove_html:
-            steps.append(lambda x: self._HTML_RE.sub(" ", x))
+            steps.append(strip_html)
 
         if self.decode_entities:
             steps.append(lambda x: self._ENTITY_RE.sub(self._decode_entity, x))

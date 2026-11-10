@@ -175,7 +175,7 @@ def test_text_clean_custom_null_tokens_replace_defaults():
 
 def test_text_clean_defaults_pin_html_and_lowercase():
     cleaner = TextCleaner()
-    assert cleaner.clean_row("<script>alert(1)</script>") == "alert(1)"
+    assert cleaner.clean_row("<script>alert(1)</script>") is None
     assert cleaner.clean_row("Called back; wants QUOTE") == "called back; wants quote"
     assert TextCleaner(remove_html=False).clean_row("<b>x</b>") == "<b>x</b>"
 
