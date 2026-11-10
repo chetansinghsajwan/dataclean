@@ -364,12 +364,16 @@ class EnumCleaner(Cleaner):
             return Cleaner.MAX_SCORE
 
         # Without a name hit, digit-only values such as "1" and "2" say little
-        # (they are usually ids or codes), so they only count when the whole
-        # column is digit-only and every value is accepted.
+        # (they are usually ids or codes). A column that is all digits needs
+        # every value accepted.
         ratio, digit_ratio, all_digits = self._value_match_stats(df, cols[0])
         if all_digits:
             return ratio if ratio == Cleaner.MAX_SCORE else Cleaner.MIN_SCORE
-        ratio -= digit_ratio
+        # A mix of digits and other values is judged on all its matches, as long
+        # as some non-digit value matches too ("1", "0", "yes"). Digits that are
+        # the only matches are not enough.
+        if ratio == digit_ratio:
+            ratio = 0.0
         return ratio if ratio >= self._MIN_VALUE_RATIO else Cleaner.MIN_SCORE
 
     def _matches_name(self, column: str) -> bool:
