@@ -22,6 +22,10 @@ def test_datetime_cleaner_metadata():
     "col_name, expected_confidence",
     [
         ("created_at", 1.0),
+        ("createdat", 1.0),
+        ("updatedAt", 1.0),
+        ("format", 0.0),
+        ("seat", 0.0),
         ("updated_time", 1.0),
         ("transaction_date", 1.0),
         ("timestamp", 1.0),

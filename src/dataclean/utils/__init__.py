@@ -4,3 +4,4 @@ from .debug import _log_args
 from .null_tokens import COMMON_NULL_TOKENS, is_null_token, null_token_set
 from .paths import file_extension, map_path, map_paths
 from .patterns import expand_local_paths
+from .words import split_words

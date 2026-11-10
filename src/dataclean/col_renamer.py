@@ -6,9 +6,8 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import ClassVar, Literal
 
-import wordninja
-
 from .types import checked
+from .utils.words import split_words
 
 
 @checked
@@ -16,7 +15,7 @@ from .types import checked
 class ColRenamer:
     """Renames column names into a consistent casing convention.
 
-    Splits each column name into words using ``wordninja`` (which can split
+    Splits each column name into words using ``split_words`` (which can split
     concatenated/no-delimiter names, e.g. ``"firstname"`` -> ``("first",
     "name")``) and rejoins the words using the renaming strategy for
     ``case``.
@@ -83,8 +82,8 @@ class ColRenamer:
         return maps[case]
 
     def _get_words(self, v: str) -> tuple[str, ...]:
-        """Split ``v`` into words using ``wordninja``."""
-        return tuple(wordninja.split(v))
+        """Split ``v`` into words using ``split_words``."""
+        return split_words(v)
 
     def _snake_case_renamer(self, words: tuple[str, ...]) -> str:
         """Join ``words`` as ``snake_case``."""

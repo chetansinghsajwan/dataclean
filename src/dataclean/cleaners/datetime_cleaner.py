@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 
 from dataclean.engine import DataFrame, DataReader, DataType
 from dataclean.types import checked
+from dataclean.utils.words import split_words
 
 from .cleaner import PRIMARY, Cleaner
 
@@ -304,11 +305,9 @@ class DateTimeCleaner(Cleaner):
             return 0.0
 
         col_name = cols_tuple[0].lower()
-        if (
-            any(token in col_name for token in ("date", "time", "timestamp"))
-            or col_name.lower().endswith("_at")
-            or col_name.endswith("At")
-        ):
+        if any(
+            token in col_name for token in ("date", "time", "timestamp")
+        ) or "at" in (w.lower() for w in split_words(cols_tuple[0])):
             return 1.0
 
         return 0.0
