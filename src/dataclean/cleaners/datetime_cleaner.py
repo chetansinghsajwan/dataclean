@@ -13,6 +13,9 @@ from dataclean.types import checked
 
 from .cleaner import PRIMARY, Cleaner
 
+# An ISO datetime whose time of day is midnight, with any fraction or offset.
+_MIDNIGHT = re.compile(r"T00:00:00(\.0+)?(Z|[+-]\d{2}:?\d{2})?$")
+
 
 @checked
 @dataclass
@@ -229,7 +232,13 @@ class DateTimeCleaner(Cleaner):
 
     @override
     def fit(self, df: DataFrame, role_columns: Mapping[str, str]) -> Cleaner:
-        """Pick one output layout for the column when ``out_format`` is AUTO."""
+        """Pick one output layout for the column when ``out_format`` is AUTO.
+
+        A datetime at exactly midnight counts as a date, since it carries no
+        time of day. When the column mixes dates and times, its name decides
+        which of the two it is: a ``time`` name without ``date`` in it means
+        time, anything else means date.
+        """
         column = role_columns.get(PRIMARY)
         if self.out_format != DateTimeCleaner.Format.AUTO or column is None:
             return self
@@ -241,9 +250,10 @@ class DateTimeCleaner(Cleaner):
             parsed = self.clean_row(text) if text else None
             if parsed is None:
                 return
-            kinds.add(
-                "datetime" if "T" in parsed else "time" if ":" in parsed else "date"
-            )
+            if "T" in parsed:
+                kinds.add("date" if _MIDNIGHT.search(parsed) else "datetime")
+            else:
+                kinds.add("time" if ":" in parsed else "date")
 
         df.read_cols([DataReader(fn=note, cols=(column,))])
         if not kinds:
@@ -252,8 +262,16 @@ class DateTimeCleaner(Cleaner):
             fixed = DateTimeCleaner.Format.ISO_DATE
         elif kinds == {"time"}:
             fixed = DateTimeCleaner.Format.ISO_TIME
-        else:
+        elif "datetime" in kinds:
             fixed = DateTimeCleaner.Format.ISO_DATETIME
+        else:
+            name = column.lower()
+            is_time = "time" in name and "date" not in name
+            fixed = (
+                DateTimeCleaner.Format.ISO_TIME
+                if is_time
+                else DateTimeCleaner.Format.ISO_DATE
+            )
         return replace(self, out_format=fixed)
 
     @override

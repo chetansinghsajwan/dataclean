@@ -131,8 +131,11 @@ CountryCleaner(in_format=CountryCleaner.Format.NAME_FUZZY).clean_row(
 - **Params**: `out_format` (`Format.AUTO` (default), `ISO_DATETIME` (e.g.
   `2026-06-19T22:45:00`), `ISO_DATE`, `ISO_TIME`, `INDIAN_DATE` (e.g.
   `19-06-2026`)). With `AUTO` the pipeline reads the whole column and writes
-  one layout: `ISO_DATE` if every value is a date, `ISO_TIME` if every value is
-  a time, otherwise `ISO_DATETIME`. A column never mixes layouts.
+  one layout: `ISO_DATE` if every value is a date (a datetime at midnight
+  counts as a date), `ISO_TIME` if every value is a time, otherwise
+  `ISO_DATETIME`. When a column mixes only dates and times, its name decides:
+  a `time` name without `date` means time, anything else means date. A column
+  never mixes layouts.
 - **Output**: single STR column.
 - **Auto-detection**: matches by column name, but never a column that already
   has a date, datetime or time type — there is nothing to parse, and cleaning

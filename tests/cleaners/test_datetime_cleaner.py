@@ -244,18 +244,28 @@ def test_pipeline_does_not_turn_temporal_columns_into_strings():
 
 
 @pytest.mark.parametrize(
-    "raw, expected",
+    "col, raw, expected",
     [
         (
+            "d",
             ["2026-06-19", "19/06/2026 22:45", "22:45"],
             ["2026-06-19T00:00:00", "2026-06-19T22:45:00", "0001-01-01T22:45:00"],
         ),
-        (["19 Jun 2026", "2026-06-20"], ["2026-06-19", "2026-06-20"]),
-        (["10:00", "11:30 pm"], ["10:00:00", "23:30:00"]),
+        ("d", ["19 Jun 2026", "2026-06-20"], ["2026-06-19", "2026-06-20"]),
+        ("d", ["10:00", "11:30 pm"], ["10:00:00", "23:30:00"]),
+        # Midnight carries no time of day, so the column is dates.
+        (
+            "dob",
+            ["1985-03-14", "1985-03-14 00:00:00", "14/03/1985"],
+            ["1985-03-14"] * 3,
+        ),
+        # Dates mixed with bare times: the column name picks one.
+        ("dob", ["1985-03-14", "10:00"], ["1985-03-14", None]),
+        ("start_time", ["1985-03-14", "10:00"], ["00:00:00", "10:00:00"]),
     ],
 )
 def test_auto_format_writes_one_layout_for_the_whole_column(
-    raw: list[str], expected: list[str]
+    col: str, raw: list[str], expected: list[str | None]
 ) -> None:
     import pandas as pd
     from dataclean_pandas import PandasDataFrame
@@ -263,8 +273,8 @@ def test_auto_format_writes_one_layout_for_the_whole_column(
     from dataclean.pipeline import Pipeline
 
     cleaned = Pipeline(
-        column_cleaners={"d": DateTimeCleaner()}, auto_detect=False
-    ).fit_transform(PandasDataFrame(df=pd.DataFrame({"d": raw})))
+        column_cleaners={col: DateTimeCleaner()}, auto_detect=False
+    ).fit_transform(PandasDataFrame(df=pd.DataFrame({col: raw})))
 
     assert cleaned.df is not None
-    assert cleaned.df["d"].tolist() == expected
+    assert [None if v != v else v for v in cleaned.df[col].tolist()] == expected
