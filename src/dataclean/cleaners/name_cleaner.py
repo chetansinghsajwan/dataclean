@@ -7,7 +7,7 @@ from typing import ClassVar, override
 
 from dataclean.engine import DataFrame, DataType
 from dataclean.types import checked
-from dataclean.utils import is_null_token, null_token_set
+from dataclean.utils import is_null_token, null_token_set, strip_html
 
 from .cleaner import Cleaner
 
@@ -57,14 +57,19 @@ class NameCleaner(Cleaner):
 
     @override
     def clean_row(self, v: str) -> str | None:  # type: ignore
-        """Return ``v`` unchanged, or None if it is a placeholder.
+        """Return ``v`` without HTML, or None if it is a placeholder.
 
         Args:
             v: The name value (already stripped and non-blank).
 
         Returns:
-            ``v``, or None if it is one of ``null_tokens``.
+            ``v`` with any HTML tags removed (and the spaces they leave
+            collapsed), or None if nothing is left or it is one of
+            ``null_tokens``.
         """
+        stripped = strip_html(v)
+        if stripped != v:
+            v = " ".join(stripped.split())
         return None if is_null_token(v, self._null_set) else v
 
     @override

@@ -222,3 +222,9 @@ def test_email_domain_typo_fix_can_be_turned_off():
 def test_email_domain_typo_fix_keeps_local_part_and_tag():
     cleaner = EmailCleaner(output_format=EmailCleaner.OutputFormat.COMPONENTS)
     assert cleaner.clean_row("Jo.Hn+x@gmial.com") == ("jo.hn", "x", "gmail.com")
+
+
+def test_email_cleaner_strips_html_first() -> None:
+    cleaner = EmailCleaner()
+    assert cleaner.clean_row("<b>John@Example.com</b>") == "john@example.com"
+    assert cleaner.clean_row("<script>a@b.com</script>") is None

@@ -201,3 +201,11 @@ def test_pipeline_cleans_url_column_in_place() -> None:
         None,
         None,
     ]
+
+
+def test_url_cleaner_strips_html_first() -> None:
+    from dataclean import UrlCleaner
+
+    cleaner = UrlCleaner()
+    assert cleaner.clean_row("<b>https://example.com</b>") == "https://example.com"
+    assert cleaner.clean_row("<style>https://x.com</style>") is None

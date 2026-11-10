@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
+from dataclean.utils import strip_html
 
 from .cleaner import Cleaner
 
@@ -76,13 +77,14 @@ class UrlCleaner(Cleaner):
         """Clean ``v`` into a normalized URL, or its host for ``DOMAIN``.
 
         Args:
-            v: The raw string holding one or more URLs.
+            v: The raw string holding one or more URLs. HTML tags are removed
+                first.
 
         Returns:
             The first valid URL in ``v`` rendered per ``out_format``, or None
             if none is valid.
         """
-        for part in _URL_SEPARATORS.split(_INVISIBLE.sub("", v)):
+        for part in _URL_SEPARATORS.split(_INVISIBLE.sub("", strip_html(v))):
             cleaned = self._clean_url(part.strip().strip(_WRAPPERS).strip())
             if cleaned is not None:
                 return cleaned

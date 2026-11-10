@@ -59,9 +59,7 @@ def test_address_cleaner_title_cases_town_only_when_uniform_case(
     assert _clean(address_line1="1 High Street", town=raw)[TOWN] == expected
 
 
-@pytest.mark.parametrize(
-    "raw", ["%s%s%s%n", "<script>alert(1)</script>", "{{7*7}}", "../../etc/passwd"]
-)
+@pytest.mark.parametrize("raw", ["%s%s%s%n", "{{7*7}}", "../../etc/passwd"])
 def test_address_cleaner_leaves_town_that_is_not_a_place_name_as_is(raw: str) -> None:
     assert _clean(address_line1="1 High Street", town=raw)[TOWN] == raw
 
@@ -244,3 +242,15 @@ def test_only_the_roles_that_were_given_a_column_come_out() -> None:
     assert cleaned.df is not None
     assert list(cleaned.df.columns) == ["town"]
     assert cleaned.df["town"].tolist() == ["London", "Leeds"]
+
+
+def test_address_cleaner_strips_html_from_every_component() -> None:
+    result = _clean(
+        address_line1="<b>10 Downing St</b><script>x()</script>",
+        town="<i>london</i>",
+        postcode="<b>sw1a1aa</b>",
+    )
+    assert "SW1A 1AA" in result
+    assert "London" in result
+    assert "10 Downing St" in result
+    assert not any(v and "<" in v for v in result)

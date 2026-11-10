@@ -32,7 +32,8 @@ components out. No configuration options beyond the base `tags`/`inplace`.
   column, and a row is cleaned even when its first line is empty.
 - **Outputs**: `state`, `postcode`, `address_line`, `street`, `house_no`,
   `town`, `address_line2`, `address_line3`.
-- **Behavior**: collapses whitespace in each address line; title-cases `town`
+- **Behavior**: removes HTML tags (and `script`/`style` content) from every
+  part; collapses whitespace in each address line; title-cases `town`
   and `county` when they are written all lower or all upper case and look like
   a place name (mixed case such as "McDonald Heights" is kept); uppercases the
   postcode, drops hyphens, collapses whitespace and nulls a value with no
@@ -166,7 +167,7 @@ DateTimeCleaner(out_format=DateTimeCleaner.Format.ISO_TIME).clean_row(
   or `COMPONENTS` (separate `local`/`tag`/`domain` columns)), `fix_domain_typos` (default `True`,
   correct a domain one edit (short domains) or two edits (9+ characters) from a known provider).
 - **Output**: `FULL` → one column; `COMPONENTS` → `local`, `tag`, `domain`.
-- **Behavior**: finds the first email-shaped substring in the value (regex
+- **Behavior**: removes HTML tags, then finds the first email-shaped substring in the value (regex
   search, not full-string match — extra text around the address is fine but
   a *second* email in the same value is ignored), splits it into
   local/tag/domain, applies the configured options, and reassembles.
@@ -285,8 +286,8 @@ that placeholders become null.
   compared case-insensitively). `na` and `nan` are not in it, since they are
   real names.
 - **Output**: single column, same name as the input.
-- **Behavior**: `clean_row` returns the value unchanged, or None for a
-  placeholder. It exists so that
+- **Behavior**: `clean_row` removes HTML tags (and `script`/`style` content),
+  then returns the value, or None for a placeholder or nothing left. It exists so that
   auto-detection claims name columns (and no other cleaner does). Like every
   cleaner, values still get the pipeline's input normalization: surrounding
   whitespace is stripped and blank strings become null. Casing is
@@ -344,7 +345,7 @@ NumericCleaner().clean_row("₹ 1,500.50")  # -> "1500.5"
   region codes to try, in order, when the number has no leading `+`;
   default `()`).
 - **Output**: single column, role `phone`.
-- **Behavior**: delegates to the `phonenumbers` library. Before parsing it
+- **Behavior**: removes HTML tags, then delegates to the `phonenumbers` library. Before parsing it
   converts scientific-notation-looking strings to plain digits, turns digits
   of other scripts (such as Arabic-Indic) into `0-9`, strips a leading label
   (`tel:`, `mobile:`) and a trailing note (`(Mobile)`, `(fax)`), and reads a
@@ -407,14 +408,13 @@ TextCleaner(remove_html=True, remove_urls=True, remove_emails=True).clean_row(
 - **Params**: `out_format` (`Format.FULL` (default) or `DOMAIN`, the host
   only), `default_scheme` (`"https"` (default) or `"http"`).
 - **Output**: single STR column, cleaned in place.
-- **Behavior**: trims whitespace, invisible characters and wrapping quotes or
-  `<>`, adds `default_scheme` when missing (`www.x.com`, `//x.com`),
-  lowercases the scheme and host, and drops the default port, a trailing dot
-  on the host and a lone `/` after it. Path, query, fragment, `www.` and the
-  `http` scheme are kept. Only `http` and `https` are accepted; other schemes
-  (`javascript:`, `mailto:`, `ftp:`), invalid hosts and values with spaces
-  become `None`. Of several URLs in one value (separated by `;`, `|`, `,` or
-  `or`) the first valid one is used. Internationalized hosts stay in Unicode.
+- **Behavior**: removes HTML tags, then trims whitespace, invisible characters and wrapping quotes
+  or `<>`, adds `default_scheme` when missing (`www.x.com`, `//x.com`), lowercases the scheme and
+  host, and drops the default port, a trailing dot on the host and a lone `/` after it. Path, query,
+  fragment, `www.` and the `http` scheme are kept. Only `http` and `https` are accepted; other
+  schemes (`javascript:`, `mailto:`, `ftp:`), invalid hosts and values with spaces become `None`. Of
+  several URLs in one value (separated by `;`, `|`, `,` or `or`) the first valid one is used.
+  Internationalized hosts stay in Unicode.
 - **Detection**: names with a `url`, `uri`, `href` or `link` word, or
   `website`/`homepage`. A name with an `id` word is left alone.
 

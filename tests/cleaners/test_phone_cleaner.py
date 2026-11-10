@@ -177,3 +177,7 @@ def test_phone_extension_is_dropped_when_the_number_is_valid():
     cleaner = PhoneCleaner(default_regions=("GB",))
     assert cleaner.clean_row("020 7946 0958 ext. 123") == "+442079460958"
     assert cleaner.clean_row("+44 20 7946 0958x12") == "+442079460958"
+
+
+def test_phone_cleaner_strips_html() -> None:
+    assert PhoneCleaner().clean_row("<b>+44 121 234 5678</b>") == "+441212345678"

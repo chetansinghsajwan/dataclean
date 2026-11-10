@@ -11,6 +11,7 @@ import phonenumbers
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
+from dataclean.utils import strip_html
 
 from .cleaner import Cleaner
 from .country_cleaner import CountryCleaner
@@ -94,7 +95,8 @@ class PhoneCleaner(Cleaner):
         until ``phonenumbers`` parses ``v`` into a valid number.
 
         Args:
-            v: The raw phone number string to clean, or None.
+            v: The raw phone number string to clean, or None. HTML tags are
+                removed first.
             country: Optional country of the number (name or ISO code); its
                 region is tried before ``default_regions``.
 
@@ -108,6 +110,7 @@ class PhoneCleaner(Cleaner):
 
         if v is None:
             return None
+        v = strip_html(v)
 
         # A cell may hold several numbers: the first one that cleans wins.
         for part in _NUMBER_SEPARATORS.split(v):

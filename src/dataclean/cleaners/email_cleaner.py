@@ -10,6 +10,7 @@ from rapidfuzz.distance import OSA
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
+from dataclean.utils import strip_html
 
 from .cleaner import Cleaner
 
@@ -135,7 +136,8 @@ class EmailCleaner(Cleaner):
         """Extract, normalize, and re-assemble an email address from ``v``.
 
         Args:
-            v: The raw string to extract an email address from.
+            v: The raw string to extract an email address from. HTML tags are
+                removed first.
 
         Returns:
             A single normalized email string when ``output_format`` is
@@ -144,7 +146,7 @@ class EmailCleaner(Cleaner):
             found in ``v``.
         """
 
-        email = self._parse_email(v)
+        email = self._parse_email(strip_html(v))
 
         if email is None:
             return None

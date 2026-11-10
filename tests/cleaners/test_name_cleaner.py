@@ -138,3 +138,10 @@ def test_name_cleaner_keeps_names_that_look_like_placeholders(raw: str) -> None:
 def test_name_cleaner_null_tokens_can_be_set() -> None:
     assert NameCleaner(null_tokens=("unknown",)).clean_row("Unknown") is None
     assert NameCleaner(null_tokens=("unknown",)).clean_row("N/A") == "N/A"
+
+
+def test_name_cleaner_strips_html_and_its_scripts() -> None:
+    cleaner = NameCleaner()
+    assert cleaner.clean_row("<b>John</b> Smith<script>x()</script>") == "John Smith"
+    assert cleaner.clean_row("<p></p>") is None
+    assert cleaner.clean_row("McDonald") == "McDonald"

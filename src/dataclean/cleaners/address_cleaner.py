@@ -7,6 +7,7 @@ from typing import override
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
+from dataclean.utils import strip_html
 
 from .cleaner import Cleaner
 
@@ -219,19 +220,19 @@ class AddressCleaner(Cleaner):
     # Private helper methods
 
     def _clean_place(self, value: str | None) -> str | None:
-        """Collapse whitespace and title-case a town or county; None if empty."""
+        """Strip HTML, collapse whitespace and title-case a town or county."""
         if not value:
             return None
-        return _title_case(_collapse_whitespace(value)) or None
+        return _title_case(_collapse_whitespace(strip_html(value))) or None
 
     def _clean_address_line(self, value: str | None) -> str | None:
-        """Collapse whitespace in an address line; None if empty."""
+        """Strip HTML and collapse whitespace in an address line."""
         if not value:
             return None
-        return _collapse_whitespace(value) or None
+        return _collapse_whitespace(strip_html(value)) or None
 
     def _clean_postcode(self, value: str | None) -> str | None:
-        """Upper-case a postcode, drop hyphens and collapse whitespace.
+        """Strip HTML, upper-case a postcode, drop hyphens and collapse whitespace.
 
         A UK postcode is written with one space before its last three
         characters, so a column does not mix `SW1A1AA` and `SW1A 1AA`. Other
@@ -241,7 +242,7 @@ class AddressCleaner(Cleaner):
         """
         if not value:
             return None
-        cleaned = _collapse_whitespace(value.upper().replace("-", ""))
+        cleaned = _collapse_whitespace(strip_html(value).upper().replace("-", ""))
         if not any(char.isalnum() for char in cleaned):
             return None
         uk = _UK_POSTCODE.fullmatch(cleaned)
