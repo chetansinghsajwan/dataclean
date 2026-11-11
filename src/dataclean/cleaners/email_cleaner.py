@@ -10,7 +10,7 @@ from rapidfuzz.distance import OSA
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
-from dataclean.utils import strip_html
+from dataclean.utils import html_hrefs, strip_html
 
 from .cleaner import Cleaner
 
@@ -136,8 +136,9 @@ class EmailCleaner(Cleaner):
         """Extract, normalize, and re-assemble an email address from ``v``.
 
         Args:
-            v: The raw string to extract an email address from. HTML tags are
-                removed first.
+            v: The raw string to extract an email address from. In HTML, the
+                ``mailto:`` links are read first, then the text with its tags
+                removed.
 
         Returns:
             A single normalized email string when ``output_format`` is
@@ -146,7 +147,11 @@ class EmailCleaner(Cleaner):
             found in ``v``.
         """
 
-        email = self._parse_email(strip_html(v))
+        email = None
+        for candidate in (*self._mailto_targets(v), strip_html(v)):
+            email = self._parse_email(candidate)
+            if email is not None:
+                break
 
         if email is None:
             return None
@@ -199,6 +204,15 @@ class EmailCleaner(Cleaner):
         if not cols_tuple:
             return 0.0
         return 1.0 if "email" in cols_tuple[0].lower() else 0.0
+
+    @staticmethod
+    def _mailto_targets(v: str) -> list[str]:
+        """Return the addresses in ``mailto:`` links, without their query."""
+        return [
+            href[len("mailto:") :].split("?", 1)[0]
+            for href in html_hrefs(v)
+            if href.lower().startswith("mailto:")
+        ]
 
     def _parse_email(self, v: str) -> EmailComponents | None:
         """Read one address out of ``v`` and split it into local/tag/domain.

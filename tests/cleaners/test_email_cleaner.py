@@ -228,3 +228,15 @@ def test_email_cleaner_strips_html_first() -> None:
     cleaner = EmailCleaner()
     assert cleaner.clean_row("<b>John@Example.com</b>") == "john@example.com"
     assert cleaner.clean_row("<script>a@b.com</script>") is None
+
+
+def test_email_cleaner_reads_mailto_links_first() -> None:
+    cleaner = EmailCleaner()
+    assert cleaner.clean_row('<a href="mailto:Jane@Example.com">click</a>') == (
+        "jane@example.com"
+    )
+    assert cleaner.clean_row('<a href="mailto:a@b.com?subject=Hi">x@y.com</a>') == (
+        "a@b.com"
+    )
+    # Without a usable mailto link, the text is used.
+    assert cleaner.clean_row('<a href="/contact">x@y.com</a>') == "x@y.com"

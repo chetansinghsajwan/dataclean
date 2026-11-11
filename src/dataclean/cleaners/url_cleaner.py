@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
-from dataclean.utils import strip_html
+from dataclean.utils import html_hrefs, strip_html
 
 from .cleaner import Cleaner
 
@@ -32,6 +32,8 @@ _LABEL = re.compile(r"[^\W_](?:[^\W_]|-)*(?<!-)")
 _DEFAULT_PORTS = {"http": 80, "https": 443}
 
 _WRAPPERS = "<>\"'`"
+# Link targets that are not web addresses, so they are not read as URLs.
+_NON_WEB_LINKS = ("mailto:", "tel:", "sms:", "javascript:", "#")
 _TOKEN_SPLIT = re.compile(r"[^a-z0-9]+")
 _NAME_TOKENS = frozenset({"url", "urls", "uri", "href", "link", "links"})
 _NAME_WORDS = ("website", "homepage", "webaddress", "weburl")
@@ -77,14 +79,16 @@ class UrlCleaner(Cleaner):
         """Clean ``v`` into a normalized URL, or its host for ``DOMAIN``.
 
         Args:
-            v: The raw string holding one or more URLs. HTML tags are removed
-                first.
+            v: The raw string holding one or more URLs. In HTML, the link
+                targets (``href``) are read first, then the text with its tags
+                removed.
 
         Returns:
             The first valid URL in ``v`` rendered per ``out_format``, or None
             if none is valid.
         """
-        for part in _URL_SEPARATORS.split(_INVISIBLE.sub("", strip_html(v))):
+        hrefs = [h for h in html_hrefs(v) if not h.lower().startswith(_NON_WEB_LINKS)]
+        for part in (*hrefs, *_URL_SEPARATORS.split(_INVISIBLE.sub("", strip_html(v)))):
             cleaned = self._clean_url(part.strip().strip(_WRAPPERS).strip())
             if cleaned is not None:
                 return cleaned

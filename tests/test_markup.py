@@ -1,6 +1,6 @@
 import pytest
 
-from dataclean.utils import strip_html
+from dataclean.utils import html_hrefs, strip_html
 
 
 @pytest.mark.parametrize(
@@ -34,3 +34,21 @@ def test_strip_html(text: str, expected: str) -> None:
 
 def test_strip_html_replacement() -> None:
     assert strip_html("a<b>c</b><script>x</script>d", "") == "acd"
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ('<a href="https://x.com">site</a>', ("https://x.com",)),
+        ("<A HREF='mailto:a@b.com'>mail</A>", ("mailto:a@b.com",)),
+        ("<a href=https://x.com/a>x</a>", ("https://x.com/a",)),
+        ('<a class="c" href="/a?x=1&amp;y=2">x</a>', ("/a?x=1&y=2",)),
+        ('<a href="a.com">1</a> <a href="b.com">2</a>', ("a.com", "b.com")),
+        ('<script><a href="x.com"></a></script>', ()),
+        ('<!-- <a href="x.com"> -->', ()),
+        ('<a href="">x</a>', ()),
+        ("no links", ()),
+    ],
+)
+def test_html_hrefs(text: str, expected: tuple[str, ...]) -> None:
+    assert html_hrefs(text) == expected

@@ -167,10 +167,10 @@ DateTimeCleaner(out_format=DateTimeCleaner.Format.ISO_TIME).clean_row(
   or `COMPONENTS` (separate `local`/`tag`/`domain` columns)), `fix_domain_typos` (default `True`,
   correct a domain one edit (short domains) or two edits (9+ characters) from a known provider).
 - **Output**: `FULL` → one column; `COMPONENTS` → `local`, `tag`, `domain`.
-- **Behavior**: removes HTML tags, then finds the first email-shaped substring in the value (regex
-  search, not full-string match — extra text around the address is fine but
-  a *second* email in the same value is ignored), splits it into
-  local/tag/domain, applies the configured options, and reassembles.
+- **Behavior**: removes HTML tags (reading `mailto:` links first), then finds the first email-shaped
+  substring in the value (regex search, not full-string match — extra text around the address is
+  fine but a *second* email in the same value is ignored), splits it into local/tag/domain, applies
+  the configured options, and reassembles.
 - **Domain typos**: `gmial.com` and `gmail.con` become `gmail.com`. Only
   domains from `KNOWN_EMAIL_DOMAINS` are targets, a known domain is never
   changed, and a domain equally close to two providers is left as is.
@@ -408,12 +408,13 @@ TextCleaner(remove_html=True, remove_urls=True, remove_emails=True).clean_row(
 - **Params**: `out_format` (`Format.FULL` (default) or `DOMAIN`, the host
   only), `default_scheme` (`"https"` (default) or `"http"`).
 - **Output**: single STR column, cleaned in place.
-- **Behavior**: removes HTML tags, then trims whitespace, invisible characters and wrapping quotes
-  or `<>`, adds `default_scheme` when missing (`www.x.com`, `//x.com`), lowercases the scheme and
-  host, and drops the default port, a trailing dot on the host and a lone `/` after it. Path, query,
-  fragment, `www.` and the `http` scheme are kept. Only `http` and `https` are accepted; other
-  schemes (`javascript:`, `mailto:`, `ftp:`), invalid hosts and values with spaces become `None`. Of
-  several URLs in one value (separated by `;`, `|`, `,` or `or`) the first valid one is used.
+- **Behavior**: removes HTML tags (reading link `href` values first, except `mailto:`, `tel:` and
+  `#` ones), then trims whitespace, invisible characters and wrapping quotes or `<>`, adds
+  `default_scheme` when missing (`www.x.com`, `//x.com`), lowercases the scheme and host, and drops
+  the default port, a trailing dot on the host and a lone `/` after it. Path, query, fragment,
+  `www.` and the `http` scheme are kept. Only `http` and `https` are accepted; other schemes
+  (`javascript:`, `mailto:`, `ftp:`), invalid hosts and values with spaces become `None`. Of several
+  URLs in one value (separated by `;`, `|`, `,` or `or`) the first valid one is used.
   Internationalized hosts stay in Unicode.
 - **Detection**: names with a `url`, `uri`, `href` or `link` word, or
   `website`/`homepage`. A name with an `id` word is left alone.

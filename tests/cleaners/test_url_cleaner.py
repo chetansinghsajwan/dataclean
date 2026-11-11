@@ -209,3 +209,17 @@ def test_url_cleaner_strips_html_first() -> None:
     cleaner = UrlCleaner()
     assert cleaner.clean_row("<b>https://example.com</b>") == "https://example.com"
     assert cleaner.clean_row("<style>https://x.com</style>") is None
+
+
+def test_url_cleaner_reads_link_targets_first() -> None:
+    from dataclean import UrlCleaner
+
+    cleaner = UrlCleaner()
+    assert cleaner.clean_row('<a href="https://x.com/a">our site</a>') == (
+        "https://x.com/a"
+    )
+    # Links that are not web addresses fall back to the text.
+    assert cleaner.clean_row('<a href="mailto:a@b.com">www.x.com</a>') == (
+        "https://www.x.com"
+    )
+    assert cleaner.clean_row('<a href="#top">https://y.com</a>') == "https://y.com"
