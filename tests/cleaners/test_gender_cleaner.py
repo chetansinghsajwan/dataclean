@@ -176,7 +176,6 @@ def test_gender_cleaner_still_matches_string_values():
         ("TG", "Other"),
         ("Intersex", "Other"),
         ("Genderqueer", "Other"),
-        ("Prefer not to disclose", "Other"),
         ("Mr", "Male"),
         ("Sir", "Male"),
         ("he", "Male"),
@@ -230,7 +229,17 @@ def test_gender_cleaner_uses_iso_5218_codes(value, expected):
 
 
 @pytest.mark.parametrize(
-    "value", ["U", "u", "Unknown", "Not Specified", "N/A", "alien"]
+    "value",
+    [
+        "U",
+        "u",
+        "Unknown",
+        "Not Specified",
+        "N/A",
+        "alien",
+        "Prefer not to say",
+        "Prefer not to disclose",
+    ],
 )
 def test_gender_cleaner_unknown_values_become_none(value):
     assert GenderCleaner().clean_row(value) is None

@@ -26,8 +26,8 @@ class GenderCleaner(EnumCleaner):
     column-name matching words to ``["gender", "sex"]``.
 
     Values that say nothing about gender ("unknown", "U", "not specified",
-    ``0`` and ``9`` of ISO 5218) are not variants of any case, so they become
-    None.
+    "prefer not to say", ``0`` and ``9`` of ISO 5218) are not variants of any
+    case, so they become None.
     """
 
     class Format(StrEnum):
@@ -94,8 +94,6 @@ class GenderCleaner(EnumCleaner):
             "tg",
             "intersex",
             "genderqueer",
-            "prefer not to say",
-            "prefer not to disclose",
             "-1",
         ),
     }
@@ -111,8 +109,6 @@ class GenderCleaner(EnumCleaner):
             "transgender",
             "intersex",
             "genderqueer",
-            "prefer not to say",
-            "prefer not to disclose",
         ),
     }
 
