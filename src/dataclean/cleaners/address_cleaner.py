@@ -44,7 +44,8 @@ def _title_case(value: str) -> str:
 
     A value with mixed case, such as "McDonald Heights", is left alone since
     the writer most likely chose that casing. So is a value that does not look
-    like a place name.
+    like a place name. Decision: only uniform case is changed, since mixed case
+    is usually deliberate and a guess would damage names.
     """
     if not _PLACE_NAME.fullmatch(value):
         return value
@@ -78,7 +79,8 @@ class AddressCleaner(Cleaner):
     ``address_line``, ``street``, ``house_no``, ``town``, ``address_line2``
     and ``address_line3`` outputs. In a pipeline an output is only written
     when its input role has a column, so a lone ``town`` column gives just a
-    cleaned ``town``.
+    cleaned ``town``. Decision: outputs follow the columns given, so the
+    cleaner never adds empty columns the data did not have.
 
     Country columns are not part of this cleaner. ``CountryCleaner`` owns
     every country column, including the country of an address.

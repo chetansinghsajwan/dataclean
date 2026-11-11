@@ -37,7 +37,8 @@ class NumericCleaner(Cleaner):
         out_format: Whether to cast the cleaned value to ``int`` or
             ``float``. ``int`` gives None outside the 64-bit range.
         precision: Number of decimal places to round to (half-up), or None
-            to skip rounding.
+            to skip rounding. Decision: the default of 3 is accepted as is;
+            use 2 for strict financial limits.
         parse_suffixes: If True (the default), interpret a trailing
             "k"/"m"/"b"/"t" as a metric/financial scale suffix (thousand/
             million/billion/trillion) and multiply accordingly. If False, a
@@ -121,7 +122,11 @@ class NumericCleaner(Cleaner):
 
     @override
     def _outputs(self) -> Cleaner.OutputSchema:
-        """Return the output schema with dtype set per ``out_format``."""
+        """Return the output schema with dtype set per ``out_format``.
+
+        Decision: floats are ``DOUBLE`` and integers are ``LONG`` (64-bit),
+        because 32-bit floats lost digits and Spark ``INT`` is only 32-bit.
+        """
         return Cleaner.OutputSchema(
             cols=(
                 Cleaner.OutputSchema.Column(

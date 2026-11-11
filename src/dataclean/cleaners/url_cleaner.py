@@ -86,6 +86,9 @@ class UrlCleaner(Cleaner):
             The first valid URL in ``v`` rendered per ``out_format``, or None
             if none is valid.
         """
+        # Decision: ``href`` targets come first, since in HTML the link target
+        # is the real address and the visible text may be a label. Targets
+        # that are not web addresses (``mailto:``, ``tel:``) are skipped.
         hrefs = [h for h in html_hrefs(v) if not h.lower().startswith(_NON_WEB_LINKS)]
         for part in (*hrefs, *_URL_SEPARATORS.split(remove_invisible(strip_html(v)))):
             cleaned = self._clean_url(part.strip().strip(_WRAPPERS).strip())

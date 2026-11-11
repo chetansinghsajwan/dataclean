@@ -239,6 +239,11 @@ class DateTimeCleaner(Cleaner):
         time of day. When the column mixes dates and times, its name decides
         which of the two it is: a ``time`` name without ``date`` in it means
         time, anything else means date.
+
+        Decision: a column gets one output layout, chosen here once from all
+        its values, so a column never mixes ``2026-06-19`` with
+        ``2026-06-19T00:00:00``. The name breaks the tie because the values
+        alone cannot say which kind a mixed column really holds.
         """
         column = role_columns.get(PRIMARY)
         if self.out_format != DateTimeCleaner.Format.AUTO or column is None:

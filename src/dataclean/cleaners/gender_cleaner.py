@@ -27,7 +27,9 @@ class GenderCleaner(EnumCleaner):
 
     Values that say nothing about gender ("unknown", "U", "not specified",
     "prefer not to say", ``0`` and ``9`` of ISO 5218) are not variants of any
-    case, so they become None.
+    case, so they become None. Decision: a refusal such as "prefer not to say"
+    is missing data, not a gender, so it is not mapped to "other"; ``x`` is
+    the non-binary marker and stays "other".
     """
 
     class Format(StrEnum):

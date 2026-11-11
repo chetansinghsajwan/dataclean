@@ -5,6 +5,8 @@ import re
 
 # Elements whose content is code or hidden data, not text a reader would see.
 # Other elements, such as headings and paragraphs, keep their content.
+# Decision: dropping the content of these elements, not just the tags, is what
+# stops script and style text from ending up in cleaned values.
 _DROPPED_ELEMENTS = (
     "script",
     "style",
@@ -20,7 +22,8 @@ _DROPPED_ELEMENTS = (
 # its content (to the end of the text when it is never closed), a declaration
 # such as ``<!DOCTYPE html>``, then any other tag. A tag name ends at a space,
 # ``/`` or ``>``, so text like ``a < b``, ``<https://x.com>`` and
-# ``<john@example.com>`` is not touched.
+# ``<john@example.com>`` is not touched. Decision: the tag name must end that
+# way, because angle brackets also wrap emails and URLs in real data.
 _HIDDEN = (
     r"<!--.*?-->"
     rf"|<(?P<dropped>{'|'.join(_DROPPED_ELEMENTS)})\b[^<>]*>.*?(?:</(?P=dropped)\s*>|$)"

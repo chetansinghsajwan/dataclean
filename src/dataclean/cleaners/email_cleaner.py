@@ -146,6 +146,8 @@ class EmailCleaner(Cleaner):
             found in ``v``.
         """
 
+        # Decision: ``mailto:`` targets come first, since in HTML the link
+        # target is the real address and the visible text may be a label.
         email = None
         for candidate in (*self._mailto_targets(v), strip_html(v)):
             email = self._parse_email(candidate)

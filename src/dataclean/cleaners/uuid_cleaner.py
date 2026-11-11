@@ -93,6 +93,8 @@ class UuidCleaner(Cleaner):
 
         match = self._SHAPE_RE.fullmatch(normalized)
         if match is None and self.extract_from_text:
+            # Decision: text extraction is on by default, and a value with two
+            # or more UUIDs gives None since the right one cannot be told.
             found = [m.group(0) for m in self._EMBEDDED_RE.finditer(normalized)]
             if len(found) != 1:
                 return None
