@@ -142,12 +142,9 @@ def test_uuid_accepts_known_shapes(value):
         "3f2504e0-4f89_11d3-9a0c-0305e82c3304",
         "3f2504e0-4f89-11d3-9a0c-0305e82c330",
         "3f2504e0-4f89-11d3-9a0c-0305e82c33045",
-        "id: " + GOOD,
-        GOOD + ", extra",
-        "no. " + GOOD,
     ],
 )
-def test_uuid_rejects_other_shapes_and_embedded_text_by_default(value):
+def test_uuid_rejects_other_shapes(value):
     assert UuidCleaner().clean_row(value) is None
 
 
@@ -156,7 +153,12 @@ def test_uuid_rejects_other_shapes_and_embedded_text_by_default(value):
     ["id: " + GOOD, GOOD + ", extra", "no. " + GOOD, "ref=" + GOOD.upper() + "."],
 )
 def test_uuid_extract_from_text_pulls_one_uuid(value):
-    assert UuidCleaner(extract_from_text=True).clean_row(value) == GOOD
+    assert UuidCleaner().clean_row(value) == GOOD
+
+
+@pytest.mark.parametrize("value", ["id: " + GOOD, GOOD + ", extra"])
+def test_uuid_extract_from_text_can_be_turned_off(value):
+    assert UuidCleaner(extract_from_text=False).clean_row(value) is None
 
 
 @pytest.mark.parametrize(
@@ -169,4 +171,4 @@ def test_uuid_extract_from_text_pulls_one_uuid(value):
     ],
 )
 def test_uuid_extract_from_text_rejects_none_or_many(value):
-    assert UuidCleaner(extract_from_text=True).clean_row(value) is None
+    assert UuidCleaner().clean_row(value) is None

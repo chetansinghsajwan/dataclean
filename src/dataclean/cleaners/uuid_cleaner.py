@@ -34,11 +34,12 @@ class UuidCleaner(Cleaner):
             placeholder and becomes None.
         allow_max: If False, the max UUID (all f) is treated as a
             placeholder and becomes None.
-        extract_from_text: If True, a single UUID is also pulled out of
-            surrounding text, so ``id: <uuid>`` and ``<uuid>, extra`` are
-            cleaned to the UUID. Off by default because it can read a UUID
-            out of a free-text value that is not an identifier at all. If
-            the text holds more than one UUID, the value becomes None.
+        extract_from_text: If True (the default), a single UUID is also
+            pulled out of surrounding text, so ``id: <uuid>`` and
+            ``<uuid>, extra`` are cleaned to the UUID. If the text holds
+            more than one UUID the value becomes None, since the right one
+            cannot be told. Set it to False to accept only a value that is
+            nothing but a UUID.
     """
 
     class Format(StrEnum):
@@ -54,7 +55,7 @@ class UuidCleaner(Cleaner):
     allowed_versions: set[int] | None = None
     allow_nil: bool = False
     allow_max: bool = False
-    extract_from_text: bool = False
+    extract_from_text: bool = True
 
     _SEPARATORS: ClassVar[str] = r"[-_. ]"
     _SHAPE_RE: ClassVar[re.Pattern] = re.compile(

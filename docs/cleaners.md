@@ -436,12 +436,14 @@ UrlCleaner().clean_row("WWW.Example.com:443/")  # -> "https://www.example.com"
 
 - **Params**: `out_format` (`Format.STANDARD` (default, hyphenated),
   `COMPACT` (32 raw hex chars), `URN` (`urn:uuid:...`)), `allowed_versions`
-  (`set[int] | None`, e.g. `{4, 7}`; `None` accepts any valid version).
+  (`set[int] | None`, e.g. `{4, 7}`; `None` accepts any valid version),
+  `extract_from_text` (default `True`).
 - **Output**: single STR column.
 - **Behavior**: strips surrounding quote/bracket characters and a leading
-  `urn:uuid:` prefix, lowercases, and parses as a UUID; falls back to
-  extracting exactly 32 hex characters from stray-delimited text if direct
-  parsing fails. Filters by `allowed_versions` if set.
+  `urn:uuid:` prefix, lowercases, and parses as a UUID. If that fails and
+  `extract_from_text` is on, it pulls a single UUID out of the surrounding text
+  (`id: <uuid>`, `<uuid>, extra`); a value with two or more UUIDs becomes null,
+  since the right one cannot be told. Filters by `allowed_versions` if set.
 
 ```python
 from dataclean import UuidCleaner
