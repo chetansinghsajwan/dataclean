@@ -7,3 +7,6 @@ Work for later that is not part of the [release plan](release-plan.md).
 - Auto-detect low-cardinality columns in `EnumCleaner`: today it needs `cases=`
   and is explicit-only. Later it should detect a column with few distinct
   values (for example `status`) and build its cases from the data.
+- Use titles and suffixes to fill missing values in `GenderCleaner`: when the
+  gender is blank, infer it from a title in a name column (`Mr`, `Mrs`, `Ms`,
+  `Miss`) or a suffix. This needs the name column as an extra input role.
