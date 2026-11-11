@@ -149,6 +149,10 @@ def test_name_cleaner_company_suffix_standard_can_be_turned_off() -> None:
         "Robert'); DROP TABLE Students;--",
         "' OR '1'='1",
         "drop table users",
+        "../../etc/passwd",
+        "/etc/passwd",
+        "~/notes",
+        "C:\\Windows\\x",
         "union select password",
         "../../etc/passwd" + "=",
     ],
@@ -157,7 +161,9 @@ def test_name_cleaner_nulls_junk(raw: str) -> None:
     assert NameCleaner().clean_row(raw) is None
 
 
-@pytest.mark.parametrize("raw", ["AT&T", "Select Group", "Dr. Reddy's", "M/s Sharma"])
+@pytest.mark.parametrize(
+    "raw", ["AT&T", "Select Group", "Dr. Reddy's", "M/s Sharma", "Ac/Dc"]
+)
 def test_name_cleaner_keeps_names_that_only_resemble_junk(raw: str) -> None:
     assert NameCleaner().clean_row(raw) == raw
 

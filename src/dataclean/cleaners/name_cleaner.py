@@ -13,7 +13,9 @@ from dataclean.types import checked
 from dataclean.utils import (
     TEXT_NULL_TOKENS,
     is_null_token,
-    looks_like_junk,
+    looks_like_code,
+    looks_like_link,
+    looks_like_path,
     null_token_set,
     remove_invisible,
     replace_control_chars,
@@ -168,10 +170,12 @@ class NameCleaner(Cleaner):
        be a name.
     4. A value longer than ``max_length`` becomes null: real names stay well
        under it, so a longer value is pasted text or junk.
-    5. A value that looks like code, a template, an email, a URL, SQL or a
-       character repeated many times becomes null (see ``looks_like_junk``):
-       it is never a name, and keeping it would let injection strings
-       through.
+    5. A value that looks like code, a template, SQL, a character repeated
+       many times (``looks_like_code``), a file path or path traversal
+       (``looks_like_path``), or an email or URL (``looks_like_link``)
+       becomes null: it is never a name, and keeping it would let injection
+       strings through. These checks belong to this cleaner, not to the
+       helpers: a path or email is valid in a file-path or email column.
     6. A company's legal suffix is written one way (``Limited``, ``Ltd.`` ->
        ``LTD``; ``Incorporated`` -> ``INC``). Only a clear suffix counts, see
        ``_has_company_suffix``.
@@ -198,7 +202,7 @@ class NameCleaner(Cleaner):
         null_if_no_letters: Whether a value with no letters becomes null.
         max_length: Longest value kept; a longer one becomes null. None turns
             the limit off.
-        null_junk: Whether a value that looks like code, markup, an email, a
+        null_junk: Whether a value that looks like code, a path, an email, a
             URL or a repeated character becomes null.
         standardize_company_suffix: Whether a legal suffix such as ``Limited``
             is written as ``LTD``.
@@ -250,7 +254,9 @@ class NameCleaner(Cleaner):
             return None
         if self.max_length is not None and len(v) > self.max_length:
             return None
-        if self.null_junk and looks_like_junk(v):
+        if self.null_junk and (
+            looks_like_code(v) or looks_like_path(v) or looks_like_link(v)
+        ):
             return None
         if self.standardize_company_suffix and _has_company_suffix(v):
             v = _standardize_company_suffix(v)

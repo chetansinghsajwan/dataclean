@@ -293,7 +293,7 @@ the same columns, so every rule leaves companies alone.
        text-direction characters and control characters, and normalises
        Unicode with NFKC (`ＴＨＥ` becomes `THE`).
     2. Nulls placeholders, values with no letters (`123`, `0`, `''`) and junk
-       (`looks_like_junk`: code, templates, emails, URLs, SQL such as
+       (code, templates, paths such as `../../etc/passwd`, emails, URLs, SQL such as
        `'; DROP TABLE x;--` or `select * from t`, and a character repeated
        eight or more times) and values longer than `max_length`.
     3. Writes a company's legal suffix one way: `Limited` and `Ltd.` become
