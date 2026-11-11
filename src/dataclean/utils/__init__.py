@@ -2,6 +2,7 @@
 
 from .debug import _log_args
 from .invisible import remove_invisible, replace_control_chars
+from .junk import looks_like_junk
 from .markup import html_hrefs, strip_html
 from .null_tokens import (
     COMMON_NULL_TOKENS,

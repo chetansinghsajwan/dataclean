@@ -15,7 +15,7 @@ auto-detection fit together generally.
 | `EnumCleaner` | Generic categorical value normalizer | name prefix/suffix/word + value sampling | **No** — needs `cases=` |
 | `FilePathCleaner` | Normalizes file names and paths | `file`/`path`/`dir`/`folder` word in column name | Yes |
 | `GenderCleaner` | Normalizes gender values | `gender`/`sex` in column name + value sampling | Yes |
-| `NameCleaner` | Recognizes personal-name columns (values unchanged, placeholders nulled) | person-name column tokens (`fname`/`lname`/`first_name`/`surname`/...) | Yes |
+| `NameCleaner` | Cleans person and company names: casing, legal suffixes, placeholders and junk | person-name column tokens (`fname`/`lname`/`first_name`/`surname`/...) | Yes |
 | `NumericCleaner` | Parses/reformats numeric values | name tokens (30%) + value sampling (70%) | Yes |
 | `PhoneCleaner` | Parses/reformats phone numbers | `phone`/`tel`/`mobile`/`fax`/`contact_no` in column name | Yes |
 | `TextCleaner` | General free-text normalization | text-ish tokens, else a `0.1` baseline (never `0.0`) | Yes |
@@ -280,22 +280,37 @@ GenderCleaner().clean_row("boy")  # -> "Male"
 
 ## NameCleaner
 
-Recognizes personal-name columns; it does **not** change their values, except
-that placeholders become null.
+Cleans names in person-name columns. CRMs keep private and company clients in
+the same columns, so every rule leaves companies alone.
 
 - **Params**: `null_tokens` (default `null`, `none`, `undefined`, `n/a`, `-`;
-  compared case-insensitively). `na` and `nan` are not in it, since they are
-  real names.
+  `na` and `nan` are not in it, since they are real names; the exact string
+  `NaN` is kept too), `null_if_no_letters`, `max_length` (default 150), `null_junk`,
+  `standardize_company_suffix` and `fix_case` (all default True).
 - **Output**: single column, same name as the input.
-- **Behavior**: `clean_row` removes HTML tags (and `script`/`style` content),
-  removes invisible characters (zero-width spaces, BOMs) and turns control
-  characters such as tabs into spaces, then returns the value, or None for a
-  placeholder or nothing left. It exists so that
-  auto-detection claims name columns (and no other cleaner does). Like every
-  cleaner, values still get the pipeline's input normalization: surrounding
-  whitespace is stripped and blank strings become null. Casing is
-  deliberately left alone, because name fields often hold acronyms, initials
-  and company names that title-casing would damage.
+- **Rules, in order**:
+    1. Removes HTML tags (and `script`/`style` content), invisible and
+       text-direction characters and control characters, and normalises
+       Unicode with NFKC (`ＴＨＥ` becomes `THE`).
+    2. Nulls placeholders, values with no letters (`123`, `0`, `''`) and junk
+       (`looks_like_junk`: code, templates, emails, URLs, SQL such as
+       `'; DROP TABLE x;--` or `select * from t`, and a character repeated
+       eight or more times) and values longer than `max_length`.
+    3. Writes a company's legal suffix one way: `Limited` and `Ltd.` become
+       `LTD`, `Incorporated` and `Inc.` become `INC`, also `CORP`, `PVT`,
+       `LLC`, `LLP`, `PLC` and `GMBH`. The suffix is found with
+       [`cleanco`](https://pypi.org/project/cleanco/); one shorter than three
+       letters such as `Sa` or `Co` does not count unless it has a dot or `&`,
+       since it is also a surname ending.
+    4. Title-cases a value written all lower or all upper case (`john`, `JOHN`
+       become `John`), with `Mc` names, lower-case particles (`van`, `de`,
+       `bin`) and `II`/`III`/`IV` at the end handled. Mixed case such as
+       `McDonald` or `R.P.` is kept. Companies (a legal suffix, a digit or
+       `&`) and a single all-upper word of three letters or fewer or without
+       a vowel (`IBM`, `KPMG`) are kept as typed.
+- **Accepted limits**: other acronyms such as `HBOS` become `Hbos`; a lone
+  `AMY` stays as typed; an all-lower non-name such as `tab here` is
+  title-cased. Set `fix_case=False` for a column of companies.
 - **`match_score`**: name-based only, and only for string columns. Matches
   `fname`/`lname`/`mname` (standalone or concatenated, e.g. `lnamefname`) and
   `first_name`, `last_name`, `middle_name`, `full_name`, `given_name`,
@@ -306,8 +321,10 @@ that placeholders become null.
 ```python
 from dataclean import NameCleaner
 
+NameCleaner().clean_row("JOHN")  # -> "John"
 NameCleaner().clean_row("McDonald")  # -> "McDonald"
-NameCleaner().clean_row("HBOS")  # -> "HBOS"
+NameCleaner().clean_row("123")  # -> None
+NameCleaner().clean_row("Acme Limited")  # -> "Acme LTD"
 ```
 
 ::: dataclean.cleaners.NameCleaner

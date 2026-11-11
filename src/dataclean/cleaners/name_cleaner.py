@@ -1,15 +1,19 @@
-"""Cleaner that recognizes personal-name columns and nulls placeholder values."""
+"""Cleaner that recognizes personal-name columns, fixes their casing and nulls placeholders."""
 
 import re
+import unicodedata
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import ClassVar, override
+
+from cleanco import basename
 
 from dataclean.engine import DataFrame, DataType
 from dataclean.types import checked
 from dataclean.utils import (
     TEXT_NULL_TOKENS,
     is_null_token,
+    looks_like_junk,
     null_token_set,
     remove_invisible,
     replace_control_chars,
@@ -18,21 +22,170 @@ from dataclean.utils import (
 
 from .cleaner import Cleaner
 
+# A run of letters. Hyphens and apostrophes split a name into several runs, so
+# "anne-marie" and "o'neil" capitalize each part.
+_LETTERS = re.compile(r"[^\W\d_]+")
+
+# A digit or "&" shows a company ("3M", "AT&T"), so its casing is left alone.
+# Code, emails and URLs never get this far: they are nulled as junk first.
+_COMPANY_MARK = re.compile(r"[\d&]")
+
+# Legal suffixes written one way. Decision: "Limited" and "Ltd." both become
+# "LTD", and the rest of the company name keeps the writer's casing. Matching
+# ignores dots and case, so "p.l.c." and "Pvt." are found too. Decision: the
+# word "Company" is left as written, since it is also an ordinary name word
+# ("McKinsey & Company").
+_COMPANY_SUFFIXES = {
+    "limited": "LTD",
+    "ltd": "LTD",
+    "incorporated": "INC",
+    "inc": "INC",
+    "corporation": "CORP",
+    "corp": "CORP",
+    "co": "CO",
+    "private": "PVT",
+    "pvt": "PVT",
+    "llc": "LLC",
+    "llp": "LLP",
+    "plc": "PLC",
+    "gmbh": "GMBH",
+}
+
+# Words that stay lower case inside a name, as in "Ludwig van Beethoven".
+_PARTICLES = frozenset(
+    "al bin bint da de del della den der di du el ibn la le ten ter van von".split()
+)
+_ROMAN_SUFFIXES = frozenset({"ii", "iii", "iv"})
+
+# Shortest legal-suffix text (letters only) that still counts as a company.
+# Two-letter suffixes such as "Sa" or "Se" are also common surname endings.
+_MIN_SUFFIX_LETTERS = 3
+
+
+def _has_company_suffix(value: str) -> bool:
+    """Whether ``value`` ends in a legal suffix such as "Ltd", "LLP" or "GmbH".
+
+    Decision: a suffix of fewer than three letters, such as "Sa", "Se" or "Co",
+    does not count unless it has a dot or "&", because those are also common
+    surname endings ("Mary Sa") and a wrong company guess would skip casing
+    or rewrite a person's name.
+    """
+    base = basename(value)
+    if base == value or not value.startswith(base):
+        return base != value
+    suffix = value[len(base) :]
+    return (
+        sum(ch.isalpha() for ch in suffix) >= _MIN_SUFFIX_LETTERS
+        or "." in suffix
+        or "&" in suffix
+    )
+
+
+def _standardize_company_suffix(value: str) -> str:
+    """Write the legal suffix at the end of a company name in one standard form.
+
+    "Reliance Industries Pvt. Ltd." becomes "Reliance Industries PVT LTD". Only
+    called for a value that has a company suffix, so a person named "Wei Co"
+    is not changed (see ``_has_company_suffix``).
+    """
+    words = value.split(" ")
+    for i in range(len(words) - 1, 0, -1):
+        standard = _COMPANY_SUFFIXES.get(words[i].replace(".", "").strip(",").lower())
+        if standard is None:
+            break
+        words[i] = standard
+    return " ".join(words)
+
+
+def _is_acronym(word: str) -> bool:
+    """Whether an upper-case ``word`` reads as an acronym, such as "IBM" or "KPMG".
+
+    Short words and words without a vowel count, since "JOHN" cannot be told
+    from "HBOS" but "IBM" and "KPMG" are far more likely acronyms. Only a
+    single word is judged this way: "JAN VAN DER BERG" is clearly a person.
+    """
+    letters = unicodedata.normalize("NFKD", word).casefold()
+    return len(word) <= _MAX_ACRONYM_LETTERS or not any(
+        ch in "aeiouy" for ch in letters
+    )
+
+
+_MAX_ACRONYM_LETTERS = 3
+
+
+def _case_word(word: str, index: int, last: bool) -> str:
+    """Title-case one word of a name."""
+    lower = word.lower()
+    if index > 0 and lower in _PARTICLES:
+        return lower
+    if last and index > 0 and lower in _ROMAN_SUFFIXES:
+        return word.upper()
+    cased = _LETTERS.sub(lambda match: match.group().capitalize(), lower)
+    if re.match(r"Mc[a-z]{2}", cased):
+        cased = "Mc" + cased[2:].capitalize()
+    return cased
+
+
+def _fix_case(value: str) -> str:
+    """Title-case a name written all lower or all upper case.
+
+    A value with mixed case, such as "McDonald", is left alone since the
+    writer most likely chose that casing. So is a value that looks like a
+    company or like something other than a name.
+    """
+    upper = value == value.upper()
+    if value != value.lower() and not upper:
+        return value
+    if _COMPANY_MARK.search(value) or _has_company_suffix(value):
+        return value
+    words = value.split(" ")
+    if len(words) == 1 and upper and _is_acronym(value):
+        return value
+    return " ".join(
+        _case_word(word, i, i == len(words) - 1) for i, word in enumerate(words)
+    )
+
 
 @checked
 @dataclass
 class NameCleaner(Cleaner):
-    """Recognizes personal-name columns and passes their values through.
+    """Cleans person and company names in name columns.
 
-    For now this cleaner only takes part in auto-detection: it claims
-    person-name columns (``fname``, ``lname``, ``mname``, ``first_name``,
-    ``surname``, ``full_name``, ...) so that no other cleaner does, and
-    returns each value unchanged, except that a placeholder such as ``n/a`` or
-    ``-`` becomes null. Values still get the pipeline's input
-    normalization like any other cleaner (surrounding whitespace is
-    stripped, blank strings become null). Casing is deliberately not
-    touched: person-name fields often hold acronyms, initials and company
-    names that title-casing would damage.
+    It claims person-name columns (``fname``, ``lname``, ``mname``,
+    ``first_name``, ``surname``, ``full_name``, ...) so that no other cleaner
+    does. CRMs keep private and company clients in the same columns, so every
+    rule below has to leave companies alone. Values still get the pipeline's
+    input normalization like any other cleaner (surrounding whitespace is
+    stripped, blank strings become null).
+
+    Rules, in order, with the reason for each:
+
+    1. HTML tags, invisible and direction characters and control characters
+       are removed, and Unicode is normalised with NFKC, so full-width letters
+       (``ＴＨＥ``) and combining accents become plain, comparable text.
+    2. A placeholder (``null_tokens``) becomes null.
+    3. A value with no letters (``123``, ``0``, ``''``) becomes null: it cannot
+       be a name.
+    4. A value longer than ``max_length`` becomes null: real names stay well
+       under it, so a longer value is pasted text or junk.
+    5. A value that looks like code, a template, an email, a URL, SQL or a
+       character repeated many times becomes null (see ``looks_like_junk``):
+       it is never a name, and keeping it would let injection strings
+       through.
+    6. A company's legal suffix is written one way (``Limited``, ``Ltd.`` ->
+       ``LTD``; ``Incorporated`` -> ``INC``). Only a clear suffix counts, see
+       ``_has_company_suffix``.
+    7. A value written all lower or all upper case is title-cased (``john``,
+       ``JOHN`` -> ``John``), with ``Mc`` names, lower-case particles
+       (``van``, ``de``) and roman-numeral suffixes handled. Mixed case such
+       as ``McDonald`` is kept, since the writer chose it. Companies (a legal
+       suffix, a digit or ``&``) and acronyms are kept as typed.
+
+    Accepted limits: a single all-upper word of three letters or fewer, or
+    without a vowel, is read as an acronym (``IBM``, ``KPMG``), so a lone
+    ``AMY`` stays as typed. Other acronyms such as ``HBOS`` cannot be told from
+    a name and become ``Hbos``. A value that is all lower case but is not a name
+    (``tab here``) is title-cased too, since nothing can tell it apart.
 
     Only string columns are matched, and a bare ``name`` column is not
     (it is often a company or product name).
@@ -40,10 +193,25 @@ class NameCleaner(Cleaner):
     Attributes:
         null_tokens: Placeholder values (compared case-insensitively) that
             become null. ``na`` and ``nan`` are left out of the default, since
-            they are real names.
+            they are real names (``Nan``); the exact string ``NaN`` is kept
+            too, by decision.
+        null_if_no_letters: Whether a value with no letters becomes null.
+        max_length: Longest value kept; a longer one becomes null. None turns
+            the limit off.
+        null_junk: Whether a value that looks like code, markup, an email, a
+            URL or a repeated character becomes null.
+        standardize_company_suffix: Whether a legal suffix such as ``Limited``
+            is written as ``LTD``.
+        fix_case: Whether a value written all lower or all upper case is
+            title-cased.
     """
 
     null_tokens: tuple[str, ...] = TEXT_NULL_TOKENS
+    null_if_no_letters: bool = True
+    max_length: int | None = 150
+    null_junk: bool = True
+    standardize_company_suffix: bool = True
+    fix_case: bool = True
 
     # Short forms must stand alone (or be concatenated, e.g. "lnamefname") so
     # that "colname" or "filename" never match.
@@ -64,20 +232,29 @@ class NameCleaner(Cleaner):
 
     @override
     def clean_row(self, v: str) -> str | None:  # type: ignore
-        """Return ``v`` without markup or invisible characters, or None if it is a placeholder.
+        """Return ``v`` cleaned by the rules in the class docstring, or None.
 
         Args:
             v: The name value (already stripped and non-blank).
 
         Returns:
-            ``v`` with HTML tags, invisible characters and control
-            characters removed (and the spaces they leave collapsed), or None if nothing is left or it is one of
-            ``null_tokens``.
+            The cleaned name, or None if nothing is left, it is a placeholder,
+            it has no letters, or it looks like junk (each when enabled).
         """
         cleaned = replace_control_chars(remove_invisible(strip_html(v)))
-        if cleaned != v:
-            v = " ".join(cleaned.split())
-        return None if is_null_token(v, self._null_set) else v
+        cleaned = " ".join(unicodedata.normalize("NFKC", cleaned).split())
+        v = cleaned
+        if is_null_token(v, self._null_set):
+            return None
+        if self.null_if_no_letters and not any(ch.isalpha() for ch in v):
+            return None
+        if self.max_length is not None and len(v) > self.max_length:
+            return None
+        if self.null_junk and looks_like_junk(v):
+            return None
+        if self.standardize_company_suffix and _has_company_suffix(v):
+            v = _standardize_company_suffix(v)
+        return _fix_case(v) if self.fix_case else v
 
     @override
     def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:

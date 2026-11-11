@@ -70,19 +70,139 @@ def test_name_cleaner_empty_cols_scores_zero() -> None:
 
 @pytest.mark.parametrize(
     "raw",
+    ["McDonald", "R.P.", "K E", "O'Neil", "Anne-Marie", "van der Berg", "Zoë"],
+)
+def test_name_cleaner_returns_mixed_case_values_unchanged(raw: str) -> None:
+    assert NameCleaner().clean_row(raw) == raw
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
     [
-        "JOHN",
-        "john smith",
-        "McDonald",
-        "HBOS",
-        "R.P.",
-        "GM & JW",
-        "O'Neil",
-        "123",
+        ("john", "John"),
+        ("JOHN", "John"),
+        ("john smith", "John Smith"),
+        ("brown mary", "Brown Mary"),
+        ("O'NEIL", "O'Neil"),
+        ("anne-marie", "Anne-Marie"),
+        ("NGUYỄN", "Nguyễn"),
+        ("mcdonald", "McDonald"),
+        ("MCDONALD", "McDonald"),
+        ("ludwig van beethoven", "Ludwig van Beethoven"),
+        ("JAN VAN DER BERG", "Jan van der Berg"),
+        ("john smith iii", "John Smith III"),
+        ("vi", "Vi"),
+        ("AMY LEE", "Amy Lee"),
+        ("RAHUL KUMAR", "Rahul Kumar"),
+        ("JOHN", "John"),
     ],
 )
-def test_name_cleaner_returns_values_unchanged(raw: str) -> None:
+def test_name_cleaner_title_cases_uniform_case(raw: str, expected: str) -> None:
+    assert NameCleaner().clean_row(raw) == expected
+
+
+@pytest.mark.parametrize(
+    "raw",
+    ["IBM", "KPMG", "BP", "3M", "GM & JW", "AT&T", "KPMG LLP", "marks & spencer"],
+)
+def test_name_cleaner_leaves_companies_and_acronyms_alone(raw: str) -> None:
     assert NameCleaner().clean_row(raw) == raw
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("INFOSYS LIMITED", "INFOSYS LTD"),
+        ("Tata Consultancy Services Ltd", "Tata Consultancy Services LTD"),
+        ("Reliance Industries Pvt. Ltd.", "Reliance Industries PVT LTD"),
+        ("Reliance Industries Private Limited", "Reliance Industries PVT LTD"),
+        ("Acme Incorporated", "Acme INC"),
+        ("McKinsey & Company", "McKinsey & Company"),
+        ("eBay Inc.", "eBay INC"),
+        ("Foo Corporation", "Foo CORP"),
+        ("Marks & Spencer plc", "Marks & Spencer PLC"),
+        ("BP p.l.c.", "BP PLC"),
+        ("müller gmbh", "müller GMBH"),
+        ("Smith, Jones & Partners llp", "Smith, Jones & Partners LLP"),
+    ],
+)
+def test_name_cleaner_standardizes_company_suffixes(raw: str, expected: str) -> None:
+    assert NameCleaner().clean_row(raw) == expected
+
+
+def test_name_cleaner_company_suffix_standard_can_be_turned_off() -> None:
+    cleaner = NameCleaner(standardize_company_suffix=False)
+    assert cleaner.clean_row("Acme Limited") == "Acme Limited"
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "john@example.com",
+        "https://example.com",
+        "HTTPS://EXAMPLE.COM",
+        "${jndi:ldap://x}",
+        "{{config}}",
+        "%s%s%s%n",
+        "<%= 7*7 %>",
+        "select * from users",
+        "Robert'); DROP TABLE Students;--",
+        "' OR '1'='1",
+        "drop table users",
+        "union select password",
+        "../../etc/passwd" + "=",
+    ],
+)
+def test_name_cleaner_nulls_junk(raw: str) -> None:
+    assert NameCleaner().clean_row(raw) is None
+
+
+@pytest.mark.parametrize("raw", ["AT&T", "Select Group", "Dr. Reddy's", "M/s Sharma"])
+def test_name_cleaner_keeps_names_that_only_resemble_junk(raw: str) -> None:
+    assert NameCleaner().clean_row(raw) == raw
+
+
+def test_name_cleaner_nulls_filler_and_overlong_values() -> None:
+    assert NameCleaner().clean_row("x" * 300) is None
+    assert NameCleaner().clean_row("aaaaaaaa") is None
+    assert NameCleaner().clean_row("Aaaron") == "Aaaron"
+    assert NameCleaner().clean_row("John " * 40) is None
+    assert NameCleaner(max_length=None).clean_row("John " * 40) is not None
+
+
+def test_name_cleaner_keeps_junk_when_asked() -> None:
+    assert NameCleaner(null_junk=False).clean_row("John@example.com") == (
+        "John@example.com"
+    )
+
+
+def test_name_cleaner_normalizes_unicode() -> None:
+    assert NameCleaner().clean_row("ＴＨＥ ＱＵＩＣＫ") == "The Quick"
+    assert NameCleaner().clean_row("Zoe\u0308") == "Zoë"
+
+
+@pytest.mark.parametrize("raw", ["mary sa", "kim se", "jo ab"])
+def test_name_cleaner_short_suffix_words_do_not_make_a_company(raw: str) -> None:
+    assert NameCleaner().clean_row(raw) == raw.title()
+
+
+def test_name_cleaner_removes_text_direction_overrides() -> None:
+    assert NameCleaner().clean_row("\u202eEvil\u202c") == "Evil"
+
+
+def test_name_cleaner_fix_case_can_be_turned_off() -> None:
+    cleaner = NameCleaner(fix_case=False)
+    assert cleaner.clean_row("JOHN") == "JOHN"
+    assert cleaner.clean_row("john") == "john"
+
+
+@pytest.mark.parametrize("raw", ["123", "0", "''", "{{7*7}}", "1.5", "- -"])
+def test_name_cleaner_nulls_values_without_letters(raw: str) -> None:
+    assert NameCleaner().clean_row(raw) is None
+
+
+def test_name_cleaner_keeps_values_without_letters_when_asked() -> None:
+    assert NameCleaner(null_if_no_letters=False).clean_row("123") == "123"
 
 
 # ==============================================================================
@@ -118,10 +238,10 @@ def test_name_cleaner_in_the_pipeline_gets_input_normalization_and_placeholders_
     fname = result["fname"].tolist()
     lname = result["lname"].tolist()
 
-    # Case is untouched; whitespace is stripped, blanks and placeholders become null.
-    assert fname[:2] == ["JOHN", "mary"]
+    # Uniform case is title-cased; whitespace is stripped, blanks and placeholders become null.
+    assert fname[:2] == ["John", "Mary"]
     assert pd.isna(fname[2]) and pd.isna(fname[3])
-    assert lname[:3] == ["HBOS", "R.P.", "McDonald"]
+    assert lname[:3] == ["Hbos", "R.P.", "McDonald"]
     assert pd.isna(lname[3])
 
 
@@ -149,7 +269,7 @@ def test_name_cleaner_strips_html_and_its_scripts() -> None:
 
 def test_name_cleaner_removes_invisible_and_control_characters() -> None:
     cleaner = NameCleaner()
-    assert cleaner.clean_row("a\u200bb") == "ab"
-    assert cleaner.clean_row("\ufeffbom") == "bom"
-    assert cleaner.clean_row("tab\there") == "tab here"
-    assert cleaner.clean_row("cr\rhere") == "cr here"
+    assert cleaner.clean_row("A\u200bb") == "Ab"
+    assert cleaner.clean_row("\ufeffBom") == "Bom"
+    assert cleaner.clean_row("Tab\there") == "Tab here"
+    assert cleaner.clean_row("Cr\rhere") == "Cr here"

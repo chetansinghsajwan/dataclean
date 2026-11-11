@@ -2,14 +2,17 @@
 
 import re
 
-# Zero-width space, byte order mark and word joiner. They are pasted in from
-# documents and web pages and break matching without showing.
-_INVISIBLE = re.compile("[﻿​⁠]")
+# Zero-width space, byte order mark, word joiner and the text-direction marks
+# and overrides. They are pasted in from documents and web pages and break
+# matching without showing; the overrides can also reverse how a value reads.
+_INVISIBLE = re.compile(r"[\ufeff\u200b\u2060\u200e\u200f\u202a-\u202e\u2066-\u2069]")
+# Decision: control characters become spaces (not nothing), so "tab\there"
+# keeps its two words apart instead of gluing them.
 _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 
 
 def remove_invisible(text: str) -> str:
-    """Remove zero-width spaces, byte order marks and word joiners."""
+    """Remove zero-width spaces, byte order marks, word joiners and direction marks."""
     return _INVISIBLE.sub("", text)
 
 
