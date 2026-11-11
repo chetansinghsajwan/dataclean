@@ -145,3 +145,11 @@ def test_name_cleaner_strips_html_and_its_scripts() -> None:
     assert cleaner.clean_row("<b>John</b> Smith<script>x()</script>") == "John Smith"
     assert cleaner.clean_row("<p></p>") is None
     assert cleaner.clean_row("McDonald") == "McDonald"
+
+
+def test_name_cleaner_removes_invisible_and_control_characters() -> None:
+    cleaner = NameCleaner()
+    assert cleaner.clean_row("a\u200bb") == "ab"
+    assert cleaner.clean_row("\ufeffbom") == "bom"
+    assert cleaner.clean_row("tab\there") == "tab here"
+    assert cleaner.clean_row("cr\rhere") == "cr here"

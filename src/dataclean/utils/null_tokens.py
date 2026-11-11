@@ -18,6 +18,11 @@ COMMON_NULL_TOKENS: tuple[str, ...] = (
 )
 
 
+# The placeholders that are safe to drop from names and address parts. "na"
+# and "nan" are left out since they are real names and the Namibia code.
+TEXT_NULL_TOKENS: tuple[str, ...] = ("null", "none", "undefined", "n/a", "-")
+
+
 def null_token_set(tokens: Iterable[str]) -> frozenset[str]:
     """Build the lookup set for :func:`is_null_token`, lower-cased once."""
     return frozenset(token.lower() for token in tokens)

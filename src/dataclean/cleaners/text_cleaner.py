@@ -9,7 +9,7 @@ from typing import ClassVar, override
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
-from dataclean.utils.markup import strip_html
+from dataclean.utils import remove_invisible, replace_control_chars, strip_html
 from dataclean.utils.null_tokens import (
     COMMON_NULL_TOKENS,
     is_null_token,
@@ -84,9 +84,7 @@ class TextCleaner(Cleaner):
     _DIGIT_RE: ClassVar[re.Pattern] = re.compile(r"\d+")
     _PUNCT_RE: ClassVar[re.Pattern] = re.compile(r"[^\w\s]")
     _MULTI_SPACE_RE: ClassVar[re.Pattern] = re.compile(r"\s+")
-    _NL_SPACE_RE: ClassVar[re.Pattern] = re.compile(r"[\x00-\x1f\x7f-\x9f]")
     _NL_STRIP_RE: ClassVar[re.Pattern] = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")
-    _INVISIBLE_RE: ClassVar[re.Pattern] = re.compile("[\ufeff\u200b\u2060]")
     _ENTITY_RE: ClassVar[re.Pattern] = re.compile(
         r"&(?:#\d+|#[xX][0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]*);"
     )
@@ -123,7 +121,7 @@ class TextCleaner(Cleaner):
         steps: list[Callable[[str], str]] = []
 
         if self.remove_invisible:
-            steps.append(lambda x: self._INVISIBLE_RE.sub("", x))
+            steps.append(remove_invisible)
 
         if self.remove_html:
             steps.append(strip_html)
@@ -153,7 +151,7 @@ class TextCleaner(Cleaner):
             steps.append(lambda x: self._PUNCT_RE.sub("", x))
 
         if self.replace_newlines_with_spaces:
-            steps.append(lambda x: self._NL_SPACE_RE.sub(" ", x))
+            steps.append(replace_control_chars)
         else:
             # 🚀 THE FIX: Explicitly drop '\n' so it isn't caught by \s+ in the next step
             steps.append(lambda x: self._NL_STRIP_RE.sub("", x).replace("\n", ""))

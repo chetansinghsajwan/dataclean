@@ -33,7 +33,8 @@ components out. No configuration options beyond the base `tags`/`inplace`.
 - **Outputs**: `state`, `postcode`, `address_line`, `street`, `house_no`,
   `town`, `address_line2`, `address_line3`.
 - **Behavior**: removes HTML tags (and `script`/`style` content) from every
-  part; collapses whitespace in each address line; title-cases `town`
+  part; nulls a placeholder (`null`, `none`, `undefined`, `n/a`, `-`) in a
+  line, town or county; collapses whitespace in each address line; title-cases `town`
   and `county` when they are written all lower or all upper case and look like
   a place name (mixed case such as "McDonald Heights" is kept); uppercases the
   postcode, drops hyphens, collapses whitespace and nulls a value with no
@@ -287,7 +288,9 @@ that placeholders become null.
   real names.
 - **Output**: single column, same name as the input.
 - **Behavior**: `clean_row` removes HTML tags (and `script`/`style` content),
-  then returns the value, or None for a placeholder or nothing left. It exists so that
+  removes invisible characters (zero-width spaces, BOMs) and turns control
+  characters such as tabs into spaces, then returns the value, or None for a
+  placeholder or nothing left. It exists so that
   auto-detection claims name columns (and no other cleaner does). Like every
   cleaner, values still get the pipeline's input normalization: surrounding
   whitespace is stripped and blank strings become null. Casing is
@@ -361,8 +364,10 @@ NumericCleaner().clean_row("₹ 1,500.50")  # -> "1500.5"
 !!! warning "Numbers that cannot be judged are kept, not dropped"
     If no region is known (no `country` input and `default_regions` is
     empty) and the number has no leading `+`, it can't be validated, so a
-    value with at least one digit is returned unchanged (stripped) instead of
-    `None`. A value with no digit, such as `abc` or `n/a`, is `None`. With a
+    value with 1 to 15 digits is returned unchanged (stripped) instead of
+    `None`. A value with no digit, such as `abc` or `n/a`, or with more than 15
+    (the E.164 maximum) is `None`. A vanity number such as `1-800-FLOWERS` is
+    always `None`. With a
     known region, a number that isn't valid there also returns `None`. Set
     `default_regions` (or provide a country column) to get consistent
     formatting.

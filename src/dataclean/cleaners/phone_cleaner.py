@@ -26,6 +26,12 @@ _TRAILING_NOTE = re.compile(r"\s*\([^\d()]*[A-Za-z][^\d()]*\)\s*$")
 # Separators that put several numbers in one cell.
 _NUMBER_SEPARATORS = re.compile(r"\s*(?:[/;|,&]|\bor\b)\s*", re.IGNORECASE)
 
+# A word of letters joined to the digits, as in "1-800-FLOWERS".
+_VANITY = re.compile(r"[-\d)][A-Za-z]{3,}")
+
+# E.164 numbers have at most 15 digits.
+_MAX_DIGITS = 15
+
 
 def _to_ascii_digits(value: str) -> str:
     """Replace digits of other scripts, such as Arabic-Indic, with 0-9."""
@@ -129,12 +135,18 @@ class PhoneCleaner(Cleaner):
             except ValueError:
                 pass
 
+        # Vanity numbers such as "1-800-FLOWERS" are not read as digits, since
+        # the parser would turn the letters into a number of its own.
+        if _VANITY.search(normalized):
+            return None
+
         regions = self._regions_for(country)
         if not regions and not normalized.startswith("+"):
-            # No region to validate against: keep a value that has digits
-            # rather than discarding a number that may well be valid, and drop
-            # one with none, such as "abc" or "n/a".
-            return normalized if any(c.isdigit() for c in normalized) else None
+            # No region to validate against: keep a value that could be a
+            # number rather than discarding one that may well be valid, and drop
+            # one with no digits ("abc", "n/a") or too many to be a number.
+            digits = sum(c.isdigit() for c in normalized)
+            return normalized if 0 < digits <= _MAX_DIGITS else None
 
         # Run at least once so self-contained formats (+91...) parse with no region.
         regions_to_try = regions if regions else (None,)

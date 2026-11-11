@@ -181,3 +181,11 @@ def test_phone_extension_is_dropped_when_the_number_is_valid():
 
 def test_phone_cleaner_strips_html() -> None:
     assert PhoneCleaner().clean_row("<b>+44 121 234 5678</b>") == "+441212345678"
+
+
+def test_phone_vanity_numbers_and_too_long_digit_strings_are_dropped() -> None:
+    # The result must not depend on the row's country.
+    for country in (None, "Germany", "India"):
+        cleaner = PhoneCleaner()
+        assert cleaner.clean_row("1-800-FLOWERS", country) is None
+        assert cleaner.clean_row("1234567890123456789", country) is None

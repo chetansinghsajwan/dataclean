@@ -10,12 +10,11 @@ from urllib.parse import urlsplit
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
-from dataclean.utils import html_hrefs, strip_html
+from dataclean.utils import html_hrefs, remove_invisible, strip_html
 
 from .cleaner import Cleaner
 
 # Characters that carry no text but sneak into copied values.
-_INVISIBLE = re.compile("[﻿​⁠]")
 
 # Where one cell holds several URLs: ";", "|", a comma followed by space, or
 # the word "or". A bare comma is not a separator, it can sit inside a path.
@@ -88,7 +87,7 @@ class UrlCleaner(Cleaner):
             if none is valid.
         """
         hrefs = [h for h in html_hrefs(v) if not h.lower().startswith(_NON_WEB_LINKS)]
-        for part in (*hrefs, *_URL_SEPARATORS.split(_INVISIBLE.sub("", strip_html(v)))):
+        for part in (*hrefs, *_URL_SEPARATORS.split(remove_invisible(strip_html(v)))):
             cleaned = self._clean_url(part.strip().strip(_WRAPPERS).strip())
             if cleaned is not None:
                 return cleaned

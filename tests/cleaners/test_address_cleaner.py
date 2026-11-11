@@ -254,3 +254,10 @@ def test_address_cleaner_strips_html_from_every_component() -> None:
     assert "London" in result
     assert "10 Downing St" in result
     assert not any(v and "<" in v for v in result)
+
+
+@pytest.mark.parametrize("raw", ["null", "NULL", "n/a", "None", "-", "undefined"])
+def test_address_cleaner_drops_placeholders(raw: str) -> None:
+    result = _clean(address_line1="1 High Street", town=raw, county=raw)
+    assert result[TOWN] is None
+    assert result[STATE] is None

@@ -7,7 +7,12 @@ from typing import override
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
-from dataclean.utils import strip_html
+from dataclean.utils import (
+    TEXT_NULL_TOKENS,
+    is_null_token,
+    null_token_set,
+    strip_html,
+)
 
 from .cleaner import Cleaner
 
@@ -24,6 +29,9 @@ _UK_POSTCODE = re.compile(r"([A-Z]{1,2}\d[A-Z\d]?) ?(\d[A-Z]{2})")
 # Letters joined by spaces, dots, apostrophes and hyphens: the shape of a real
 # place name. Anything else, such as "%s%s" or "<script>", is not title-cased.
 _PLACE_NAME = re.compile(r"[^\W\d_]+(?:[ .'’-]+[^\W\d_]+)*\.?")
+
+
+_NULL_TOKENS = null_token_set(TEXT_NULL_TOKENS)
 
 
 def _collapse_whitespace(value: str) -> str:
@@ -220,16 +228,24 @@ class AddressCleaner(Cleaner):
     # Private helper methods
 
     def _clean_place(self, value: str | None) -> str | None:
-        """Strip HTML, collapse whitespace and title-case a town or county."""
+        """Strip HTML, collapse whitespace and title-case a town or county.
+
+        A placeholder such as ``null`` or ``n/a`` gives None.
+        """
         if not value:
             return None
-        return _title_case(_collapse_whitespace(strip_html(value))) or None
+        cleaned = _collapse_whitespace(strip_html(value))
+        return None if is_null_token(cleaned, _NULL_TOKENS) else _title_case(cleaned)
 
     def _clean_address_line(self, value: str | None) -> str | None:
-        """Strip HTML and collapse whitespace in an address line."""
+        """Strip HTML and collapse whitespace in an address line.
+
+        A placeholder such as ``null`` or ``n/a`` gives None.
+        """
         if not value:
             return None
-        return _collapse_whitespace(strip_html(value)) or None
+        cleaned = _collapse_whitespace(strip_html(value))
+        return None if is_null_token(cleaned, _NULL_TOKENS) else cleaned
 
     def _clean_postcode(self, value: str | None) -> str | None:
         """Strip HTML, upper-case a postcode, drop hyphens and collapse whitespace.

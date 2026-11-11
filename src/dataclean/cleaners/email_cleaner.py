@@ -10,7 +10,7 @@ from rapidfuzz.distance import OSA
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
-from dataclean.utils import html_hrefs, strip_html
+from dataclean.utils import html_hrefs, remove_invisible, strip_html
 
 from .cleaner import Cleaner
 
@@ -91,7 +91,6 @@ class EmailCleaner(Cleaner):
     strict: bool = True
     fix_domain_typos: bool = True
 
-    _INVISIBLE_RE = re.compile("[\ufeff\u200b\u2060]")
     _ANGLE_RE = re.compile(r"<([^<>]*@[^<>]*)>")
     _NOTE_RE = re.compile(r"\s*\([^()]*\)\s*$")
     _LOOSE_RE = re.compile(r"[A-Za-z0-9._%+-]+@[\w.-]+\.[^\W\d_]{2,}")
@@ -264,7 +263,7 @@ class EmailCleaner(Cleaner):
 
     def _extract_candidate(self, v: str) -> str:
         """Unwrap ``Name <a@b.com>``, ``mailto:``, lists, notes and quotes."""
-        v = self._INVISIBLE_RE.sub("", v).strip()
+        v = remove_invisible(v).strip()
 
         angle = self._ANGLE_RE.search(v)
         if angle:

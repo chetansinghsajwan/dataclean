@@ -7,7 +7,14 @@ from typing import ClassVar, override
 
 from dataclean.engine import DataFrame, DataType
 from dataclean.types import checked
-from dataclean.utils import is_null_token, null_token_set, strip_html
+from dataclean.utils import (
+    TEXT_NULL_TOKENS,
+    is_null_token,
+    null_token_set,
+    remove_invisible,
+    replace_control_chars,
+    strip_html,
+)
 
 from .cleaner import Cleaner
 
@@ -36,7 +43,7 @@ class NameCleaner(Cleaner):
             they are real names.
     """
 
-    null_tokens: tuple[str, ...] = ("null", "none", "undefined", "n/a", "-")
+    null_tokens: tuple[str, ...] = TEXT_NULL_TOKENS
 
     # Short forms must stand alone (or be concatenated, e.g. "lnamefname") so
     # that "colname" or "filename" never match.
@@ -57,19 +64,19 @@ class NameCleaner(Cleaner):
 
     @override
     def clean_row(self, v: str) -> str | None:  # type: ignore
-        """Return ``v`` without HTML, or None if it is a placeholder.
+        """Return ``v`` without markup or invisible characters, or None if it is a placeholder.
 
         Args:
             v: The name value (already stripped and non-blank).
 
         Returns:
-            ``v`` with any HTML tags removed (and the spaces they leave
-            collapsed), or None if nothing is left or it is one of
+            ``v`` with HTML tags, invisible characters and control
+            characters removed (and the spaces they leave collapsed), or None if nothing is left or it is one of
             ``null_tokens``.
         """
-        stripped = strip_html(v)
-        if stripped != v:
-            v = " ".join(stripped.split())
+        cleaned = replace_control_chars(remove_invisible(strip_html(v)))
+        if cleaned != v:
+            v = " ".join(cleaned.split())
         return None if is_null_token(v, self._null_set) else v
 
     @override

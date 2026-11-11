@@ -7,11 +7,11 @@ from typing import Literal, override
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
+from dataclean.utils import remove_invisible
 
 from .cleaner import Cleaner
 
 # Characters that carry no text but sneak into copied values.
-_INVISIBLE = re.compile("[﻿​⁠]")
 
 # Characters no common file system accepts in a name. A colon is allowed only
 # in a drive prefix such as "C:", checked separately.
@@ -66,7 +66,7 @@ class FilePathCleaner(Cleaner):
             The normalized value, or None if ``v`` is not a usable file name
             or path.
         """
-        path = _INVISIBLE.sub("", v).strip().strip("\"'").strip()
+        path = remove_invisible(v).strip().strip("\"'").strip()
         path = path.replace("\\", "/")
         if not path or _FORBIDDEN.search(path):
             return None
