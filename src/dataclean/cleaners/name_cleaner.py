@@ -17,6 +17,7 @@ from dataclean.utils import (
     looks_like_link,
     looks_like_path,
     null_token_set,
+    remove_emoji,
     remove_invisible,
     replace_control_chars,
     strip_html,
@@ -226,7 +227,7 @@ class NameCleaner(Cleaner):
             The cleaned name, or None if nothing is left, it is a placeholder,
             it has no letters, or it looks like junk (each when enabled).
         """
-        cleaned = replace_control_chars(remove_invisible(strip_html(v)))
+        cleaned = replace_control_chars(remove_invisible(remove_emoji(strip_html(v))))
         cleaned = " ".join(unicodedata.normalize("NFKC", cleaned).split())
         v = cleaned
         if is_null_token(v, self._null_set):

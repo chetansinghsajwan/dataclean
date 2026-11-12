@@ -32,7 +32,7 @@ components out. No configuration options beyond the base `tags`/`inplace`.
   column, and a row is cleaned even when its first line is empty.
 - **Outputs**: `state`, `postcode`, `address_line`, `street`, `house_no`,
   `town`, `address_line2`, `address_line3`.
-- **Behavior**: removes HTML tags (and `script`/`style` content) from every
+- **Behavior**: removes HTML tags (and `script`/`style` content) and emoji from every
   part; nulls a placeholder (`null`, `none`, `undefined`, `n/a`, `-`) in a
   line, town or county; nulls junk in a line, town or county (a value with no
   letter, over 200 characters, SQL or code, a link or a file path); collapses
@@ -152,8 +152,8 @@ CountryCleaner(in_format=CountryCleaner.Format.NAME_FUZZY).clean_row(
 - **Auto-detection**: matches by column name, but never a column that already
   has a date, datetime or time type — there is nothing to parse, and cleaning
   it would turn the typed values into strings.
-- **Behavior**: removes HTML tags first (so `<b>2003-04-08</b>` reads as a date), then tries a
-  fixed, non-configurable list of input formats in order (`"%Y-%m-%d %H:%M:%S"`,
+- **Behavior**: removes HTML tags and emoji first (so `<b>2003-04-08</b>` reads as a date), then
+  tries a fixed, non-configurable list of input formats in order (`"%Y-%m-%d %H:%M:%S"`,
   `"%Y-%m-%dT%H:%M:%S"`, `"%Y-%m-%d"`, `"%d-%m-%Y"`, `"%d/%m/%Y"`, `"%H:%M:%S"`, `"%I:%M %p"`) until
   one parses, then renders per `out_format`. Requesting a date-shaped output from a time-only parse
   (or vice versa) returns `None`.
@@ -299,7 +299,7 @@ the same columns, so every rule leaves companies alone.
   `standardize_company_suffix` and `fix_case` (all default True).
 - **Output**: single column, same name as the input.
 - **Rules, in order**:
-    1. Removes HTML tags (and `script`/`style` content), invisible and
+    1. Removes HTML tags (and `script`/`style` content), emoji, invisible and
        text-direction characters and control characters, and normalises
        Unicode with NFKC (`ＴＨＥ` becomes `THE`).
     2. Nulls placeholders, values with no letters (`123`, `0`, `''`) and junk

@@ -279,3 +279,9 @@ def test_name_cleaner_removes_invisible_and_control_characters() -> None:
     assert cleaner.clean_row("\ufeffBom") == "Bom"
     assert cleaner.clean_row("Tab\there") == "Tab here"
     assert cleaner.clean_row("Cr\rhere") == "Cr here"
+
+
+def test_name_cleaner_removes_emoji() -> None:
+    cleaner = NameCleaner()
+    assert cleaner.clean_row("John \U0001f600 Smith") == "John Smith"
+    assert cleaner.clean_row("\U0001f680\U0001f680") is None

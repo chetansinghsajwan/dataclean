@@ -294,3 +294,11 @@ def test_text_clean_remove_digits_strips_numbers():
     cleaner = TextCleaner(remove_digits=True)
     assert cleaner.clean_row("Order 12345 is ready") == "order is ready"
     assert cleaner.clean_row("१२३ abc") == "abc"
+
+
+def test_text_cleaner_removes_emoji_only_when_asked() -> None:
+    assert (
+        TextCleaner(remove_emoji=True).clean_row("Nice \U0001f44d\U0001f3fd stay")
+        == "nice stay"
+    )
+    assert TextCleaner().clean_row("Nice \U0001f44d") == "nice \U0001f44d"

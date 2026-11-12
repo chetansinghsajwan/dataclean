@@ -15,6 +15,7 @@ from dataclean.utils import (
     looks_like_link,
     looks_like_path,
     null_token_set,
+    remove_emoji,
     strip_html,
     title_case,
 )
@@ -270,7 +271,7 @@ class AddressCleaner(Cleaner):
         """
         if not value:
             return None
-        cleaned = _collapse_whitespace(strip_html(value))
+        cleaned = _collapse_whitespace(remove_emoji(strip_html(value)))
         if is_null_token(cleaned, _NULL_TOKENS) or not any(
             char.isalpha() for char in cleaned
         ):
@@ -287,7 +288,7 @@ class AddressCleaner(Cleaner):
         """
         if not value:
             return None
-        cleaned = _collapse_whitespace(strip_html(value))
+        cleaned = _collapse_whitespace(remove_emoji(strip_html(value)))
         if is_null_token(cleaned, _NULL_TOKENS) or not any(
             char.isalnum() for char in cleaned
         ):
@@ -318,7 +319,9 @@ class AddressCleaner(Cleaner):
         """
         if not value:
             return None
-        cleaned = _collapse_whitespace(strip_html(value).upper().replace("-", ""))
+        cleaned = _collapse_whitespace(
+            remove_emoji(strip_html(value)).upper().replace("-", "")
+        )
         if not any(char.isalnum() for char in cleaned):
             return None
         uk = _UK_POSTCODE.fullmatch(cleaned)

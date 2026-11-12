@@ -290,3 +290,9 @@ def test_auto_format_writes_one_layout_for_the_whole_column(
 
     assert cleaned.df is not None
     assert [None if v != v else v for v in cleaned.df[col].tolist()] == expected
+
+
+def test_datetime_removes_emoji_before_parsing():
+    cleaner = DateTimeCleaner(out_format=DateTimeCleaner.Format.ISO_DATE)
+    assert cleaner.clean_row("2003-04-08 \U0001f4c5") == "2003-04-08"
+    assert cleaner.clean_row("\U0001f4c5") is None

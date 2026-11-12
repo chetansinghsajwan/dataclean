@@ -1,6 +1,7 @@
 """Miscellaneous internal utility helpers (debug logging, path mapping, text case)."""
 
 from .debug import _log_args
+from .emoji import remove_emoji
 from .identifiers import looks_like_id_name
 from .invisible import remove_invisible, replace_control_chars
 from .lookalikes import looks_like_code, looks_like_link, looks_like_path

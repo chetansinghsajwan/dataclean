@@ -349,3 +349,15 @@ def test_address_cleaner_drops_placeholders(raw: str) -> None:
     result = _clean(address_line1="1 High Street", town=raw, county=raw)
     assert result[TOWN] is None
     assert result[STATE] is None
+
+
+def test_address_cleaner_removes_emoji_everywhere() -> None:
+    result = _clean(
+        address_line1="12 Baker Street \U0001f3e0",
+        town="London \U0001f1ec\U0001f1e7",
+        postcode="SW1A \U0001f4ee 1AA",
+    )
+
+    assert result[LINE] == "12 Baker Street"
+    assert result[TOWN] == "London"
+    assert result[POSTCODE] == "SW1A 1AA"

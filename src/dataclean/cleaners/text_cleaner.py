@@ -9,7 +9,12 @@ from typing import ClassVar, override
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
-from dataclean.utils import remove_invisible, replace_control_chars, strip_html
+from dataclean.utils import (
+    remove_emoji,
+    remove_invisible,
+    replace_control_chars,
+    strip_html,
+)
 from dataclean.utils.null_tokens import (
     COMMON_NULL_TOKENS,
     is_null_token,
@@ -40,6 +45,9 @@ class TextCleaner(Cleaner):
         remove_symbols: If True, strips symbols such as currency signs, math signs,
             emoji and the copyright sign. Punctuation is kept; use
             ``remove_punctuation`` to strip both.
+        remove_emoji: If True, strips emoji, with their skin tones, flags and
+            keycaps. Narrower than ``remove_symbols``, which also strips currency
+            and math signs. Off by default, since free text may use emoji on purpose.
         replace_newlines_with_spaces: If True, replaces control characters
             (including newlines) with a single space; if False, drops most
             control characters but keeps newlines out of the subsequent
@@ -71,6 +79,7 @@ class TextCleaner(Cleaner):
     remove_punctuation: bool = False
     remove_digits: bool = False
     remove_symbols: bool = False
+    remove_emoji: bool = False
     replace_newlines_with_spaces: bool = True
     decode_entities: bool = True
     remove_invisible: bool = True
@@ -143,6 +152,9 @@ class TextCleaner(Cleaner):
 
         if self.remove_digits:
             steps.append(lambda x: self._DIGIT_RE.sub("", x))
+
+        if self.remove_emoji:
+            steps.append(remove_emoji)
 
         if self.remove_symbols:
             steps.append(self._strip_symbols)
