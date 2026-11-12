@@ -71,12 +71,18 @@ class Cleaner(ABC):
                     whether a candidate dataframe column matches this role.
                 name_hints: Candidate column-name keywords that suggest a
                     dataframe column fills this role.
+                context_only: Whether the role is only ever filled by another
+                    cleaner's output (such as a cleaned country), never by a
+                    column matched on its name. Decision: a group cleaner
+                    marks a role like this so a country column stays with
+                    ``CountryCleaner`` instead of joining the address group.
             """
 
             key: str = PRIMARY
             required: bool = True
             detector: "Cleaner | None" = None
             name_hints: tuple[str, ...] = ()
+            context_only: bool = False
 
         cols: tuple[Column, ...] = ()
 

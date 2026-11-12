@@ -161,6 +161,8 @@ class Resolver:
         scores: list[float] = []
         available = set(columns)
         for col in cleaner.inputs.cols:
+            if col.context_only:
+                continue
             best_column, best_score = self._best_match(df, available, col, cleaner)
             if best_column is None or best_score < 0.5:
                 if col.required:

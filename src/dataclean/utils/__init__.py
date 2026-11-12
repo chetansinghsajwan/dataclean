@@ -12,4 +12,6 @@ from .null_tokens import (
 )
 from .paths import file_extension, map_path, map_paths
 from .patterns import expand_local_paths
+from .postcodes import format_postcode
+from .titlecase import title_case
 from .words import split_words

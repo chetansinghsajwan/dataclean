@@ -20,13 +20,10 @@ from dataclean.utils import (
     remove_invisible,
     replace_control_chars,
     strip_html,
+    title_case,
 )
 
 from .cleaner import Cleaner
-
-# A run of letters. Hyphens and apostrophes split a name into several runs, so
-# "anne-marie" and "o'neil" capitalize each part.
-_LETTERS = re.compile(r"[^\W\d_]+")
 
 # A digit or "&" shows a company ("3M", "AT&T"), so its casing is left alone.
 # Code, emails and URLs never get this far: they are nulled as junk first.
@@ -115,19 +112,6 @@ def _is_acronym(word: str) -> bool:
 _MAX_ACRONYM_LETTERS = 3
 
 
-def _case_word(word: str, index: int, last: bool) -> str:
-    """Title-case one word of a name."""
-    lower = word.lower()
-    if index > 0 and lower in _PARTICLES:
-        return lower
-    if last and index > 0 and lower in _ROMAN_SUFFIXES:
-        return word.upper()
-    cased = _LETTERS.sub(lambda match: match.group().capitalize(), lower)
-    if re.match(r"Mc[a-z]{2}", cased):
-        cased = "Mc" + cased[2:].capitalize()
-    return cased
-
-
 def _fix_case(value: str) -> str:
     """Title-case a name written all lower or all upper case.
 
@@ -140,12 +124,9 @@ def _fix_case(value: str) -> str:
         return value
     if _COMPANY_MARK.search(value) or _has_company_suffix(value):
         return value
-    words = value.split(" ")
-    if len(words) == 1 and upper and _is_acronym(value):
+    if " " not in value and upper and _is_acronym(value):
         return value
-    return " ".join(
-        _case_word(word, i, i == len(words) - 1) for i, word in enumerate(words)
-    )
+    return title_case(value, small_words=_PARTICLES, upper_last_words=_ROMAN_SUFFIXES)
 
 
 @checked

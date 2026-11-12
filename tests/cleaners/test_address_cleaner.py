@@ -25,10 +25,12 @@ def _df(**columns: list[str]) -> PandasDataFrame:
 # ==============================================================================
 
 
-def test_address_cleaner_has_no_country_role() -> None:
+def test_address_cleaner_reads_country_but_never_writes_it() -> None:
     cleaner = AddressCleaner()
+    country = next(col for col in cleaner.inputs.cols if col.key == "country")
 
-    assert "country" not in {col.key for col in cleaner.inputs.cols}
+    assert not country.required
+    assert country.context_only
     assert all("country" not in col.roles for col in cleaner.outputs.cols)
 
 
@@ -46,8 +48,10 @@ def test_address_cleaner_has_no_required_input() -> None:
     [
         ("london", "London"),
         ("MANCHESTER", "Manchester"),
-        ("  leeds   upon  tyne ", "Leeds Upon Tyne"),
-        ("stoke-on-trent", "Stoke-On-Trent"),
+        ("  newcastle   upon  tyne ", "Newcastle upon Tyne"),
+        ("stoke-on-trent", "Stoke-on-Trent"),
+        ("district of columbia", "District of Columbia"),
+        ("ÎLE-DE-FRANCE", "Île-de-France"),
         ("king's lynn", "King's Lynn"),
         ("McDonald Heights", "McDonald Heights"),
         ("Greater London", "Greater London"),
@@ -59,9 +63,56 @@ def test_address_cleaner_title_cases_town_only_when_uniform_case(
     assert _clean(address_line1="1 High Street", town=raw)[TOWN] == expected
 
 
-@pytest.mark.parametrize("raw", ["%s%s%s%n", "{{7*7}}", "../../etc/passwd"])
-def test_address_cleaner_leaves_town_that_is_not_a_place_name_as_is(raw: str) -> None:
-    assert _clean(address_line1="1 High Street", town=raw)[TOWN] == raw
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "%s%s%s%n",
+        "{{7*7}}",
+        "../../etc/passwd",
+        "http://example.com",
+        "a@b.com",
+        "x'; DROP TABLE users; --",
+        "xxxxxxxxxx",
+        "???",
+        "L" * 201,
+    ],
+)
+def test_address_cleaner_nulls_junk_in_a_town(raw: str) -> None:
+    result = _clean(address_line1="1 High Street", town=raw, county=raw)
+
+    assert result[TOWN] is None
+    assert result[STATE] is None
+
+
+@pytest.mark.parametrize(
+    "raw",
+    ["%s%s%s%n", "{{7*7}}", "../../etc/passwd", "a@b.com", "---", "9" * 201],
+)
+def test_address_cleaner_nulls_junk_in_an_address_line(raw: str) -> None:
+    result = _clean(address_line1=raw, address_line2=raw, address_line3=raw)
+
+    assert result[LINE] is None
+    assert result[LINE2] is None
+    assert result[LINE3] is None
+
+
+@pytest.mark.parametrize(
+    "raw, expected",
+    [
+        ("12 baker street", "12 Baker Street"),
+        ("221B BAKER STREET", "221B Baker Street"),
+        ("1st floor, 22nd avenue", "1st Floor, 22nd Avenue"),
+        ("po box 7", "PO Box 7"),
+        ("unit 4 leeds nw", "Unit 4 Leeds NW"),
+        ("flat 1/2 the old mill", "Flat 1/2 the Old Mill"),
+        ("Flat 2 Baker st", "Flat 2 Baker st"),
+        ("Smith & Sons, 5 high st", "Smith & Sons, 5 high st"),
+    ],
+)
+def test_address_cleaner_title_cases_a_line_only_when_uniform_case(
+    raw: str, expected: str
+) -> None:
+    assert _clean(address_line1=raw)[LINE] == expected
 
 
 def test_address_cleaner_cleans_county_into_state() -> None:
@@ -104,6 +155,30 @@ def test_address_cleaner_nulls_postcode_without_letters_or_digits(raw: str) -> N
     assert _clean(address_line1="1 High Street", postcode=raw)[POSTCODE] is None
 
 
+@pytest.mark.parametrize(
+    "raw, country, expected",
+    [
+        ("k1a0b1", "Canada", "K1A 0B1"),
+        ("K1A 0B1", "CA", "K1A 0B1"),
+        ("1234ab", "Netherlands", "1234 AB"),
+        ("12345-6789", "US", "12345-6789"),
+        ("00950", "Poland", "00-950"),
+        ("110001", "India", "110001"),
+        # No country, an unknown country or a mismatch leaves the postcode as cleaned.
+        ("k1a0b1", None, "K1A0B1"),
+        ("k1a0b1", "Atlantis", "K1A0B1"),
+        ("k1a0b1", "India", "K1A0B1"),
+        ("12345", "US", "12345"),
+    ],
+)
+def test_address_cleaner_lays_out_a_postcode_by_country(
+    raw: str, country: str | None, expected: str
+) -> None:
+    result = _clean(address_line1="1 High Street", postcode=raw, country=country)
+
+    assert result[POSTCODE] == expected
+
+
 # ==============================================================================
 # 4. ADDRESS LINES
 # ==============================================================================
@@ -116,15 +191,15 @@ def test_address_cleaner_collapses_whitespace_in_every_line() -> None:
         address_line3="Westminster  ",
     )
 
-    assert result[LINE] == "12 baker street"
-    assert result[LINE2] == "2nd floor"
+    assert result[LINE] == "12 Baker Street"
+    assert result[LINE2] == "2nd Floor"
     assert result[LINE3] == "Westminster"
 
 
 def test_address_cleaner_splits_a_leading_house_number() -> None:
     result = _clean(address_line1="12 baker street")
 
-    assert result[STREET] == "baker street"
+    assert result[STREET] == "Baker Street"
     assert result[HOUSE_NO] == "12"
 
 
@@ -208,6 +283,19 @@ def test_country_is_cleaned_in_place_next_to_an_address_group() -> None:
         "Malta",
         "Ireland",
     ]
+
+
+def test_country_column_sets_the_postcode_layout_in_a_pipeline() -> None:
+    cleaned = Pipeline(cleaners=(AddressCleaner(), CountryCleaner())).fit_transform(
+        _df(
+            address1=["1 High Street", "2 Rue Cler"],
+            postcode=["k1a0b1", "k1a0b1"],
+            country=["Canada", "Atlantis"],
+        )
+    )
+
+    assert cleaned.df is not None
+    assert cleaned.df["address1_postcode_cleaned"].tolist() == ["K1A 0B1", "K1A0B1"]
 
 
 def test_row_without_a_first_line_still_gets_town_and_postcode() -> None:

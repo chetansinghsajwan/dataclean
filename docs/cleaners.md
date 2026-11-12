@@ -34,22 +34,32 @@ components out. No configuration options beyond the base `tags`/`inplace`.
   `town`, `address_line2`, `address_line3`.
 - **Behavior**: removes HTML tags (and `script`/`style` content) from every
   part; nulls a placeholder (`null`, `none`, `undefined`, `n/a`, `-`) in a
-  line, town or county; collapses whitespace in each address line; title-cases `town`
-  and `county` when they are written all lower or all upper case and look like
-  a place name (mixed case such as "McDonald Heights" is kept); uppercases the
+  line, town or county; nulls junk in a line, town or county (a value with no
+  letter, over 200 characters, SQL or code, a link or a file path); collapses
+  whitespace in each address line; title-cases the lines, `town` and `county`
+  when they are written all lower or all upper case (mixed case such as
+  "McDonald Heights" is kept), keeping small words lower case ("Stoke-on-Trent",
+  "District of Columbia"), `PO` and the compass points upper case, a unit such
+  as `12a` upper case and an ordinal such as `1st` lower case; uppercases the
   postcode, drops hyphens, collapses whitespace and nulls a value with no
   letter or digit (such as `???`); a UK postcode gets one space before its last
   three characters, and others keep their spacing;
   splits `address_line1` on whitespace, where a leading numeric token becomes
   `house_no` and the remainder becomes `street`.
-- **Country**: there is no country input or output. `CountryCleaner` owns every
-  country column, including the country of an address, and cleans it in place.
+- **Country**: there is no country output. `CountryCleaner` owns every country
+  column, including the country of an address, and cleans it in place. When the
+  table has a country column, the address cleaner reads its cleaned value to
+  lay the postcode out as that country writes it (`K1A0B1` to `K1A 0B1` in
+  Canada, `1234AB` to `1234 AB` in the Netherlands, `123456789` to
+  `12345-6789` in the United States). A postcode that does not fit its
+  country's pattern, or a row with no known country, is kept as cleaned. The
+  patterns come from the GeoNames `countryInfo.txt` list (CC BY 4.0).
 
-!!! note "Known gaps"
-    The `state` output column is populated from the cleaned **county** value,
-    not a separate "state" concept: treat `state` as "cleaned county". Because
-    no input is required, a lone column whose name contains a hint such as
-    `city` or `county` is claimed as an address group.
+!!! note "Known gaps" Street abbreviations (`St`, `Rd`, `Dr`) are not expanded, since they are
+ambiguous (`St` is Street or Saint). The `state` output column is populated from the cleaned
+**county** value, not a separate "state" concept: treat `state` as "cleaned county". Because no
+input is required, a lone column whose name contains a hint such as `city` or `county` is claimed as
+an address group.
 
 An output is written only when its input role has a column: a lone `town`
 column is cleaned in place and adds no other columns. With several roles, the

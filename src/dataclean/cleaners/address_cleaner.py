@@ -2,24 +2,25 @@
 
 import re
 from collections.abc import Mapping
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from typing import override
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
 from dataclean.utils import (
     TEXT_NULL_TOKENS,
+    format_postcode,
     is_null_token,
+    looks_like_code,
+    looks_like_link,
+    looks_like_path,
     null_token_set,
     strip_html,
+    title_case,
 )
 
 from .cleaner import Cleaner
-
-# A word of letters, with one apostrophe part allowed ("king's"), so each part
-# of "stoke-on-trent" and "king's lynn" gets its own capital.
-_WORD = re.compile(r"[^\W\d_]+(?:['’][^\W\d_]+)?")
-
+from .country_cleaner import CountryCleaner
 
 # A UK postcode with or without its space: outward code, then a digit and two
 # letters of inward code. Written with one space before the inward code.
@@ -39,19 +40,37 @@ def _collapse_whitespace(value: str) -> str:
     return " ".join(value.split())
 
 
+# Words that stay lower case inside a place or street name, as in
+# "Stoke-on-Trent", "District of Columbia" and "Île-de-France".
+_SMALL_WORDS = frozenset(
+    "a an and at by de del der des di du el en for in la las le les of on or sur the to upon van von y".split()
+)
+
+# Words that are always upper case in an address: a box, the UK and the
+# compass points ("PO Box 7", "Unit 4, Leeds NW").
+_UPPER_WORDS = frozenset("po pmb uk usa ne nw se sw".split())
+
+# Values longer than this are free text or an attack, not an address part.
+# Decision: null them rather than keep a long junk value.
+_MAX_LENGTH = 200
+
+
+def _is_junk(value: str) -> bool:
+    """Whether ``value`` is code, a link or a path, which no address part is."""
+    return looks_like_code(value) or looks_like_link(value) or looks_like_path(value)
+
+
 def _title_case(value: str) -> str:
-    """Title-case a place name written all lower or all upper case.
+    """Title-case an address part written all lower or all upper case.
 
     A value with mixed case, such as "McDonald Heights", is left alone since
     the writer most likely chose that casing. So is a value that does not look
     like a place name. Decision: only uniform case is changed, since mixed case
     is usually deliberate and a guess would damage names.
     """
-    if not _PLACE_NAME.fullmatch(value):
-        return value
     if value != value.lower() and value != value.upper():
         return value
-    return _WORD.sub(lambda match: match.group().capitalize(), value.lower())
+    return title_case(value, small_words=_SMALL_WORDS, upper_words=_UPPER_WORDS)
 
 
 # The input role each output is made from. An output is only written when its
@@ -87,6 +106,12 @@ class AddressCleaner(Cleaner):
     """
 
     _given: frozenset[str] | None = None
+    _country_cleaner: CountryCleaner = field(
+        init=False,
+        repr=False,
+        compare=False,
+        default_factory=lambda: CountryCleaner(out_format=CountryCleaner.Format.ALPHA2),
+    )
 
     @override
     def fit(self, df: DataFrame, role_columns: Mapping[str, str]) -> Cleaner:
@@ -170,6 +195,11 @@ class AddressCleaner(Cleaner):
                     required=False,
                     name_hints=("postcode", "post_code", "postal", "zip"),
                 ),
+                # Read from the country column cleaned in the same table. It is
+                # never matched by name, so the column stays with CountryCleaner.
+                Cleaner.InputSchema.Column(
+                    key="country", required=False, context_only=True
+                ),
             )
         )
 
@@ -182,6 +212,7 @@ class AddressCleaner(Cleaner):
         town: str | None = None,
         county: str | None = None,
         postcode: str | None = None,
+        country: str | None = None,
     ) -> str | tuple[str | None, ...] | None:  # type: ignore
         """Clean a row of address components.
 
@@ -197,6 +228,8 @@ class AddressCleaner(Cleaner):
             town: Raw town or city value.
             county: Raw county/state value.
             postcode: Raw postcode/zip value.
+            country: Optional country of the address (name or ISO code),
+                used to lay the postcode out the way that country writes it.
 
         Returns:
             A tuple of ``(state, postcode, address_line, street, house_no,
@@ -209,7 +242,7 @@ class AddressCleaner(Cleaner):
 
         everything = (
             self._clean_place(county),
-            self._clean_postcode(postcode),
+            self._clean_postcode(postcode, country),
             address_line,
             street,
             house_no,
@@ -232,30 +265,55 @@ class AddressCleaner(Cleaner):
     def _clean_place(self, value: str | None) -> str | None:
         """Strip HTML, collapse whitespace and title-case a town or county.
 
-        A placeholder such as ``null`` or ``n/a`` gives None.
+        A placeholder such as ``null`` or ``n/a``, a value with no letters and
+        junk such as code, a link or a path give None.
         """
         if not value:
             return None
         cleaned = _collapse_whitespace(strip_html(value))
-        return None if is_null_token(cleaned, _NULL_TOKENS) else _title_case(cleaned)
+        if is_null_token(cleaned, _NULL_TOKENS) or not any(
+            char.isalpha() for char in cleaned
+        ):
+            return None
+        if len(cleaned) > _MAX_LENGTH or _is_junk(cleaned):
+            return None
+        return _title_case(cleaned)
 
     def _clean_address_line(self, value: str | None) -> str | None:
-        """Strip HTML and collapse whitespace in an address line.
+        """Strip HTML, collapse whitespace and title-case an address line.
 
-        A placeholder such as ``null`` or ``n/a`` gives None.
+        A placeholder such as ``null`` or ``n/a``, a value with no letter or
+        digit and junk such as code, a link or a path give None.
         """
         if not value:
             return None
         cleaned = _collapse_whitespace(strip_html(value))
-        return None if is_null_token(cleaned, _NULL_TOKENS) else cleaned
+        if is_null_token(cleaned, _NULL_TOKENS) or not any(
+            char.isalnum() for char in cleaned
+        ):
+            return None
+        if len(cleaned) > _MAX_LENGTH or _is_junk(cleaned):
+            return None
+        return _title_case(cleaned)
 
-    def _clean_postcode(self, value: str | None) -> str | None:
+    def _alpha2(self, country: str | None) -> str | None:
+        """Return the ISO alpha-2 code of ``country``, or None if it is unknown."""
+        if country is None or not country.strip():
+            return None
+        return self._country_cleaner.clean_row(country.strip())
+
+    def _clean_postcode(
+        self, value: str | None, country: str | None = None
+    ) -> str | None:
         """Strip HTML, upper-case a postcode, drop hyphens and collapse whitespace.
 
         A UK postcode is written with one space before its last three
         characters, so a column does not mix `SW1A1AA` and `SW1A 1AA`. Other
         postcodes keep their spacing, since the right spacing depends on the
-        country. Returns None if nothing with a letter or digit is
+        country. When the row's country is known, the postcode is laid out as
+        that country writes it, such as "K1A 0B1" in Canada or "12345-6789" in
+        the United States. A postcode that does not fit its country's pattern
+        is kept as cleaned. Returns None if nothing with a letter or digit is
         left, as with "???".
         """
         if not value:
@@ -264,7 +322,13 @@ class AddressCleaner(Cleaner):
         if not any(char.isalnum() for char in cleaned):
             return None
         uk = _UK_POSTCODE.fullmatch(cleaned)
-        return f"{uk[1]} {uk[2]}" if uk else cleaned
+        if uk:
+            return f"{uk[1]} {uk[2]}"
+        return (
+            format_postcode(cleaned.replace(" ", ""), self._alpha2(country))
+            if country
+            else cleaned
+        )
 
     def _extract_street_and_number(
         self, address_line: str | None
