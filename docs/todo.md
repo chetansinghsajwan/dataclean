@@ -13,3 +13,11 @@ Work for later that is not part of the [release plan](release-plan.md).
 - Normalise street abbreviations in `AddressCleaner` (`St`, `Rd`, `Ave`,
   `Apt`). It is ambiguous without the country (`St` is Street or Saint, `Dr` is
   Drive or Doctor), so it needs the cleaned country (now an input) to choose the expansion.
+- Split a trailing house number in `AddressCleaner`: `Marienplatz 1`, `Damrak 70`
+  and `Václavské náměstí 1` keep the number in `street` and leave `house_no`
+  empty, since only a leading number is split. Take a trailing number only when
+  there is no leading one, and not after `Route`, `Highway` or `Hwy`, which are
+  street names.
+- Write a company's legal suffix one way in `AddressCleaner` lines: `C/O ACME LTD`
+  becomes `C/O Acme Ltd`, not `C/O Acme LTD` as `NameCleaner` writes it. The
+  suffix rules could be shared through a util.
