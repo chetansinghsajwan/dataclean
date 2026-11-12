@@ -199,3 +199,22 @@ def test_bool_cleaner_ignores_an_id_column_of_ones() -> None:
 
     assert BoolCleaner().match_score(df, ("contacttypeid_3",)) == 0.0
     assert BoolCleaner().match_score(df, ("optout",)) > 0.0
+
+
+@pytest.mark.parametrize(
+    "raw, expected",
+    [
+        ("\u2705", True),
+        ("\u2714\ufe0f", True),
+        ("\u2713", True),
+        ("\u2611\ufe0f", True),
+        ("\U0001f44d", True),
+        ("\u274c", False),
+        ("\u2716\ufe0f", False),
+        ("\u2717", False),
+        ("\u2612", False),
+        ("\U0001f44e", False),
+    ],
+)
+def test_bool_cleaner_reads_flag_emoji(raw: str, expected: bool) -> None:
+    assert BoolCleaner().clean_row(raw) is expected

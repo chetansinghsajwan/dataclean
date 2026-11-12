@@ -51,6 +51,15 @@ class BoolCleaner(EnumCleaner):
         "on",
         "enabled",
         "1.0",
+        # Emoji: check marks and thumbs up, also with the emoji variation
+        # selector (\ufe0f) that phones add. Decision: they are clear yes values.
+        "\u2705",
+        "\u2714",
+        "\u2714\ufe0f",
+        "\u2713",
+        "\u2611",
+        "\u2611\ufe0f",
+        "\U0001f44d",
     )
     DEFAULT_FALSY_VALUES: ClassVar[tuple[str, ...]] = (
         "false",
@@ -62,6 +71,15 @@ class BoolCleaner(EnumCleaner):
         "off",
         "disabled",
         "0.0",
+        # Emoji: crosses and thumbs down, with and without the variation selector.
+        "\u274c",
+        "\u2716",
+        "\u2716\ufe0f",
+        "\u2717",
+        "\u2718",
+        "\u2612",
+        "\u2612\ufe0f",
+        "\U0001f44e",
     )
     DEFAULT_MATCH_PREFIXES: ClassVar[tuple[str, ...]] = (
         "is",

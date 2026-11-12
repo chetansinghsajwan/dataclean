@@ -74,7 +74,8 @@ output shape.
 
 - **Params**: `truthy_values`/`falsy_values` (defaults:
   `("true","1","yes","t","y","active")` /
-  `("false","0","no","f","n","inactive")`), `extra_truthy_values`/
+  `("false","0","no","f","n","inactive")`, plus the emoji `✅ ✔ ✓ ☑ 👍` /
+  `❌ ✖ ✗ ✘ ☒ 👎`), `extra_truthy_values`/
   `extra_falsy_values` (appended), `out_format` (`Format.TRUEFALSE` (native
   `True`/`False`, default), `TRUEFALSE_STR`, `TF`, `BINARY` (`"1"`/`"0"`),
   `YESNO` (`"Yes"`/`"No"`)), `out_case` (`TextCase`, applied to string
