@@ -399,6 +399,8 @@ class Pipeline:
 
         none_result: Any = None if output_count == 1 else (None,) * output_count
 
+        # Skips the cleaner when a required input is missing, so cleaners never
+        # see None for those inputs, and returns the all-None result instead.
         def guarded(*values: Any) -> Any:
             normalized = tuple(_normalize(value) for value in values)
             if any(normalized[i] is None for i in required_positions):

@@ -33,7 +33,9 @@ _DEFAULT_PORTS = {"http": 80, "https": 443}
 _WRAPPERS = "<>\"'`"
 # Link targets that are not web addresses, so they are not read as URLs.
 _NON_WEB_LINKS = ("mailto:", "tel:", "sms:", "javascript:", "#")
+# Splits a lowercased column name into words for the name hints below.
 _TOKEN_SPLIT = re.compile(r"[^a-z0-9]+")
+# Name hints: words, and run-together words, that mark a URL column.
 _NAME_TOKENS = frozenset({"url", "urls", "uri", "href", "link", "links"})
 _NAME_WORDS = ("website", "homepage", "webaddress", "weburl")
 

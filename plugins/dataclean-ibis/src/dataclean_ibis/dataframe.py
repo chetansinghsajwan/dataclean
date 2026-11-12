@@ -12,6 +12,7 @@ from dataclean import DataFrame, DataReader, DataType, DataWriter
 from dataclean.engine.dataframe import Aggregator, Aggregators
 from dataclean.types import checked
 
+# Ibis type for each dataclean column type; used when a writer creates a column.
 _TO_IBIS_DTYPE: dict[DataType, dt.DataType] = {
     DataType.STR: dt.String(),
     DataType.BOOL: dt.Boolean(),
@@ -212,6 +213,7 @@ class IbisDataFrame(DataFrame):
     def _count_aggregate(
         self, names: Iterable[str], group_keys: list[str]
     ) -> "IbisDataFrame":
+        """Row count per group, repeated under every requested output name."""
         by = [self.df[key] for key in group_keys]
         metrics = [self.df.count().name(name) for name in names]
         result = self.df.aggregate(metrics, by=by)
@@ -251,6 +253,7 @@ class IbisDataFrame(DataFrame):
     def _agg_via_pandas_fallback(
         self, named_aggregators: Mapping[str, Aggregator], group_keys: list[str]
     ) -> "IbisDataFrame":
+        """Run any non-count aggregator by materializing the frame and using pandas."""
         # Aggregators.count is the only Aggregator constructed anywhere in the
         # real codebase; any other aggregator has no lazy Ibis translation
         # available in general (Aggregator = Callable is fully generic), so
@@ -285,6 +288,7 @@ class IbisDataFrame(DataFrame):
         return IbisDataFrame(df=self.df.select(*cols_list))
 
     def _resolve_string_cols(self, cols: str | Iterable[str] | None) -> list[str]:
+        """Narrow the requested columns (all when None) to the string columns that exist."""
         # Only string columns can be stripped / nulled; any other named
         # column (or one that does not exist) is skipped, like pandas.
         string_cols = [

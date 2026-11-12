@@ -17,13 +17,17 @@ from .cleaner import Cleaner
 # in a drive prefix such as "C:", checked separately.
 _FORBIDDEN = re.compile(r'[<>"|?*\x00-\x1f\x7f]')
 
+# A Windows drive letter such as ``C:`` before a slash or at the end.
 _DRIVE = re.compile(r"[A-Za-z]:(?=/|$)")
 
 # A file extension at the end of a name: a dot after at least one character,
 # then up to 10 letters or digits.
 _EXTENSION = re.compile(r"(?<=[^/.])\.([A-Za-z0-9]{1,10})$")
 
+# Splits a lowercased column name into words for the name hints below.
 _TOKEN_SPLIT = re.compile(r"[^a-z0-9]+")
+# Name hints: a word that marks a path column, a run-together word that does
+# the same, and words that mean the column holds another kind of value.
 _NAME_TOKENS = frozenset({"file", "files", "path", "paths", "dir", "folder"})
 _NAME_WORDS = ("filename", "filepath", "fullpath", "dirname", "directory")
 _OTHER_KINDS = frozenset({"url", "uri", "link", "href", "id"})

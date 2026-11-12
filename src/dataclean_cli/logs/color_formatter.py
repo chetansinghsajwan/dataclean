@@ -1,3 +1,5 @@
+"""ANSI colored log formatter for terminal output."""
+
 import logging
 import sys
 from enum import StrEnum
@@ -8,6 +10,8 @@ class ColorFormatter(logging.Formatter):
     """Formatter applying ANSI color codes based on standard log levels."""
 
     class LogFormat(StrEnum):
+        """ANSI escape pieces used to build the colored level header."""
+
         START = "\033["
         START_END = "m"
         END = "\033[0m"
@@ -40,6 +44,7 @@ class ColorFormatter(logging.Formatter):
         self.use_color = use_color if use_color is not None else sys.stdout.isatty()
 
     def format(self, record: logging.LogRecord) -> str:
+        """Render a record as a timestamped header with the level colored when enabled."""
         raw_level = self.LEVEL_ALIASES.get(record.levelname, record.levelname)
         timestamp = self.formatTime(record, "%Y-%m-%d %H:%M:%S")
         header = f"{timestamp} [{raw_level:<7}] {record.name}:"

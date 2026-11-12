@@ -1,9 +1,12 @@
+"""Level names and root logger setup for the command line tool."""
+
 import logging
 import sys
 from typing import Literal
 
 from .color_formatter import ColorFormatter
 
+# Level names accepted on the command line, mapped to the logging constants.
 levels = {
     "debug": logging.DEBUG,
     "info": logging.INFO,
@@ -19,6 +22,7 @@ defaultLevel = "debug"
 
 
 def setup_logging(level: str | int | None = None) -> None:
+    """Send root logger output to stdout in colour at the given level (debug when unset)."""
     if level is None:
         log_level = logging.DEBUG
     else:

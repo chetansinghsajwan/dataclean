@@ -1,3 +1,5 @@
+"""Local file catalog backed by pandas."""
+
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import ClassVar, Self, override
@@ -12,6 +14,8 @@ from dataclean_pandas.dataframe import PandasDataFrame
 @checked
 @dataclass
 class PandasCatalog(Catalog):
+    """Reads and writes local CSV, Parquet and Excel files as pandas frames."""
+
     schemes: ClassVar[tuple[str, ...]] = ("", "path", "pandas")
 
     READERS = {

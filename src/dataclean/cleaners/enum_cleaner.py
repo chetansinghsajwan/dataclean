@@ -20,7 +20,9 @@ _logger = logging.getLogger(__name__)
 class EnumCleanerMatcher(Protocol):
     """Callable protocol for predicates that decide whether a value matches a case."""
 
-    def __call__(self, v: str) -> bool: ...
+    def __call__(self, v: str) -> bool:
+        """Return True when the value belongs to the case this matcher stands for."""
+        ...
 
 
 @checked

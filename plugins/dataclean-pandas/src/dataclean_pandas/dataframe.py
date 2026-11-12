@@ -1,3 +1,5 @@
+"""pandas implementation of the dataclean ``DataFrame`` API."""
+
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any, override
@@ -24,6 +26,8 @@ def _stringify(value: Any) -> str | None:
 @checked
 @dataclass
 class PandasDataFrame(DataFrame):
+    """Wraps a pandas DataFrame so the cleaning engine can run on it."""
+
     df: pd.DataFrame
     _cols: tuple[tuple[str, DataType], ...] = ()
     _group_keys: tuple[str, ...] = ()
@@ -209,6 +213,7 @@ class PandasDataFrame(DataFrame):
         return PandasDataFrame(df=result_df)
 
     def _count_aggregate(self, names: tuple[str, ...]) -> "PandasDataFrame":
+        """Row count per group (or overall), repeated under every requested output name."""
         if self._group_keys:
             keys = list(self._group_keys)
             counts = (

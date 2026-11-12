@@ -1,3 +1,5 @@
+"""Command line interface for dataclean."""
+
 from typing import Annotated
 
 import typer
@@ -15,6 +17,7 @@ def _callback() -> None:
 
 
 def parse_mapping(value: str) -> tuple[str, str]:
+    """Split a ``KEY=VALUE`` option into its two parts, rejecting values without ``=``."""
     try:
         key, value = value.split("=", 1)
     except ValueError as e:
@@ -130,6 +133,7 @@ def clean(
 
 
 def main():
+    """Console script entry point."""
     app()
 
 

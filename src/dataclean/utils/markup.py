@@ -30,6 +30,8 @@ _HIDDEN = (
     r"<!--.*?-->"
     rf"|<(?P<dropped>{'|'.join(_DROPPED_ELEMENTS)})\b[^<>]*>.*?(?:</(?P=dropped)\s*>|$)"
 )
+# Every piece of markup that is removed while keeping the visible text: the
+# hidden elements above plus declarations and ordinary tags.
 _MARKUP_RE = re.compile(
     rf"{_HIDDEN}"
     r"|<[!?][^<>]*>"
@@ -66,7 +68,11 @@ def plain_text(text: str) -> str:
     return " ".join(remove_emoji(strip_html(text)).split())
 
 
+# Only the hidden parts (comments and dropped elements), for callers that need
+# to ignore them while leaving normal tags alone.
 _HIDDEN_RE = re.compile(_HIDDEN, re.DOTALL | re.IGNORECASE)
+# The link target of an anchor tag, quoted with double or single quotes or
+# bare; the three groups are those three forms.
 _HREF_RE = re.compile(
     r"<a\b[^<>]*?\bhref\s*=\s*(?:\"([^\"]*)\"|'([^']*)'|([^\s<>\"']+))",
     re.DOTALL | re.IGNORECASE,

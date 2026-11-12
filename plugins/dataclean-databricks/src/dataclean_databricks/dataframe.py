@@ -1,3 +1,5 @@
+"""PySpark implementation of the dataclean ``DataFrame`` API."""
+
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any, cast, override
@@ -20,6 +22,8 @@ READ_SAMPLE_ROWS = 1000
 @checked
 @dataclass
 class PysparkDataFrame(DataFrame):
+    """Wraps a Spark DataFrame so the cleaning engine can run on it."""
+
     df: SparkDataFrame
     _cols: tuple[tuple[str, DataType], ...] = ()
     _group_keys: tuple[str, ...] = ()
@@ -95,6 +99,8 @@ class PysparkDataFrame(DataFrame):
                 write_col, write_type = writer.write_cols[0]
                 write_type = self._to_pyspark_data_type(write_type)
 
+                # Built in a factory so each UDF captures its own writer and
+                # type instead of the loop variables, which change per column.
                 def create_single_output_udf(
                     _writer: DataWriter, _write_type: spt.DataType
                 ):
@@ -134,6 +140,8 @@ class PysparkDataFrame(DataFrame):
                 ]
             )
 
+            # Same factory reason as the single output UDF above: bind this
+            # writer and schema now, not at call time.
             def create_multi_output_udf(
                 _writer: DataWriter, _write_schema: spt.StructType
             ):
@@ -218,6 +226,7 @@ class PysparkDataFrame(DataFrame):
 
     @staticmethod
     def _to_pyspark_data_type(data_type: DataType) -> spt.DataType:
+        """Map a dataclean column type to the matching Spark type."""
         if data_type == "str":
             return spt.StringType()
 
@@ -250,6 +259,7 @@ class PysparkDataFrame(DataFrame):
 
     @staticmethod
     def _from_pyspark_data_type(data_type: spt.DataType) -> DataType:
+        """Map a Spark column type back to the dataclean type used in ``cols``."""
         if data_type == spt.StringType():
             return DataType.STR
 
@@ -331,6 +341,7 @@ class PysparkDataFrame(DataFrame):
         return PysparkDataFrame(df=result_df)
 
     def _count_aggregate(self, names: tuple[str, ...]) -> "PysparkDataFrame":
+        """Row count per group (or overall), repeated under every requested output name."""
         if self._group_keys:
             counts = self.df.groupBy(*self._group_keys).count()
             counts = counts.withColumnRenamed("count", names[0])

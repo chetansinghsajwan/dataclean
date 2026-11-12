@@ -257,6 +257,8 @@ class DateTimeCleaner(Cleaner):
 
         kinds: set[str] = set()
 
+        # Records whether a value parses as a date or a datetime; blanks and
+        # unparseable values are ignored.
         def note(value: str | None) -> None:
             text = str(value).strip() if value is not None else ""
             parsed = self.clean_row(text) if text else None

@@ -1,3 +1,5 @@
+"""Unity Catalog backend for Databricks, built on Spark and Databricks Connect."""
+
 import os
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -44,6 +46,8 @@ def new_session() -> SparkSession:
 @checked
 @dataclass
 class UnityCatalog(Catalog):
+    """Reads and writes Unity Catalog tables through a Spark session."""
+
     spark: SparkSession
     write_options: dict[str, str] = field(default_factory=dict)
 

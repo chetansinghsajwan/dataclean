@@ -1,3 +1,5 @@
+"""Type aliases that cover both classic Spark and Spark Connect sessions and frames."""
+
 from pyspark.sql import DataFrame as SparkSqlDataFrame, SparkSession as SparkSqlSession
 from pyspark.sql.connect.dataframe import DataFrame as SparkConnectDataFrame
 from pyspark.sql.connect.session import SparkSession as SparkConnectSession
