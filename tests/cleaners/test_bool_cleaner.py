@@ -185,3 +185,17 @@ def test_boolean_cleaner_yn_format():
     assert cleaner.false_out == "N"
     assert cleaner.clean_row("yes") == "Y"
     assert cleaner.clean_row("0") == "N"
+
+
+def test_bool_cleaner_ignores_an_id_column_of_ones() -> None:
+    import pandas as pd
+    from dataclean_pandas import PandasDataFrame
+
+    from dataclean.engine import DataFrame  # noqa: F401
+
+    df = PandasDataFrame(
+        df=pd.DataFrame({"contacttypeid_3": ["1", "1", "1"], "optout": ["1", "0", "1"]})
+    )
+
+    assert BoolCleaner().match_score(df, ("contacttypeid_3",)) == 0.0
+    assert BoolCleaner().match_score(df, ("optout",)) > 0.0

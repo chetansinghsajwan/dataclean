@@ -11,6 +11,7 @@ from typing import ClassVar, override
 
 from dataclean.engine import DataFrame, DataReader, DataType
 from dataclean.types import checked
+from dataclean.utils import looks_like_id_name
 
 from .cleaner import Cleaner
 
@@ -90,11 +91,6 @@ class NumericCleaner(Cleaner):
     _QUANTITY_WORDS: ClassVar[frozenset[str]] = frozenset(
         {"fee", "cost", "qty", "age", "rate", "score"}
     )
-    _ID_RE: ClassVar[re.Pattern] = re.compile(
-        r"(?:^|[^a-z0-9])(?:id|guid|uuid|key|code|pin|zip|postcode|pincode)$"
-        r"|(?<=[a-z])(?:id|guid|uuid|code|postcode|pincode)$"
-    )
-    _NOT_ID_WORDS: ClassVar[tuple[str, ...]] = ("paid", "valid", "void", "humid")
     _NULL_LIKE: ClassVar[frozenset[str]] = frozenset(
         {
             "",
@@ -314,7 +310,7 @@ class NumericCleaner(Cleaner):
             return 0.0
 
         col_name = cols_tuple[0].lower()
-        if self._looks_like_id_name(col_name):
+        if looks_like_id_name(col_name):
             return 0.0
 
         samples: list[str] = []
@@ -349,19 +345,6 @@ class NumericCleaner(Cleaner):
         if any(token in col_name for token in cls._QUANTITY_SUBSTRINGS):
             return True
         return any(w in cls._QUANTITY_WORDS for w in re.split(r"[^a-z0-9]+", col_name))
-
-    @classmethod
-    def _looks_like_id_name(cls, col_name: str) -> bool:
-        """Return whether the column name says identifier or code.
-
-        Decision: a copy number after a separator ("contacttypeid_2",
-        "user id 3") is ignored, since a second set of id columns is still ids
-        and must not be cleaned as a number.
-        """
-        col_name = re.sub(r"[^a-z0-9]\d+$", "", col_name)
-        if col_name.endswith(cls._NOT_ID_WORDS):
-            return False
-        return cls._ID_RE.search(col_name) is not None
 
     @classmethod
     def _looks_like_id_values(cls, samples: list[str]) -> bool:

@@ -9,6 +9,7 @@ from rapidfuzz import fuzz
 
 from dataclean.engine.dataframe import Aggregators, DataFrame, DataType
 from dataclean.types import checked
+from dataclean.utils import looks_like_id_name
 
 from .cleaner import Cleaner
 
@@ -350,6 +351,12 @@ class EnumCleaner(Cleaner):
         """
 
         assert len(cols) == 1, "cols must be a tuple of length 1"
+
+        # Decision: an id column, such as "contacttypeid_3" holding only 1s, is
+        # never a flag or a label, so it is left alone unless the cleaner's own
+        # name hints say otherwise.
+        if looks_like_id_name(cols[0]) and not self._matches_name(cols[0]):
+            return Cleaner.MIN_SCORE
 
         if dict(df.cols()).get(cols[0]) in (
             DataType.INT,
