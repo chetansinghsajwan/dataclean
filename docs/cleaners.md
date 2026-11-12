@@ -382,7 +382,10 @@ NumericCleaner().clean_row("₹ 1,500.50")  # -> "1500.5"
   (`tel:`, `mobile:`) and a trailing note (`(Mobile)`, `(fax)`), and reads a
   leading `00` as `+`. It then tries each region (the row's `country` first,
   then `default_regions`; or none, if the value is self-contained e.g.
-  `+91...`) until one parses as a valid number. Extensions are dropped.
+  `+91...`) until one parses as a valid number. Extensions are dropped. A `+`
+  number must write its country code in one piece: `+22 (521) 234-56789` is
+  rejected (`None`), since the parser would read it as `+225` across the
+  separator.
 - **Several numbers in one cell** (split by `/`, `;`, `|`, `,`, `&` or `or`)
   give the first one that cleans; `None` if none does.
 - **Country column**: when a table has several country columns, the phone

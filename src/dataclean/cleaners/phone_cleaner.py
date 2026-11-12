@@ -157,6 +157,13 @@ class PhoneCleaner(Cleaner):
             except phonenumbers.NumberParseException:
                 continue
             if phonenumbers.is_valid_number(parsed_num):
+                # Decision: a "+" number must write its country code in one
+                # piece. "+22 (521) 234-56789" is read by the parser as "+225",
+                # a guess across a separator, so it is rejected, not repaired.
+                if normalized.startswith("+") and not re.match(
+                    rf"\+\s*{parsed_num.country_code}", normalized
+                ):
+                    return None
                 return self._render(parsed_num)
 
         return None

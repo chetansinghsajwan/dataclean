@@ -189,3 +189,24 @@ def test_phone_vanity_numbers_and_too_long_digit_strings_are_dropped() -> None:
         cleaner = PhoneCleaner()
         assert cleaner.clean_row("1-800-FLOWERS", country) is None
         assert cleaner.clean_row("1234567890123456789", country) is None
+
+
+@pytest.mark.parametrize(
+    "raw", ["+22 (521) 234-56789", "+97.150.1234567", "+88 (691) 234-5678"]
+)
+def test_phone_rejects_a_country_code_split_by_a_separator(raw: str) -> None:
+    assert PhoneCleaner().clean_row(raw) is None
+
+
+@pytest.mark.parametrize(
+    "raw, expected",
+    [
+        ("+44 (0)7400 123456", "+447400123456"),
+        ("+ 44 7400 123456", "+447400123456"),
+        ("0044 7400123456", "+447400123456"),
+    ],
+)
+def test_phone_keeps_a_country_code_written_in_one_piece(
+    raw: str, expected: str
+) -> None:
+    assert PhoneCleaner().clean_row(raw) == expected
