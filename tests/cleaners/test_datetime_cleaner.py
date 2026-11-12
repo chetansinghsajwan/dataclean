@@ -152,6 +152,14 @@ def test_datetime_placeholder_dates_become_none_unless_disabled(input_val):
     assert kept.clean_row(input_val) == input_val
 
 
+def test_datetime_strips_html_before_parsing():
+    cleaner = DateTimeCleaner(out_format=DateTimeCleaner.Format.ISO_DATE)
+    assert cleaner.clean_row("<b>2003-04-08</b>") == "2003-04-08"
+    assert cleaner.clean_row("<p>8 April\n 2003</p>") == "2003-04-08"
+    assert cleaner.clean_row("<script>x()</script>") is None
+    assert cleaner.clean_row("<br>") is None
+
+
 def test_datetime_min_and_max_date():
     from datetime import date
 

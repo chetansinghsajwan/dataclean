@@ -152,11 +152,11 @@ CountryCleaner(in_format=CountryCleaner.Format.NAME_FUZZY).clean_row(
 - **Auto-detection**: matches by column name, but never a column that already
   has a date, datetime or time type — there is nothing to parse, and cleaning
   it would turn the typed values into strings.
-- **Behavior**: tries a fixed, non-configurable list of input formats in
-  order (`"%Y-%m-%d %H:%M:%S"`, `"%Y-%m-%dT%H:%M:%S"`, `"%Y-%m-%d"`,
-  `"%d-%m-%Y"`, `"%d/%m/%Y"`, `"%H:%M:%S"`, `"%I:%M %p"`) until one parses,
-  then renders per `out_format`. Requesting a date-shaped output from a
-  time-only parse (or vice versa) returns `None`.
+- **Behavior**: removes HTML tags first (so `<b>2003-04-08</b>` reads as a date), then tries a
+  fixed, non-configurable list of input formats in order (`"%Y-%m-%d %H:%M:%S"`,
+  `"%Y-%m-%dT%H:%M:%S"`, `"%Y-%m-%d"`, `"%d-%m-%Y"`, `"%d/%m/%Y"`, `"%H:%M:%S"`, `"%I:%M %p"`) until
+  one parses, then renders per `out_format`. Requesting a date-shaped output from a time-only parse
+  (or vice versa) returns `None`.
 
 ```python
 from dataclean import DateTimeCleaner
