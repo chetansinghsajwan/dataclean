@@ -240,3 +240,7 @@ def test_email_cleaner_reads_mailto_links_first() -> None:
     )
     # Without a usable mailto link, the text is used.
     assert cleaner.clean_row('<a href="/contact">x@y.com</a>') == "x@y.com"
+
+
+def test_email_clean_strips_emoji():
+    assert EmailCleaner().clean_row("\U0001f4e7 John@Example.com") == "john@example.com"

@@ -10,7 +10,7 @@ from rapidfuzz.distance import OSA
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
-from dataclean.utils import html_hrefs, remove_invisible, strip_html
+from dataclean.utils import html_hrefs, plain_text, remove_invisible
 
 from .cleaner import Cleaner
 
@@ -43,7 +43,6 @@ _SHORT_DOMAIN_EDITS = 1
 _LONG_DOMAIN_EDITS = 2
 
 
-# TODO: Need to add functionality to parse display name
 @checked
 @dataclass
 class EmailCleaner(Cleaner):
@@ -149,7 +148,7 @@ class EmailCleaner(Cleaner):
         # Decision: ``mailto:`` targets come first, since in HTML the link
         # target is the real address and the visible text may be a label.
         email = None
-        for candidate in (*self._mailto_targets(v), strip_html(v)):
+        for candidate in (*self._mailto_targets(v), plain_text(v)):
             email = self._parse_email(candidate)
             if email is not None:
                 break

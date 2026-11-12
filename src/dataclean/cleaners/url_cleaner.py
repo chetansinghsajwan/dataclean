@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
-from dataclean.utils import html_hrefs, remove_invisible, strip_html
+from dataclean.utils import html_hrefs, plain_text, remove_invisible
 
 from .cleaner import Cleaner
 
@@ -90,7 +90,7 @@ class UrlCleaner(Cleaner):
         # is the real address and the visible text may be a label. Targets
         # that are not web addresses (``mailto:``, ``tel:``) are skipped.
         hrefs = [h for h in html_hrefs(v) if not h.lower().startswith(_NON_WEB_LINKS)]
-        for part in (*hrefs, *_URL_SEPARATORS.split(remove_invisible(strip_html(v)))):
+        for part in (*hrefs, *_URL_SEPARATORS.split(remove_invisible(plain_text(v)))):
             cleaned = self._clean_url(part.strip().strip(_WRAPPERS).strip())
             if cleaned is not None:
                 return cleaned

@@ -182,10 +182,10 @@ DateTimeCleaner(out_format=DateTimeCleaner.Format.ISO_TIME).clean_row(
   or `COMPONENTS` (separate `local`/`tag`/`domain` columns)), `fix_domain_typos` (default `True`,
   correct a domain one edit (short domains) or two edits (9+ characters) from a known provider).
 - **Output**: `FULL` → one column; `COMPONENTS` → `local`, `tag`, `domain`.
-- **Behavior**: removes HTML tags (reading `mailto:` links first), then finds the first email-shaped
-  substring in the value (regex search, not full-string match — extra text around the address is
-  fine but a *second* email in the same value is ignored), splits it into local/tag/domain, applies
-  the configured options, and reassembles.
+- **Behavior**: removes HTML tags and emoji (reading `mailto:` links first), then finds the first
+  email-shaped substring in the value (regex search, not full-string match — extra text around the
+  address is fine but a *second* email in the same value is ignored), splits it into
+  local/tag/domain, applies the configured options, and reassembles.
 - **Domain typos**: `gmial.com` and `gmail.con` become `gmail.com`. Only
   domains from `KNOWN_EMAIL_DOMAINS` are targets, a known domain is never
   changed, and a domain equally close to two providers is left as is.
@@ -379,16 +379,14 @@ NumericCleaner().clean_row("₹ 1,500.50")  # -> "1500.5"
   region codes to try, in order, when the number has no leading `+`;
   default `()`).
 - **Output**: single column, role `phone`.
-- **Behavior**: removes HTML tags, then delegates to the `phonenumbers` library. Before parsing it
-  converts scientific-notation-looking strings to plain digits, turns digits
-  of other scripts (such as Arabic-Indic) into `0-9`, strips a leading label
-  (`tel:`, `mobile:`) and a trailing note (`(Mobile)`, `(fax)`), and reads a
-  leading `00` as `+`. It then tries each region (the row's `country` first,
-  then `default_regions`; or none, if the value is self-contained e.g.
-  `+91...`) until one parses as a valid number. Extensions are dropped. A `+`
-  number must write its country code in one piece: `+22 (521) 234-56789` is
-  rejected (`None`), since the parser would read it as `+225` across the
-  separator.
+- **Behavior**: removes HTML tags and emoji, then delegates to the `phonenumbers` library. Before
+  parsing it converts scientific-notation-looking strings to plain digits, turns digits of other
+  scripts (such as Arabic-Indic) into `0-9`, strips a leading label (`tel:`, `mobile:`) and a
+  trailing note (`(Mobile)`, `(fax)`), and reads a leading `00` as `+`. It then tries each region
+  (the row's `country` first, then `default_regions`; or none, if the value is self-contained e.g.
+  `+91...`) until one parses as a valid number. Extensions are dropped. A `+` number must write its
+  country code in one piece: `+22 (521) 234-56789` is rejected (`None`), since the parser would read
+  it as `+225` across the separator.
 - **Several numbers in one cell** (split by `/`, `;`, `|`, `,`, `&` or `or`)
   give the first one that cleans; `None` if none does.
 - **Country column**: when a table has several country columns, the phone
@@ -447,10 +445,10 @@ TextCleaner(remove_html=True, remove_urls=True, remove_emails=True).clean_row(
 - **Params**: `out_format` (`Format.FULL` (default) or `DOMAIN`, the host
   only), `default_scheme` (`"https"` (default) or `"http"`).
 - **Output**: single STR column, cleaned in place.
-- **Behavior**: removes HTML tags (reading link `href` values first, except `mailto:`, `tel:` and
-  `#` ones), then trims whitespace, invisible characters and wrapping quotes or `<>`, adds
-  `default_scheme` when missing (`www.x.com`, `//x.com`), lowercases the scheme and host, and drops
-  the default port, a trailing dot on the host and a lone `/` after it. Path, query, fragment,
+- **Behavior**: removes HTML tags and emoji (reading link `href` values first, except `mailto:`,
+  `tel:` and `#` ones), then trims whitespace, invisible characters and wrapping quotes or `<>`,
+  adds `default_scheme` when missing (`www.x.com`, `//x.com`), lowercases the scheme and host, and
+  drops the default port, a trailing dot on the host and a lone `/` after it. Path, query, fragment,
   `www.` and the `http` scheme are kept. Only `http` and `https` are accepted; other schemes
   (`javascript:`, `mailto:`, `ftp:`), invalid hosts and values with spaces become `None`. Of several
   URLs in one value (separated by `;`, `|`, `,` or `or`) the first valid one is used.

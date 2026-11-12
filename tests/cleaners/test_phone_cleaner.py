@@ -210,3 +210,10 @@ def test_phone_keeps_a_country_code_written_in_one_piece(
     raw: str, expected: str
 ) -> None:
     assert PhoneCleaner().clean_row(raw) == expected
+
+
+def test_phone_clean_strips_emoji():
+    assert (
+        PhoneCleaner(default_regions=("US",)).clean_row("\U0001f4de (415) 555-2671")
+        == "+14155552671"
+    )
