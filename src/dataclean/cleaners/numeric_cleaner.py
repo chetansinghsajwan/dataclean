@@ -11,7 +11,7 @@ from typing import ClassVar, override
 
 from dataclean.engine import DataFrame, DataReader, DataType
 from dataclean.types import checked
-from dataclean.utils import looks_like_id_name
+from dataclean.utils import COMMON_NULL_TOKENS, looks_like_id_name, null_token_set
 
 from .cleaner import Cleaner
 
@@ -91,26 +91,17 @@ class NumericCleaner(Cleaner):
     _QUANTITY_WORDS: ClassVar[frozenset[str]] = frozenset(
         {"fee", "cost", "qty", "age", "rate", "score"}
     )
-    _NULL_LIKE: ClassVar[frozenset[str]] = frozenset(
-        {
-            "",
-            "null",
-            "none",
-            "nan",
-            "n/a",
-            "na",
-            "-",
-            "undefined",
-            "''",
-            '""',
-            "inf",
-            "+inf",
-            "-inf",
-            "infinity",
-            "+infinity",
-            "-infinity",
-        }
-    )
+    # The shared placeholders, plus a blank cell and the infinities, which are
+    # not numbers a column can hold either.
+    _NULL_LIKE: ClassVar[frozenset[str]] = null_token_set(COMMON_NULL_TOKENS) | {
+        "",
+        "inf",
+        "+inf",
+        "-inf",
+        "infinity",
+        "+infinity",
+        "-infinity",
+    }
     _LONG_DIGITS: ClassVar[int] = 12
     _UNIQUE_MIN_ROWS: ClassVar[int] = 20
     _UNIQUE_RATIO: ClassVar[float] = 0.95

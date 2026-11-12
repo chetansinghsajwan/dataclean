@@ -38,3 +38,18 @@ def test_remove_emoji_removes_emoji(raw: str, expected: str) -> None:
 )
 def test_remove_emoji_keeps_other_text(value: str) -> None:
     assert remove_emoji(value) == value
+
+
+def test_plain_text_removes_html_emoji_and_extra_space():
+    from dataclean.utils import plain_text
+
+    assert plain_text("<b>John</b> \U0001f600  Smith\n") == "John Smith"
+
+
+def test_looks_like_junk_covers_code_links_and_paths():
+    from dataclean.utils import looks_like_junk
+
+    assert looks_like_junk("<script>x</script>")
+    assert looks_like_junk("a@b.com")
+    assert looks_like_junk("../../etc/passwd")
+    assert not looks_like_junk("Stoke-on-Trent")

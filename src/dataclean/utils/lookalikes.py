@@ -66,3 +66,13 @@ def looks_like_link(text: str) -> bool:
     email or URL columns.
     """
     return bool(_LINK.search(text))
+
+
+def looks_like_junk(text: str) -> bool:
+    """Whether ``text`` looks like code, a link or a path.
+
+    Decision: the name and address cleaners share this one test, so the two
+    cannot drift apart on what counts as junk. Do not use it on columns whose
+    point is a link or a path.
+    """
+    return looks_like_code(text) or looks_like_link(text) or looks_like_path(text)

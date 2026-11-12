@@ -165,7 +165,7 @@ class TextCleaner(Cleaner):
         if self.replace_newlines_with_spaces:
             steps.append(replace_control_chars)
         else:
-            # 🚀 THE FIX: Explicitly drop '\n' so it isn't caught by \s+ in the next step
+            # Explicitly drop '\n' so it isn't caught by \s+ in the next step
             steps.append(lambda x: self._NL_STRIP_RE.sub("", x).replace("\n", ""))
 
         # Always collapse spaces as the final structural cleanup
@@ -219,7 +219,6 @@ class TextCleaner(Cleaner):
             empty string or a placeholder from ``null_tokens``.
         """
 
-        # 🚀 Linear Pipeline Execution
         for step in self._pipeline:
             v = step(v)
 

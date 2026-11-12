@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 
 from dataclean.engine import DataFrame, DataReader, DataType
 from dataclean.types import checked
-from dataclean.utils import remove_emoji, strip_html
+from dataclean.utils import plain_text
 from dataclean.utils.words import split_words
 
 from .cleaner import PRIMARY, Cleaner
@@ -154,7 +154,7 @@ class DateTimeCleaner(Cleaner):
         # Decision: HTML and emoji are removed first, as in the text cleaners,
         # so a value pasted from a web page ("<b>2003-04-08</b>") or typed with
         # a decoration ("2003-04-08 \N{CALENDAR}") still reads as a date.
-        v = " ".join(remove_emoji(strip_html(v)).split())
+        v = plain_text(v)
         if not v:
             return None
         clock: time | None = None

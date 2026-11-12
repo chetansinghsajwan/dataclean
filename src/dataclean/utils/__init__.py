@@ -4,8 +4,13 @@ from .debug import _log_args
 from .emoji import remove_emoji
 from .identifiers import looks_like_id_name
 from .invisible import remove_invisible, replace_control_chars
-from .lookalikes import looks_like_code, looks_like_link, looks_like_path
-from .markup import html_hrefs, strip_html
+from .lookalikes import (
+    looks_like_code,
+    looks_like_junk,
+    looks_like_link,
+    looks_like_path,
+)
+from .markup import html_hrefs, plain_text, strip_html
 from .null_tokens import (
     COMMON_NULL_TOKENS,
     TEXT_NULL_TOKENS,

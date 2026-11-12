@@ -3,6 +3,8 @@
 import html
 import re
 
+from .emoji import remove_emoji
+
 # Elements whose content is code or hidden data, not text a reader would see.
 # Other elements, such as headings and paragraphs, keep their content.
 # Decision: dropping the content of these elements, not just the tags, is what
@@ -52,6 +54,16 @@ def strip_html(text: str, replacement: str = " ") -> str:
         The text without markup. Entities such as ``&amp;`` are left as is.
     """
     return _MARKUP_RE.sub(replacement, text)
+
+
+def plain_text(text: str) -> str:
+    """Return ``text`` as plain words: no HTML, no emoji, one space between words.
+
+    Decision: the cleaners that read a value written by people share this
+    first step, so a value pasted from a web page or typed with a decoration
+    is treated the same in every column kind.
+    """
+    return " ".join(remove_emoji(strip_html(text)).split())
 
 
 _HIDDEN_RE = re.compile(_HIDDEN, re.DOTALL | re.IGNORECASE)

@@ -13,14 +13,11 @@ from dataclean.types import checked
 from dataclean.utils import (
     TEXT_NULL_TOKENS,
     is_null_token,
-    looks_like_code,
-    looks_like_link,
-    looks_like_path,
+    looks_like_junk,
     null_token_set,
-    remove_emoji,
+    plain_text,
     remove_invisible,
     replace_control_chars,
-    strip_html,
     title_case,
 )
 
@@ -227,18 +224,18 @@ class NameCleaner(Cleaner):
             The cleaned name, or None if nothing is left, it is a placeholder,
             it has no letters, or it looks like junk (each when enabled).
         """
-        cleaned = replace_control_chars(remove_invisible(remove_emoji(strip_html(v))))
-        cleaned = " ".join(unicodedata.normalize("NFKC", cleaned).split())
-        v = cleaned
+        v = plain_text(
+            unicodedata.normalize(
+                "NFKC", replace_control_chars(remove_invisible(plain_text(v)))
+            )
+        )
         if is_null_token(v, self._null_set):
             return None
         if self.null_if_no_letters and not any(ch.isalpha() for ch in v):
             return None
         if self.max_length is not None and len(v) > self.max_length:
             return None
-        if self.null_junk and (
-            looks_like_code(v) or looks_like_path(v) or looks_like_link(v)
-        ):
+        if self.null_junk and looks_like_junk(v):
             return None
         if self.standardize_company_suffix and _has_company_suffix(v):
             v = _standardize_company_suffix(v)

@@ -11,12 +11,9 @@ from dataclean.utils import (
     TEXT_NULL_TOKENS,
     format_postcode,
     is_null_token,
-    looks_like_code,
-    looks_like_link,
-    looks_like_path,
+    looks_like_junk,
     null_token_set,
-    remove_emoji,
-    strip_html,
+    plain_text,
     title_case,
 )
 
@@ -36,11 +33,6 @@ _PLACE_NAME = re.compile(r"[^\W\d_]+(?:[ .'’-]+[^\W\d_]+)*\.?")
 _NULL_TOKENS = null_token_set(TEXT_NULL_TOKENS)
 
 
-def _collapse_whitespace(value: str) -> str:
-    """Replace every run of whitespace with a single space."""
-    return " ".join(value.split())
-
-
 # Words that stay lower case inside a place or street name, as in
 # "Stoke-on-Trent", "District of Columbia" and "Île-de-France".
 _SMALL_WORDS = frozenset(
@@ -54,11 +46,6 @@ _UPPER_WORDS = frozenset("po pmb uk usa ne nw se sw".split())
 # Values longer than this are free text or an attack, not an address part.
 # Decision: null them rather than keep a long junk value.
 _MAX_LENGTH = 200
-
-
-def _is_junk(value: str) -> bool:
-    """Whether ``value`` is code, a link or a path, which no address part is."""
-    return looks_like_code(value) or looks_like_link(value) or looks_like_path(value)
 
 
 def _title_case(value: str) -> str:
@@ -95,8 +82,8 @@ class AddressCleaner(Cleaner):
 
     Consumes the input roles ``address_line1``, ``address_line2``,
     ``address_line3``, ``town``, ``county`` and ``postcode`` (all optional, so
-    a row is cleaned even when its first line is empty), and produces ``state``, ``postcode``,
-    ``address_line``, ``street``, ``house_no``, ``town``, ``address_line2``
+    a row is cleaned even when its first line is empty), and produces
+    ``state``, ``postcode``, ``address_line``, ``street``, ``house_no``, ``town``, ``address_line2``
     and ``address_line3`` outputs. In a pipeline an output is only written
     when its input role has a column, so a lone ``town`` column gives just a
     cleaned ``town``. Decision: outputs follow the columns given, so the
@@ -276,12 +263,12 @@ class AddressCleaner(Cleaner):
         """
         if not value:
             return None
-        cleaned = _collapse_whitespace(remove_emoji(strip_html(value)))
+        cleaned = plain_text(value)
         if is_null_token(cleaned, _NULL_TOKENS) or not any(
             char.isalpha() for char in cleaned
         ):
             return None
-        if len(cleaned) > _MAX_LENGTH or _is_junk(cleaned):
+        if len(cleaned) > _MAX_LENGTH or looks_like_junk(cleaned):
             return None
         if region and cleaned.isupper() and cleaned.isalpha() and len(cleaned) <= 3:
             return cleaned
@@ -295,12 +282,12 @@ class AddressCleaner(Cleaner):
         """
         if not value:
             return None
-        cleaned = _collapse_whitespace(remove_emoji(strip_html(value)))
+        cleaned = plain_text(value)
         if is_null_token(cleaned, _NULL_TOKENS) or not any(
             char.isalnum() for char in cleaned
         ):
             return None
-        if len(cleaned) > _MAX_LENGTH or _is_junk(cleaned):
+        if len(cleaned) > _MAX_LENGTH or looks_like_junk(cleaned):
             return None
         return _title_case(cleaned)
 
@@ -326,9 +313,7 @@ class AddressCleaner(Cleaner):
         """
         if not value:
             return None
-        cleaned = _collapse_whitespace(
-            remove_emoji(strip_html(value)).upper().replace("-", "")
-        )
+        cleaned = " ".join(plain_text(value).upper().replace("-", "").split())
         if not any(char.isalnum() for char in cleaned):
             return None
         uk = _UK_POSTCODE.fullmatch(cleaned)
@@ -354,18 +339,7 @@ class AddressCleaner(Cleaner):
         if not address_line:
             return None, None
 
-        addr = str(address_line).strip()
-        parts = addr.split()
-
-        if not parts:
-            return None, None
-
-        # Try to detect house number at the beginning
-        house_no = None
-        street = addr
-
+        parts = address_line.split()
         if parts[0].isdigit():
-            house_no = parts[0]
-            street = " ".join(parts[1:]) if len(parts) > 1 else None
-
-        return street, house_no
+            return (" ".join(parts[1:]) or None), parts[0]
+        return address_line, None
