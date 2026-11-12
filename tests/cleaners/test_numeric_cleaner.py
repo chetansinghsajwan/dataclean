@@ -239,6 +239,13 @@ def test_numeric_detection_skips_identifier_names(column):
     assert _score(column, ["1", "2", "3"]) == 0.0
 
 
+@pytest.mark.parametrize(
+    "col_name", ["contacttypeid_2", "companyid_3", "user_id_2", "order id 10"]
+)
+def test_numeric_detection_ignores_a_copy_number_after_an_id_name(col_name):
+    assert _score(col_name, ["1", "2", "3"]) == 0.0
+
+
 def test_numeric_detection_does_not_mistake_paid_for_an_id():
     assert _score("paid", ["10", "20", "30"]) > 0.0
 

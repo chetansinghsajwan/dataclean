@@ -352,7 +352,13 @@ class NumericCleaner(Cleaner):
 
     @classmethod
     def _looks_like_id_name(cls, col_name: str) -> bool:
-        """Return whether the column name says identifier or code."""
+        """Return whether the column name says identifier or code.
+
+        Decision: a copy number after a separator ("contacttypeid_2",
+        "user id 3") is ignored, since a second set of id columns is still ids
+        and must not be cleaned as a number.
+        """
+        col_name = re.sub(r"[^a-z0-9]\d+$", "", col_name)
         if col_name.endswith(cls._NOT_ID_WORDS):
             return False
         return cls._ID_RE.search(col_name) is not None
