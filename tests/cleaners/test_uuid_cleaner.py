@@ -1,3 +1,5 @@
+"""Tests for UuidCleaner: formats, version limits, nil/max placeholders and extraction from text."""
+
 import pytest
 
 from dataclean import UuidCleaner
@@ -8,6 +10,8 @@ from dataclean import UuidCleaner
 
 
 def test_uuid_cleaner_metadata():
+    """The UUID cleaner should produce a single text column, which is what downstream
+    steps expect."""
     from dataclean.engine.dataframe import DataType
 
     cleaner = UuidCleaner()
@@ -65,11 +69,16 @@ def test_uuid_cleaner_metadata():
     ],
 )
 def test_uuid_clean_value_success_matrix(input_val, out_fmt, expected_output):
+    """The same UUID turns up in many outfits: upper case, curly braces, a urn prefix,
+    no dashes, dots or spaces. They all mean one thing, so each is rewritten into
+    whichever format we asked for."""
     cleaner = UuidCleaner(out_format=out_fmt)
     assert cleaner.clean_row(input_val) == expected_output
 
 
 def test_uuid_clean_value_invalid_returns_none():
+    """A short made-up string or one with a non-hex letter like Z can't be a UUID. We
+    return null rather than let a bad id through."""
     cleaner = UuidCleaner()
     # Malformed strings or shortened sequences fail validation safely
     assert cleaner.clean_row("short-uuid-123") is None
@@ -82,6 +91,9 @@ def test_uuid_clean_value_invalid_returns_none():
 
 
 def test_uuid_version_enforcement():
+    """You can tell the cleaner to accept only certain UUID versions. A version 4 id is
+    turned away when only version 7 is allowed, and accepted when there is no
+    restriction."""
     # A structurally valid v4 UUID string (exactly 32 hex characters excl. hyphens)
     v4_uuid = "9f8e7d6c-5b4a-4321-a987-6543210fedcb"
 
@@ -104,10 +116,15 @@ MAX = "ffffffff-ffff-ffff-ffff-ffffffffffff"
 
 @pytest.mark.parametrize("value", [NIL, MAX, "{" + NIL + "}", MAX.upper()])
 def test_uuid_nil_and_max_become_none_by_default(value):
+    """The all-zero and all-f UUIDs are placeholders rather than real ids. Unless
+    someone opts in, we treat them as missing, even when wrapped in braces or
+    written in capitals."""
     assert UuidCleaner().clean_row(value) is None
 
 
 def test_uuid_allow_nil_and_allow_max_flags_are_independent():
+    """Allowing the nil UUID should not quietly allow the max one, or the other way
+    round. Each placeholder is its own decision."""
     assert UuidCleaner(allow_nil=True).clean_row(NIL) == NIL
     assert UuidCleaner(allow_nil=True).clean_row(MAX) is None
     assert UuidCleaner(allow_max=True).clean_row(MAX) == MAX
@@ -131,6 +148,9 @@ GOOD = "3f2504e0-4f89-11d3-9a0c-0305e82c3304"
     ],
 )
 def test_uuid_accepts_known_shapes(value):
+    """Real data is messy, so a 0x prefix, spaces, underscores or even a full-width
+    first digit are all accepted. In every case it is clear which single UUID was
+    meant, and we return it in standard form."""
     assert UuidCleaner().clean_row(value) == GOOD
 
 
@@ -145,6 +165,9 @@ def test_uuid_accepts_known_shapes(value):
     ],
 )
 def test_uuid_rejects_other_shapes(value):
+    """Some strings only look a bit like a UUID, such as dashes in the wrong places,
+    mixed separators or one digit too many or too few. Guessing here could invent a
+    wrong id, so these become null."""
     assert UuidCleaner().clean_row(value) is None
 
 
@@ -153,11 +176,16 @@ def test_uuid_rejects_other_shapes(value):
     ["id: " + GOOD, GOOD + ", extra", "no. " + GOOD, "ref=" + GOOD.upper() + "."],
 )
 def test_uuid_extract_from_text_pulls_one_uuid(value):
+    """Sometimes a UUID sits inside a sentence, like id: followed by the value. When
+    exactly one is in there we pull it out, whatever the case or the punctuation
+    around it."""
     assert UuidCleaner().clean_row(value) == GOOD
 
 
 @pytest.mark.parametrize("value", ["id: " + GOOD, GOOD + ", extra"])
 def test_uuid_extract_from_text_can_be_turned_off(value):
+    """Some users want a cell to be only a UUID and nothing else. With extraction
+    switched off, text around the id makes the value null."""
     assert UuidCleaner(extract_from_text=False).clean_row(value) is None
 
 
@@ -171,4 +199,6 @@ def test_uuid_extract_from_text_can_be_turned_off(value):
     ],
 )
 def test_uuid_extract_from_text_rejects_none_or_many(value):
+    """If the text has no UUID, or two different ones, there is no single right answer.
+    We don't pick for the user, so the result is null."""
     assert UuidCleaner().clean_row(value) is None

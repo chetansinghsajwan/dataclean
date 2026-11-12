@@ -1,3 +1,5 @@
+"""Tests mapping source table paths onto target paths with wildcards."""
+
 import pytest
 
 from dataclean.utils.paths import map_path, map_paths
@@ -39,6 +41,9 @@ from dataclean.utils.paths import map_path, map_paths
     ],
 )
 def test_map_path(path: str, to: str, expected: str) -> None:
+    """A target pattern decides which path parts are kept and which are replaced. It is
+    how a table moves from one catalog or schema to another.
+    """
     assert map_path(path, to, sep=".") == expected
 
 
@@ -78,4 +83,7 @@ def test_map_path(path: str, to: str, expected: str) -> None:
     ],
 )
 def test_map_paths(path: str, to: str, expected: str) -> None:
+    """Mapping a list gives back a dict from each source path to its target. Callers
+    can then look up what happened to any one path.
+    """
     assert map_paths([path], to) == {path: expected}

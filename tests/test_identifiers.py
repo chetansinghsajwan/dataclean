@@ -24,6 +24,9 @@ from dataclean.utils import looks_like_id_name
     ],
 )
 def test_looks_like_id_name_true(name: str) -> None:
+    """Column names that follow the usual id patterns are recognised as identifiers.
+    Identifiers should be left alone, not text-cleaned.
+    """
     assert looks_like_id_name(name)
 
 
@@ -31,4 +34,7 @@ def test_looks_like_id_name_true(name: str) -> None:
     "name", ["paid", "valid", "amount", "creditlimit", "age", "optout", "col_2"]
 )
 def test_looks_like_id_name_false(name: str) -> None:
+    """Ordinary column names must not be mistaken for ids. If they were, we would skip
+    text cleaning on them for no good reason.
+    """
     assert not looks_like_id_name(name)

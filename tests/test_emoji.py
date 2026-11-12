@@ -20,6 +20,9 @@ from dataclean.utils import remove_emoji
     ],
 )
 def test_remove_emoji_removes_emoji(raw: str, expected: str) -> None:
+    """People sprinkle emoji into text. We strip them out because they are just noise
+    in cleaned data.
+    """
     assert remove_emoji(raw) == expected
 
 
@@ -37,16 +40,25 @@ def test_remove_emoji_removes_emoji(raw: str, expected: str) -> None:
     ],
 )
 def test_remove_emoji_keeps_other_text(value: str) -> None:
+    """Accented letters and other symbols are not emoji and must come through
+    untouched. Being too eager here would damage real names.
+    """
     assert remove_emoji(value) == value
 
 
 def test_plain_text_removes_html_emoji_and_extra_space():
+    """A bold tag, an emoji, doubled spaces and a trailing newline go in, and John
+    Smith on one tidy line comes out. It is the all-in-one cleanup for free text.
+    """
     from dataclean.utils import plain_text
 
     assert plain_text("<b>John</b> \U0001f600  Smith\n") == "John Smith"
 
 
 def test_looks_like_junk_covers_code_links_and_paths():
+    """A script tag, an email address and a path-traversal string all count as junk. A
+    real place name like Stoke-on-Trent must not be flagged.
+    """
     from dataclean.utils import looks_like_junk
 
     assert looks_like_junk("<script>x</script>")

@@ -1,3 +1,5 @@
+"""Tests for DateTimeCleaner: parsing, output formats, day order, timezones and column layout."""
+
 from unittest.mock import MagicMock
 from zoneinfo import ZoneInfoNotFoundError
 
@@ -11,6 +13,8 @@ from dataclean import DataFrame, DataType, DateTimeCleaner
 
 
 def test_datetime_cleaner_metadata():
+    """The date cleaner should call itself DateTimeCleaner and produce one string
+    column. The rest of the pipeline relies on both."""
 
     cleaner = DateTimeCleaner()
     assert cleaner.name == "DateTimeCleaner"
@@ -34,6 +38,9 @@ def test_datetime_cleaner_metadata():
     ],
 )
 def test_datetime_cleaner_confidence(col_name, expected_confidence):
+    """Names like created_at, timestamp and transaction_date clearly mean dates, so
+    they score full. Words that only contain letters like at or time, such as seat
+    and format, must not be fooled into scoring."""
     cleaner = DateTimeCleaner()
     mock_df = MagicMock(spec=DataFrame)
     assert cleaner.match_score(mock_df, (col_name,)) == expected_confidence
@@ -65,6 +72,9 @@ def test_datetime_cleaner_confidence(col_name, expected_confidence):
     ],
 )
 def test_datetime_clean_value_success(input_val, out_fmt, expected_output):
+    """Dates arrive in many shapes, such as ISO, Indian day-first and 12-hour times.
+    Each case feeds one of them in and checks it comes out in the output format we
+    asked for."""
     cleaner = DateTimeCleaner(out_format=out_fmt)
     assert cleaner.clean_row(input_val) == expected_output
 
@@ -78,11 +88,15 @@ def test_datetime_clean_value_success(input_val, out_fmt, expected_output):
     ],
 )
 def test_datetime_clean_value_invalid_coercions(input_val, out_fmt):
+    """A bare time like 22:45 has no date in it. If you ask for a date out of it we
+    return null, instead of making up a day."""
     cleaner = DateTimeCleaner(out_format=out_fmt)
     assert cleaner.clean_row(input_val) is None
 
 
 def test_datetime_clean_value_returns_none_on_bad_string():
+    """Text that is not a date, or a date that cannot exist, should not crash a long
+    run. It just becomes null."""
     cleaner = DateTimeCleaner()
     # Unparseable temporal string tokens fall out safely as None
     assert cleaner.clean_row("not-a-date") is None
@@ -113,6 +127,9 @@ def test_datetime_clean_value_returns_none_on_bad_string():
     ],
 )
 def test_datetime_auto_output_follows_the_input(input_val, expected_output):
+    """When no output format is chosen, the result should look like what came in. A
+    date stays a date, something with a time stays a datetime, and a time stays a
+    time, whatever style it was written in."""
     assert DateTimeCleaner().clean_row(input_val) == expected_output
 
 
@@ -128,10 +145,16 @@ def test_datetime_auto_output_follows_the_input(input_val, expected_output):
     ],
 )
 def test_datetime_rejects_impossible_and_unreadable_values(input_val):
+    """Some values can never be valid, like 31 February, a 25th hour or 13 PM. Words
+    like yesterday and ambiguous two-digit years are not guessed at either, and
+    all of them become null."""
     assert DateTimeCleaner().clean_row(input_val) is None
 
 
 def test_datetime_day_first_controls_numeric_order():
+    """A date like 03/04/1985 can be read two ways. By default we read it day first,
+    which is how it is written in India, and day_first=False flips it, while year-
+    first dates are never affected."""
     assert DateTimeCleaner().clean_row("03/04/1985") == "1985-04-03"
     assert DateTimeCleaner().clean_row("03/14/1985") is None
     month_first = DateTimeCleaner(day_first=False)
@@ -146,6 +169,9 @@ def test_datetime_day_first_controls_numeric_order():
     "input_val", ["0001-01-01", "1900-01-01", "2099-12-31", "9999-12-31"]
 )
 def test_datetime_placeholder_dates_become_none_unless_disabled(input_val):
+    """Systems often fill missing dates with fake ones like 0001-01-01 or 9999-12-31.
+    We null them by default, with or without a time, and you can keep them by
+    turning the option off."""
     assert DateTimeCleaner().clean_row(input_val) is None
     assert DateTimeCleaner().clean_row(input_val + " 00:00:00") is None
     kept = DateTimeCleaner(null_placeholder_dates=False)
@@ -153,6 +179,8 @@ def test_datetime_placeholder_dates_become_none_unless_disabled(input_val):
 
 
 def test_datetime_strips_html_before_parsing():
+    """Dates copied from web pages can have tags around them. We take the markup off
+    first so the date still parses, and a value that is only markup becomes null."""
     cleaner = DateTimeCleaner(out_format=DateTimeCleaner.Format.ISO_DATE)
     assert cleaner.clean_row("<b>2003-04-08</b>") == "2003-04-08"
     assert cleaner.clean_row("<p>8 April\n 2003</p>") == "2003-04-08"
@@ -161,6 +189,9 @@ def test_datetime_strips_html_before_parsing():
 
 
 def test_datetime_min_and_max_date():
+    """You can set a window of dates that make sense, such as no one born before
+    1920. Anything outside the window becomes null, while the edge dates
+    themselves are allowed."""
     from datetime import date
 
     cleaner = DateTimeCleaner(min_date=date(1920, 1, 1), max_date=date(2030, 1, 1))
@@ -170,6 +201,9 @@ def test_datetime_min_and_max_date():
 
 
 def test_datetime_converts_offsets_to_the_default_timezone():
+    """If a value says what time zone it is in, we convert it into our default one so
+    a column is consistent. Values without a zone are assumed to already be in it,
+    and the date moves if the conversion crosses midnight."""
     assert (
         DateTimeCleaner().clean_row("2020-01-15T10:30:00Z")
         == "2020-01-15T10:30:00+00:00"
@@ -193,10 +227,14 @@ def test_datetime_converts_offsets_to_the_default_timezone():
 
 
 def test_datetime_time_only_with_offset_is_rejected():
+    """A time with a zone offset but no date cannot be converted safely, since
+    offsets change through the year. So we return null rather than guess."""
     assert DateTimeCleaner().clean_row("22:45+05:30") is None
 
 
 def test_datetime_unknown_timezone_name_is_rejected():
+    """A mistyped time zone name should fail when the cleaner is created. That is
+    much better than quietly using the wrong zone for every row."""
     with pytest.raises(ZoneInfoNotFoundError):
         DateTimeCleaner(default_timezone="Mars/Olympus")
 
@@ -207,6 +245,8 @@ def test_datetime_unknown_timezone_name_is_rejected():
 
 
 def test_datetime_cleaner_skips_columns_that_are_already_temporal():
+    """If a column is already a real date type there is nothing to clean. It scores
+    zero, while a column of date text still scores full."""
     import pandas as pd
     from dataclean_pandas import PandasDataFrame
 
@@ -226,6 +266,9 @@ def test_datetime_cleaner_skips_columns_that_are_already_temporal():
 
 
 def test_pipeline_does_not_turn_temporal_columns_into_strings():
+    """Running the whole pipeline should not break columns that are already dates.
+    The real date column keeps its type, and only the text date column is cleaned
+    into a standard string."""
     import pandas as pd
     from dataclean_pandas import PandasDataFrame
 
@@ -279,6 +322,9 @@ def test_pipeline_does_not_turn_temporal_columns_into_strings():
 def test_auto_format_writes_one_layout_for_the_whole_column(
     col: str, raw: list[str], expected: list[str | None]
 ) -> None:
+    """A column should look uniform when it is done, so one layout is chosen for
+    every row based on the whole column. When dates and bare times are mixed, the
+    column name decides which one wins."""
     import pandas as pd
     from dataclean_pandas import PandasDataFrame
 
@@ -293,6 +339,8 @@ def test_auto_format_writes_one_layout_for_the_whole_column(
 
 
 def test_datetime_removes_emoji_before_parsing():
+    """People sometimes add a calendar emoji next to a date. We drop it so the date
+    still parses, and a value that is only an emoji becomes null."""
     cleaner = DateTimeCleaner(out_format=DateTimeCleaner.Format.ISO_DATE)
     assert cleaner.clean_row("2003-04-08 \U0001f4c5") == "2003-04-08"
     assert cleaner.clean_row("\U0001f4c5") is None

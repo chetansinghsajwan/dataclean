@@ -1,3 +1,5 @@
+"""Tests for AddressCleaner: schema, town/county, postcode, address lines, detection and pipeline use."""
+
 import pandas as pd
 import pytest
 from dataclean_pandas import PandasDataFrame
@@ -26,6 +28,7 @@ def _df(**columns: list[str]) -> PandasDataFrame:
 
 
 def test_address_cleaner_reads_country_but_never_writes_it() -> None:
+    """The address cleaner peeks at the country only to decide how a postcode should look. Cleaning the country itself is another cleaner's job, so country is optional, context only, and never an output."""
     cleaner = AddressCleaner()
     country = next(col for col in cleaner.inputs.cols if col.key == "country")
 
@@ -35,6 +38,7 @@ def test_address_cleaner_reads_country_but_never_writes_it() -> None:
 
 
 def test_address_cleaner_has_no_required_input() -> None:
+    """Real data often has only some address parts. Nothing is required, so a table with just a town or just a postcode can still be cleaned."""
     assert not any(col.required for col in AddressCleaner().inputs.cols)
 
 
@@ -60,6 +64,7 @@ def test_address_cleaner_has_no_required_input() -> None:
 def test_address_cleaner_title_cases_town_only_when_uniform_case(
     raw: str, expected: str
 ) -> None:
+    """If a town is all upper or all lower, we tidy it into proper capitals. Names that already mix cases, like McDonald Heights, were probably written on purpose and are left alone."""
     assert _clean(address_line1="1 High Street", town=raw)[TOWN] == expected
 
 
@@ -78,6 +83,7 @@ def test_address_cleaner_title_cases_town_only_when_uniform_case(
     ],
 )
 def test_address_cleaner_nulls_junk_in_a_town(raw: str) -> None:
+    """Forms sometimes get filled with attack strings, links, emails or a keyboard mash. None of those is a place, so the town and county both come back empty."""
     result = _clean(address_line1="1 High Street", town=raw, county=raw)
 
     assert result[TOWN] is None
@@ -89,6 +95,7 @@ def test_address_cleaner_nulls_junk_in_a_town(raw: str) -> None:
     ["%s%s%s%n", "{{7*7}}", "../../etc/passwd", "a@b.com", "---", "9" * 201],
 )
 def test_address_cleaner_nulls_junk_in_an_address_line(raw: str) -> None:
+    """The same kind of junk can show up in the street lines. We throw it away so a bad entry never travels on as if it were an address."""
     result = _clean(address_line1=raw, address_line2=raw, address_line3=raw)
 
     assert result[LINE] is None
@@ -112,6 +119,7 @@ def test_address_cleaner_nulls_junk_in_an_address_line(raw: str) -> None:
 def test_address_cleaner_title_cases_a_line_only_when_uniform_case(
     raw: str, expected: str
 ) -> None:
+    """Street lines are tidied into proper capitals only when they were all upper or all lower. Lines that are already mixed, like Smith & Sons, might hold names or short forms we cannot safely fix."""
     assert _clean(address_line1=raw)[LINE] == expected
 
 
@@ -121,16 +129,19 @@ def test_address_cleaner_title_cases_a_line_only_when_uniform_case(
 def test_address_cleaner_keeps_a_short_upper_case_region_code(
     raw: str, expected: str
 ) -> None:
+    """A county of CA or NSW is a region code, and turning it into Ca would be wrong. Longer words like KENT do get tidied, and a town is always tidied whatever its length."""
     assert _clean(address_line1="1 High Street", county=raw)[STATE] == expected
     # A town is title-cased whatever its length.
     assert _clean(address_line1="1 High Street", town=raw)[TOWN] == raw.capitalize()
 
 
 def test_address_cleaner_cleans_county_into_state() -> None:
+    """The schema has no county output, only state. So the county column is cleaned and comes out in the state slot."""
     assert _clean(address_line1="1 High Street", county="kent")[STATE] == "Kent"
 
 
 def test_address_cleaner_keeps_missing_town_and_county_as_none() -> None:
+    """If the town and county were never given, we should not invent anything. Both simply come back empty."""
     result = _clean(address_line1="1 High Street")
 
     assert result[TOWN] is None
@@ -158,11 +169,13 @@ def test_address_cleaner_keeps_missing_town_and_county_as_none() -> None:
 def test_address_cleaner_normalizes_postcode_and_spaces_uk_ones(
     raw: str, expected: str
 ) -> None:
+    """Postcodes arrive in all sorts of shapes, with odd spacing, dashes and lower case. We make them upper case without stray separators, and UK ones get their usual space before the last three characters."""
     assert _clean(address_line1="1 High Street", postcode=raw)[POSTCODE] == expected
 
 
 @pytest.mark.parametrize("raw", ["???", "---", "- -"])
 def test_address_cleaner_nulls_postcode_without_letters_or_digits(raw: str) -> None:
+    """A postcode made of only question marks or dashes carries no information. It turns into an empty value instead of being kept as text."""
     assert _clean(address_line1="1 High Street", postcode=raw)[POSTCODE] is None
 
 
@@ -185,6 +198,7 @@ def test_address_cleaner_nulls_postcode_without_letters_or_digits(raw: str) -> N
 def test_address_cleaner_lays_out_a_postcode_by_country(
     raw: str, country: str | None, expected: str
 ) -> None:
+    """Each country writes postcodes its own way, such as K1A 0B1 for Canada or 00-950 for Poland. We only reformat when the country is known and the code fits it, and otherwise leave it as cleaned rather than guess."""
     result = _clean(address_line1="1 High Street", postcode=raw, country=country)
 
     assert result[POSTCODE] == expected
@@ -196,6 +210,7 @@ def test_address_cleaner_lays_out_a_postcode_by_country(
 
 
 def test_address_cleaner_collapses_whitespace_in_every_line() -> None:
+    """Extra spaces inside or around a line are common in typed data. All three lines get them squeezed out, so the same address always looks the same."""
     result = _clean(
         address_line1="12   baker  street",
         address_line2="2nd   floor",
@@ -208,6 +223,7 @@ def test_address_cleaner_collapses_whitespace_in_every_line() -> None:
 
 
 def test_address_cleaner_splits_a_leading_house_number() -> None:
+    """In 12 baker street, the 12 is the house number and the rest is the street. They come out in separate outputs so each can be used on its own."""
     result = _clean(address_line1="12 baker street")
 
     assert result[STREET] == "Baker Street"
@@ -215,6 +231,7 @@ def test_address_cleaner_splits_a_leading_house_number() -> None:
 
 
 def test_address_cleaner_keeps_whole_line_as_street_without_a_number() -> None:
+    """PO Box 99 does not start with a house number. We keep the whole line as the street and leave the house number empty instead of making one up."""
     result = _clean(address_line1="PO Box 99")
 
     assert result[STREET] == "PO Box 99"
@@ -227,6 +244,7 @@ def test_address_cleaner_keeps_whole_line_as_street_without_a_number() -> None:
 
 
 def test_address_cleaner_claims_town_address3_and_postcode_by_role() -> None:
+    """Given columns named address1 to address3, town, county and postcode, the resolver should hand each one to the matching part of the cleaner. This is how the right column ends up in the right slot."""
     cols = {"address1", "address2", "address3", "town", "county", "postcode"}
     assignments = Resolver(cleaners=(AddressCleaner(),)).resolve(
         _df(**{col: ["v"] for col in cols}), cols
@@ -243,6 +261,7 @@ def test_address_cleaner_claims_town_address3_and_postcode_by_role() -> None:
 
 
 def test_country_columns_go_to_country_cleaner_not_address_cleaner() -> None:
+    """Country columns look address-like, but they belong to the country cleaner. The address cleaner should take only address1, and both country columns go to the other cleaner."""
     cols = {"address1", "country", "_client_country_of_incorporation"}
     assignments = Resolver(cleaners=(AddressCleaner(), CountryCleaner())).resolve(
         _df(**{col: ["v"] for col in cols}), cols
@@ -266,6 +285,7 @@ def test_country_columns_go_to_country_cleaner_not_address_cleaner() -> None:
 def test_missing_optional_columns_do_not_shift_values_between_roles() -> None:
     # No town, county or address2/3 columns: the postcode must still reach the
     # postcode role, not whichever role comes next in the schema.
+    """Here the table has no town, county or extra address lines. The postcode must still be treated as a postcode, not slide into the next free slot, and no empty output columns appear for the missing parts."""
     cleaned = Pipeline(cleaners=(AddressCleaner(),)).fit_transform(
         _df(address1=["12 High Street"], postcode=["br1 1aa"])
     )
@@ -280,6 +300,7 @@ def test_missing_optional_columns_do_not_shift_values_between_roles() -> None:
 
 
 def test_country_is_cleaned_in_place_next_to_an_address_group() -> None:
+    """When an address group and a country column sit together, the country column is tidied where it is, so GBR becomes United Kingdom. A different country-like column, the incorporation one, is left as it was."""
     cleaned = Pipeline(cleaners=(AddressCleaner(), CountryCleaner())).fit_transform(
         _df(
             address1=["", "12 High Street"],
@@ -297,6 +318,7 @@ def test_country_is_cleaned_in_place_next_to_an_address_group() -> None:
 
 
 def test_country_column_sets_the_postcode_layout_in_a_pipeline() -> None:
+    """In a whole run, each row's own country decides how its postcode is laid out. Canada gets the spaced layout, and the made-up country Atlantis leaves the postcode unspaced."""
     cleaned = Pipeline(cleaners=(AddressCleaner(), CountryCleaner())).fit_transform(
         _df(
             address1=["1 High Street", "2 Rue Cler"],
@@ -310,6 +332,7 @@ def test_country_column_sets_the_postcode_layout_in_a_pipeline() -> None:
 
 
 def test_general_country_column_is_used_when_the_table_has_several() -> None:
+    """A table can have several country columns, and the one for incorporation says nothing about where the address is. The plain country column is the one used to lay out the postcode."""
     cleaned = Pipeline(cleaners=(AddressCleaner(), CountryCleaner())).fit_transform(
         _df(
             address1=["1 High Street"],
@@ -324,6 +347,7 @@ def test_general_country_column_is_used_when_the_table_has_several() -> None:
 
 
 def test_row_without_a_first_line_still_gets_town_and_postcode() -> None:
+    """One row has an empty first address line, which should not stop its town and postcode being cleaned. The junk postcode becomes empty and the other row is cleaned as usual."""
     cleaned = Pipeline(cleaners=(AddressCleaner(),)).fit_transform(
         _df(
             address1=["", "1 High Street"],
@@ -338,6 +362,7 @@ def test_row_without_a_first_line_still_gets_town_and_postcode() -> None:
 
 
 def test_group_without_a_first_line_column_is_named_after_its_first_column() -> None:
+    """New columns are named after the first address line. When the table has none, we use the first column that is present, here town, so the names stay predictable."""
     cleaned = Pipeline(cleaners=(AddressCleaner(),)).fit_transform(
         _df(town=["london"], postcode=["sw1a1aa"])
     )
@@ -348,6 +373,7 @@ def test_group_without_a_first_line_column_is_named_after_its_first_column() -> 
 
 
 def test_only_the_roles_that_were_given_a_column_come_out() -> None:
+    """With only a town column, there is nothing else to write. The town is tidied in place and no extra address columns are added."""
     cleaned = Pipeline(cleaners=(AddressCleaner(),)).fit_transform(
         _df(town=["london", "LEEDS"])
     )
@@ -358,6 +384,7 @@ def test_only_the_roles_that_were_given_a_column_come_out() -> None:
 
 
 def test_address_cleaner_strips_html_from_every_component() -> None:
+    """Data copied from web pages can carry tags and even scripts. We remove them from the line, town and postcode, so no angle brackets are left in the result."""
     result = _clean(
         address_line1="<b>10 Downing St</b><script>x()</script>",
         town="<i>london</i>",
@@ -371,12 +398,14 @@ def test_address_cleaner_strips_html_from_every_component() -> None:
 
 @pytest.mark.parametrize("raw", ["null", "NULL", "n/a", "None", "-", "undefined"])
 def test_address_cleaner_drops_placeholders(raw: str) -> None:
+    """Words like null, n/a or a lone dash are how people write nothing. We treat them as missing, so the town and county come back empty."""
     result = _clean(address_line1="1 High Street", town=raw, county=raw)
     assert result[TOWN] is None
     assert result[STATE] is None
 
 
 def test_address_cleaner_removes_emoji_everywhere() -> None:
+    """Now and then people add a little house or flag to an address. We take the emoji out of the line, town and postcode and keep the real text."""
     result = _clean(
         address_line1="12 Baker Street \U0001f3e0",
         town="London \U0001f1ec\U0001f1e7",

@@ -19,6 +19,9 @@ from dataclean.utils import format_postcode
 def test_format_postcode_lays_out_by_country(
     value: str, country: str, expected: str
 ) -> None:
+    """Postcodes are written differently from country to country, and a UK code gets a
+    space before its last three characters. We lay each one out the local way.
+    """
     assert format_postcode(value, country) == expected
 
 
@@ -35,4 +38,7 @@ def test_format_postcode_lays_out_by_country(
 def test_format_postcode_keeps_a_value_it_cannot_place(
     value: str, country: str | None
 ) -> None:
+    """If the country is unknown or has no known layout, the value comes back exactly
+    as it was. Guessing could corrupt a perfectly good value.
+    """
     assert format_postcode(value, country) == value

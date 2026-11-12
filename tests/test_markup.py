@@ -1,3 +1,5 @@
+"""Tests stripping HTML and extracting links from markup in text values."""
+
 import pytest
 
 from dataclean.utils import html_hrefs, strip_html
@@ -29,10 +31,16 @@ from dataclean.utils import html_hrefs, strip_html
     ],
 )
 def test_strip_html(text: str, expected: str) -> None:
+    """Tags and comments are swapped for a space, so the words on either side do not
+    stick together.
+    """
     assert strip_html(text) == expected
 
 
 def test_strip_html_replacement() -> None:
+    """You can choose what replaces the tags, nothing at all here, and script content
+    disappears along with its tag.
+    """
     assert strip_html("a<b>c</b><script>x</script>d", "") == "acd"
 
 
@@ -51,4 +59,7 @@ def test_strip_html_replacement() -> None:
     ],
 )
 def test_html_hrefs(text: str, expected: tuple[str, ...]) -> None:
+    """Link targets are collected from anchor tags. That way the URLs can be kept even
+    after the markup is stripped.
+    """
     assert html_hrefs(text) == expected

@@ -1,3 +1,5 @@
+"""Email cleaner tests: normalising, extracting from wrappers, strict validation, international domains and typo repair."""
+
 from dataclasses import dataclass
 
 import pytest
@@ -84,7 +86,7 @@ test_cases = [
 
 
 def test_email_cleaner():
-
+    """We run a set of typical addresses through the cleaner with the standard options. Spaces are trimmed and the text is lowercased, while dots and plus tags stay, so the same address always looks the same."""
     for test_case in test_cases:
         cleaner = EmailCleaner(
             output_format=test_case.output_format,
@@ -120,6 +122,7 @@ def test_email_cleaner():
     ],
 )
 def test_email_unwraps_common_wrappers(input_value, expected):
+    """Exports often wrap the address in angle brackets, quotes or a display name. The cleaner should pull out just the plain address."""
     assert EmailCleaner().clean_row(input_value) == expected
 
 
@@ -138,6 +141,7 @@ def test_email_unwraps_common_wrappers(input_value, expected):
     ],
 )
 def test_email_text_around_the_address_gives_none(input_value):
+    """If the cell has extra words, spaces or broken structure, it is not a single clean address. Rather than pick something out, we return null."""
     assert EmailCleaner().clean_row(input_value) is None
 
 
@@ -157,10 +161,12 @@ def test_email_text_around_the_address_gives_none(input_value):
     ],
 )
 def test_email_strict_rejects_breaking_the_standard(input_value):
+    """Double dots, leading hyphens and over-long parts break the email standard and would bounce. In the default strict mode, each of these becomes null."""
     assert EmailCleaner().clean_row(input_value) is None
 
 
 def test_email_not_strict_keeps_improper_addresses():
+    """With strict turned off, odd but readable addresses are kept as they are. Truly unusable ones, like a space in the name part or a domain with no dot, are still dropped."""
     cleaner = EmailCleaner(strict=False)
     assert cleaner.clean_row("a..b@c.com") == "a..b@c.com"
     assert cleaner.clean_row(".a@b.com") == ".a@b.com"
@@ -180,11 +186,13 @@ def test_email_not_strict_keeps_improper_addresses():
     ],
 )
 def test_email_international_domains_are_kept(input_value, expected):
+    """Domains with non-English letters, like a German umlaut, are valid. They should pass through unchanged in both strict and relaxed modes."""
     assert EmailCleaner().clean_row(input_value) == expected
     assert EmailCleaner(strict=False).clean_row(input_value) == expected
 
 
 def test_email_components_output_for_international_domain():
+    """In components mode an address is split into name, tag and domain. This case checks the split works when the domain contains non-English letters."""
     cleaner = EmailCleaner(output_format=EmailCleaner.OutputFormat.COMPONENTS)
     assert cleaner.clean_row("a+t@münchen.de") == ("a", "t", "münchen.de")
 
@@ -211,26 +219,31 @@ def test_email_components_output_for_international_domain():
     ],
 )
 def test_email_fixes_domain_typos_of_known_providers(input_value, expected):
+    """Typing gmial.com instead of gmail.com is a very common mistake. For well-known providers we are confident what was meant, so the domain is corrected."""
     assert EmailCleaner().clean_row(input_value) == expected
 
 
 def test_email_domain_typo_fix_can_be_turned_off():
+    """Some teams do not want their data edited. With the fix off, gmial.com is left exactly as typed."""
     cleaner = EmailCleaner(fix_domain_typos=False)
     assert cleaner.clean_row("john@gmial.com") == "john@gmial.com"
 
 
 def test_email_domain_typo_fix_keeps_local_part_and_tag():
+    """When a domain typo is repaired, only the domain should change. The name part is lowercased as usual and the tag stays."""
     cleaner = EmailCleaner(output_format=EmailCleaner.OutputFormat.COMPONENTS)
     assert cleaner.clean_row("Jo.Hn+x@gmial.com") == ("jo.hn", "x", "gmail.com")
 
 
 def test_email_cleaner_strips_html_first() -> None:
+    """Addresses sometimes arrive wrapped in HTML. Plain formatting tags are dropped, but script content is never trusted and gives null."""
     cleaner = EmailCleaner()
     assert cleaner.clean_row("<b>John@Example.com</b>") == "john@example.com"
     assert cleaner.clean_row("<script>a@b.com</script>") is None
 
 
 def test_email_cleaner_reads_mailto_links_first() -> None:
+    """In an anchor tag, the mailto target is the real address and the visible text may say anything. So we read the link first and only fall back to the text when there is no usable mailto."""
     cleaner = EmailCleaner()
     assert cleaner.clean_row('<a href="mailto:Jane@Example.com">click</a>') == (
         "jane@example.com"
@@ -243,4 +256,5 @@ def test_email_cleaner_reads_mailto_links_first() -> None:
 
 
 def test_email_clean_strips_emoji():
+    """Someone put an envelope emoji in front of the address. We drop it and clean the rest as normal."""
     assert EmailCleaner().clean_row("\U0001f4e7 John@Example.com") == "john@example.com"

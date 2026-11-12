@@ -1,3 +1,5 @@
+"""Tests for PluginLoader: plugin discovery by name and loading of plugin components into config."""
+
 import types
 from collections.abc import Iterator
 
@@ -46,6 +48,9 @@ def _fake_module(monkeypatch: pytest.MonkeyPatch, info: object) -> list[str]:
 def test_find_plugins_returns_only_dataclean_prefixed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Plugins are installed packages whose names start with dataclean-. Of the
+    packages installed, only those are picked up and unrelated ones like requests
+    are left alone."""
     dists = [_Dist("dataclean-foo"), _Dist("requests"), _Dist("dataclean-bar")]
     monkeypatch.setattr("importlib.metadata.distributions", lambda: dists)
 
@@ -55,6 +60,8 @@ def test_find_plugins_returns_only_dataclean_prefixed(
 def test_find_plugins_excludes_core_package_name(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """The core package is itself called dataclean, but it is not a plugin. Discovery
+    should not list it."""
     monkeypatch.setattr(
         "importlib.metadata.distributions", lambda: [_Dist("dataclean")]
     )
@@ -65,6 +72,9 @@ def test_find_plugins_excludes_core_package_name(
 def test_load_plugin_registers_components_and_normalizes_module_name(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Loading a plugin adds its data frame types, catalogs and presets to the shared
+    config. Python can't import a name with a dash, so dataclean-fake is imported as
+    dataclean_fake."""
     preset = _Preset()
     info = PluginInfo(
         name="dataclean-fake",
@@ -83,6 +93,8 @@ def test_load_plugin_registers_components_and_normalizes_module_name(
 
 
 def test_load_plugin_is_idempotent(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Asking to load the same plugin twice should be harmless. Its components appear
+    in the config once, not twice."""
     info = PluginInfo(name="dataclean-fake", dataframe_types={PandasDataFrame})
     _fake_module(monkeypatch, info)
 
@@ -97,6 +109,8 @@ def test_load_plugin_is_idempotent(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_load_plugin_invalid_info_raises(
     monkeypatch: pytest.MonkeyPatch, bad_info: object
 ) -> None:
+    """Every plugin must expose a proper PluginInfo. If it exposes nothing useful, such
+    as None, a string or a plain dict, loading fails with a clear error."""
     _fake_module(monkeypatch, bad_info)
 
     with pytest.raises(RuntimeError):
@@ -106,6 +120,9 @@ def test_load_plugin_invalid_info_raises(
 def test_load_plugin_subclassed_info_is_rejected(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Only the exact PluginInfo type is accepted. A subclass could change how the info
+    behaves, so it is refused."""
+
     class Sub(PluginInfo):
         pass
 
@@ -118,6 +135,8 @@ def test_load_plugin_subclassed_info_is_rejected(
 def test_load_plugins_loads_every_found_plugin(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """load_plugins is the convenience call. It asks discovery for the plugin names and
+    loads each of them."""
     loader = PluginLoader()
     monkeypatch.setattr(PluginLoader, "find_plugins", lambda self: {"a", "b"})
     loaded: list[str] = []

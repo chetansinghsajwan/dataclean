@@ -24,10 +24,16 @@ UPPER = frozenset({"po"})
     ],
 )
 def test_title_case(raw: str, expected: str) -> None:
+    """Names are capitalised the usual way, except that small words stay lowercase and
+    a chosen list of words stays uppercase.
+    """
     assert title_case(raw, small_words=SMALL, upper_words=UPPER) == expected
 
 
 def test_title_case_upper_cases_a_last_word_only() -> None:
+    """A suffix like III is upper-cased only as the last word. At the start, iii looks
+    more like a name, so it gets normal capitalisation.
+    """
     last = frozenset({"iii"})
 
     assert title_case("john iii", upper_last_words=last) == "John III"

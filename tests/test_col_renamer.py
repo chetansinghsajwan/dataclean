@@ -1,3 +1,5 @@
+"""Tests for ColRenamer: renaming column names into each supported case style."""
+
 from dataclasses import dataclass
 
 from dataclean import ColRenamer
@@ -132,7 +134,9 @@ test_cases = [
 
 
 def test_col_renamer():
-
+    """This walks through every supported naming style, such as snake, camel, kebab and
+    pascal. A spaced name like First Name is converted into each style, and a name
+    already in that style comes back unchanged."""
     for case in test_cases:
         renamer = ColRenamer(case=case.case)
         result = renamer.rename(case.input)
