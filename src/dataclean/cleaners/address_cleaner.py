@@ -242,7 +242,7 @@ class AddressCleaner(Cleaner):
         street, house_no = self._extract_street_and_number(address_line)
 
         everything = (
-            self._clean_place(county),
+            self._clean_place(county, region=True),
             self._clean_postcode(postcode, country),
             address_line,
             street,
@@ -263,11 +263,16 @@ class AddressCleaner(Cleaner):
 
     # Private helper methods
 
-    def _clean_place(self, value: str | None) -> str | None:
+    def _clean_place(self, value: str | None, region: bool = False) -> str | None:
         """Strip HTML, collapse whitespace and title-case a town or county.
 
         A placeholder such as ``null`` or ``n/a``, a value with no letters and
         junk such as code, a link or a path give None.
+
+        Decision: a ``region`` (county or state) written as one upper-case
+        word of up to three letters, such as "CA" or "NSW", is a code and is
+        kept, since title case would turn it into "Ca". A town gets no such
+        rule, because a short upper-case town ("ELY") is more likely a name.
         """
         if not value:
             return None
@@ -278,6 +283,8 @@ class AddressCleaner(Cleaner):
             return None
         if len(cleaned) > _MAX_LENGTH or _is_junk(cleaned):
             return None
+        if region and cleaned.isupper() and cleaned.isalpha() and len(cleaned) <= 3:
+            return cleaned
         return _title_case(cleaned)
 
     def _clean_address_line(self, value: str | None) -> str | None:

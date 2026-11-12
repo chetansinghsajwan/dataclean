@@ -52,7 +52,10 @@ components out. No configuration options beyond the base `tags`/`inplace`.
   lay the postcode out as that country writes it (`K1A0B1` to `K1A 0B1` in
   Canada, `1234AB` to `1234 AB` in the Netherlands, `123456789` to
   `12345-6789` in the United States). A postcode that does not fit its
-  country's pattern, or a row with no known country, is kept as cleaned. The
+  country's pattern, or a row with no known country, is kept as cleaned. When
+  the table has several country columns, the one named exactly `country` is used.
+  A county or state written as one upper-case word of up to three letters
+  (`CA`, `NSW`) is kept as a code; a town is always title-cased. The
   patterns come from the GeoNames `countryInfo.txt` list (CC BY 4.0).
 
 !!! note "Known gaps" Street abbreviations (`St`, `Rd`, `Dr`) are not expanded, since they are

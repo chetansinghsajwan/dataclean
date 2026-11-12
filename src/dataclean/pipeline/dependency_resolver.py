@@ -188,17 +188,23 @@ class DependencyResolver:
         if len(candidates) == 1:
             return candidates[0]
 
+        role_token = role.lower()
+        candidate_columns = [
+            self._producer_identity(assignments[candidate]) for candidate in candidates
+        ]
+
         if consumer_column is None:
+            # Decision: a group cleaner has no single column to compare names
+            # with, so it takes the table's general column, the one named just
+            # after the role ("country"), and not "_client_country_of_incorporation".
+            generic = self._generic_producer(role_token, candidates, candidate_columns)
+            if generic is not None:
+                return generic
             if required:
                 raise AmbiguousRoleError(
                     f"Multiple producers for required role '{role}'"
                 )
             return None
-
-        role_token = role.lower()
-        candidate_columns = [
-            self._producer_identity(assignments[candidate]) for candidate in candidates
-        ]
 
         if not all(role_token in column.lower() for column in candidate_columns):
             generic = self._generic_producer(role_token, candidates, candidate_columns)

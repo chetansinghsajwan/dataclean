@@ -115,6 +115,17 @@ def test_address_cleaner_title_cases_a_line_only_when_uniform_case(
     assert _clean(address_line1=raw)[LINE] == expected
 
 
+@pytest.mark.parametrize(
+    "raw, expected", [("CA", "CA"), ("NSW", "NSW"), ("KENT", "Kent"), ("ca", "Ca")]
+)
+def test_address_cleaner_keeps_a_short_upper_case_region_code(
+    raw: str, expected: str
+) -> None:
+    assert _clean(address_line1="1 High Street", county=raw)[STATE] == expected
+    # A town is title-cased whatever its length.
+    assert _clean(address_line1="1 High Street", town=raw)[TOWN] == raw.capitalize()
+
+
 def test_address_cleaner_cleans_county_into_state() -> None:
     assert _clean(address_line1="1 High Street", county="kent")[STATE] == "Kent"
 
@@ -296,6 +307,20 @@ def test_country_column_sets_the_postcode_layout_in_a_pipeline() -> None:
 
     assert cleaned.df is not None
     assert cleaned.df["address1_postcode_cleaned"].tolist() == ["K1A 0B1", "K1A0B1"]
+
+
+def test_general_country_column_is_used_when_the_table_has_several() -> None:
+    cleaned = Pipeline(cleaners=(AddressCleaner(), CountryCleaner())).fit_transform(
+        _df(
+            address1=["1 High Street"],
+            postcode=["k1a0b1"],
+            country=["Canada"],
+            _client_country_of_incorporation=["Malta"],
+        )
+    )
+
+    assert cleaned.df is not None
+    assert cleaned.df["address1_postcode_cleaned"].tolist() == ["K1A 0B1"]
 
 
 def test_row_without_a_first_line_still_gets_town_and_postcode() -> None:
