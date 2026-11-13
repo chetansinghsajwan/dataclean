@@ -16,8 +16,8 @@ This plan covers what must be done before the first public release of
 | 5 | List datasets by regex (done) | none | M |
 | 6 | Databricks support (in progress) | 2, 5 | L |
 | 7 | dbt usage (approach only) | 6 | S |
-| 8 | README | 3, 4, 5, 7 | S |
-| 9 | Agent skill | 8 | S |
+| 8 | README (done) | 3, 4, 5, 7 | S |
+| 9 | Agent skill (done) | 8 | S |
 
 ## Details
 
@@ -133,11 +133,19 @@ Status: approach only. This is the plan, not an implementation.
 
 ### 8. README
 
+Status: done. The before/after table is real output of the quickstart. The dbt
+section says it is not built yet. The install lines use `git+https` URLs,
+since the packages are not on PyPI; switch them to `pip install dataclean ...` in the
+README and the skill when the first release is published.
+
 - Install, a 10-line quickstart, and a before/after table from a sample
   dataset.
 - Databricks and dbt usage, and scheme-prefixed paths (`path:`, `databricks:`).
 
 ### 9. Agent skill
+
+Status: done, at `skills/dataclean/SKILL.md`. Re-check it if the API changes
+before release.
 
 - A `SKILL.md` covering when to use dataclean, the `clean` and `clean_paths`
   calls, and overriding cleaners.
