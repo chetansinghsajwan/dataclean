@@ -144,3 +144,64 @@ def test_col_renamer():
         assert result == case.expected, (
             f"Failed for case: {case.case}, input: {case.input}, expected: {case.expected}, got: {result}"
         )
+
+
+# ==========================================
+# cleaning, prefixing, dedupe, length
+# ==========================================
+def test_default_case_is_snake() -> None:
+    assert ColRenamer().case == "snake"
+
+
+def test_cleans_invisible_emoji_accents_and_specials() -> None:
+    renamer = ColRenamer()
+    assert renamer.rename("﻿First​ Name") == "first_name"
+    assert renamer.rename("Phone \U0001f4de") == "phone"
+    assert renamer.rename("Café Name") == "cafe_name"
+    assert renamer.rename("Amount (%) #1") == "amount_1"
+
+
+def test_digit_leading_and_empty_names_get_prefix() -> None:
+    renamer = ColRenamer()
+    assert renamer.rename("2nd phone").startswith("col_")
+    assert renamer.rename("###") == "col"
+
+
+def test_rename_cols_dedupes_collisions() -> None:
+    renamer = ColRenamer()
+    assert renamer.rename_cols(["Phone", "phone", "PHONE"]) == {
+        "Phone": "phone_2",
+        "PHONE": "phone_3",
+    }
+
+
+def test_rename_cols_dedupes_against_untouched_names() -> None:
+    assert ColRenamer().rename_cols(["Phone", "phone"]) == {"Phone": "phone_2"}
+
+
+def test_max_length_keeps_dedupe_suffix() -> None:
+    renamer = ColRenamer(max_length=6)
+    result = renamer.rename_cols(["customer_name", "Customer Name"])
+    assert all(len(v) <= 6 for v in result.values())
+    assert len(set(result.values())) == len(result)
+
+
+def test_aliases_fix_abbreviations_and_compounds() -> None:
+    renamer = ColRenamer()
+    assert renamer.rename("fname") == "first_name"
+    assert renamer.rename("lname_2") == "last_name_2"
+    assert renamer.rename("FName") == "first_name"
+    assert renamer.rename("mname") == "middle_name"
+    assert renamer.rename("lnamefname_3") == "last_name_first_name_3"
+    assert renamer.rename("rowguid") == "row_guid"
+    assert renamer.rename("dateofbirth") == "date_of_birth"
+    assert renamer.rename("postcode") == "post_code"
+    assert renamer.rename("filename") == "file_name"
+    assert renamer.rename("username") == "user_name"
+
+
+def test_custom_aliases_replace_defaults() -> None:
+    assert ColRenamer(aliases={}).rename("rowguid") == "row_gui_d"
+    assert ColRenamer(aliases={"cust": ("customer",)}).rename("cust id") == (
+        "customer_id"
+    )

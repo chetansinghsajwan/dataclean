@@ -471,6 +471,12 @@ def clean_paths(
             if rename_col_map:
                 rename_map.update(rename_col_map)
             if rename_map:
+                final_names = [rename_map.get(c, c) for c in df.col_names()]
+                clashes = sorted({n for n in final_names if final_names.count(n) > 1})
+                if clashes:
+                    raise ValueError(
+                        f"Renaming columns of '{path}' gives duplicate names: {clashes}"
+                    )
                 _logger.debug("Renaming columns for '%s': %s", path, rename_map)
                 df.rename_cols(rename_map)
 

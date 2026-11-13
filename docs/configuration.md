@@ -42,10 +42,23 @@ config.register_preset(my_preset_instance)
 
 ## `ColRenamer`
 
-`ColRenamer` (`src/dataclean/col_renamer.py`) normalizes column names into a
-consistent case. It splits each name into words with `wordninja` (so it can
-split concatenated names like `"firstname"` into `("first", "name")`) and
-rejoins them per the chosen case.
+`ColRenamer` (`src/dataclean/col_renamer.py`) cleans column names and
+normalizes them into a consistent case. It removes invisible characters, emoji
+and markup, folds accents, then splits each name into words with `wordninja`
+(so it can split concatenated names like `"firstname"` into `("first",
+"name")`) and rejoins them per the chosen case. Special characters such as
+`#`, `%` and `.` become word breaks.
+
+- A name that starts with a digit or is empty gets the `prefix` word
+  (default `col`): `2nd Phone` -> `col_2_nd_phone`.
+- In `rename_cols`, names that end up the same get a number: `Phone`,
+  `phone`, `PHONE` -> `phone`, `phone_2`, `phone_3` (a name already clean keeps it).
+- `max_length` cuts names for engines with a limit.
+- `aliases` maps names that word splitting gets wrong to their words, such as
+  `fname` -> `first_name` and `dateofbirth` -> `date_of_birth`. The defaults
+  are `DEFAULT_ALIASES`; a custom dict replaces them, and `{}` turns them off.
+- `clean_paths` raises `ValueError` if `rename_col_map` makes two columns
+  share a name.
 
 ```python
 from dataclean import ColRenamer
@@ -58,8 +71,8 @@ renamer.rename_cols(["FirstName", "e-mail", "PhoneNumber"])
 renamer.rename("FirstName")  # -> "first_name" (always returns a value)
 ```
 
-Available `case` values: `snake`, `upper_snake`, `upper`, `lower` (default if
-omitted), `pascal`, `camel`, `kebab`, `train`, `cobol`.
+Available `case` values: `snake` (default), `upper_snake`, `upper`, `lower`, `pascal`, `camel`,
+`kebab`, `train`, `cobol`.
 
 ## `clean()` vs `clean_paths()`
 
