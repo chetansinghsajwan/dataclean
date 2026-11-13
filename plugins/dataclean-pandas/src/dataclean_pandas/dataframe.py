@@ -23,6 +23,13 @@ def _stringify(value: Any) -> str | None:
     return str(value)
 
 
+def _as_pandas(other: DataFrame) -> pd.DataFrame:
+    """Return the pandas frame inside ``other``, or fail if it is another engine's."""
+    if not isinstance(other, PandasDataFrame):
+        raise TypeError(f"expected a PandasDataFrame, got {type(other).__name__}")
+    return other.df
+
+
 @checked
 @dataclass
 class PandasDataFrame(DataFrame):
@@ -309,3 +316,19 @@ class PandasDataFrame(DataFrame):
             cols_to_filter = [cols] if isinstance(cols, str) else list(cols)
             result_df = result_df.dropna(subset=cols_to_filter)
         return PandasDataFrame(df=result_df.reset_index(drop=True))
+
+    @override
+    def anti_join(self, other: DataFrame, cols: Iterable[str]) -> "PandasDataFrame":
+        keys = list(cols)
+        known = _as_pandas(other)[keys].drop_duplicates()
+        merged = self.df.merge(known, on=keys, how="left", indicator=True)
+        kept = merged[merged["_merge"] == "left_only"].drop(columns="_merge")
+        return PandasDataFrame(df=kept.reset_index(drop=True))
+
+    @override
+    def union(self, other: DataFrame) -> "PandasDataFrame":
+        theirs = _as_pandas(other)
+        if set(theirs.columns) != set(self.df.columns):
+            raise ValueError("union needs both dataframes to have the same columns")
+        both = pd.concat([self.df, theirs[list(self.df.columns)]], ignore_index=True)
+        return PandasDataFrame(df=both)

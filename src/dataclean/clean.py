@@ -14,6 +14,7 @@ from .col_renamer import ColRenamer
 from .config import config
 from .engine import Catalog, DataFrame
 from .pipeline import Pipeline
+from .scd import Scd2
 from .types import checked
 from .utils import _log_args, map_paths
 
@@ -300,6 +301,7 @@ def clean_paths(
     keep_original: bool = False,
     original_suffix: str = "_uncleaned",
     column_cleaners: Mapping[str, str | Cleaner] | None = None,
+    scd: Scd2 | None = None,
 ) -> CleanPathResult:
     """Discover, clean, and write dataframes for a set of catalog paths.
 
@@ -355,6 +357,11 @@ def clean_paths(
             registered name (``"EmailCleaner"``) or as an instance. A column
             that a dataset does not have is skipped. Applied after renaming,
             so use the renamed column name.
+        scd: SCD 2 columns of the datasets. When set and ``write_path``
+            already holds output from an earlier run, only versions that are
+            new or have closed since are cleaned, and they are merged into
+            that output. The SCD columns are never cleaned. With no earlier
+            output everything is cleaned. Names are matched after renaming.
 
     Returns:
         A :class:`CleanPathResult` describing the outcome.
@@ -386,6 +393,7 @@ def clean_paths(
         keep_original=keep_original,
         original_suffix=original_suffix,
         column_cleaners=column_cleaners,
+        scd=scd,
     )
 
     if config.auto_load_plugins and config.plugin_loader is not None:
@@ -493,14 +501,35 @@ def clean_paths(
                 expanded_paths_len,
                 path,
             )
-            cleaned_dfs[path] = _clean_df(
+            skip_cols = list(ignore_cols or ())
+            earlier: DataFrame | None = None
+            if scd is not None:
+                scd.check(df, f"'{path}'")
+                skip_cols.extend(scd.protected_cols)
+                if write_path is not None:
+                    target = write_targets[path]
+                    if not dry_run and target.catalog.exists(target.path):
+                        earlier = target.catalog.read_df(target.path)
+                        scd.check(earlier, f"output '{target.full}'")
+                        df = scd.pending(df, earlier)
+                        _logger.info("%d new or closed versions to clean", df.count())
+
+            if earlier is not None and df.count() == 0:
+                cleaned_dfs[path] = earlier
+                _logger.info("Nothing new in '%s', leaving its output as is", path)
+                continue
+
+            cleaned = _clean_df(
                 df,
                 cleaners=cleaners,
-                ignore_cols=ignore_cols,
+                ignore_cols=skip_cols,
                 keep_original=keep_original,
                 original_suffix=original_suffix,
                 column_cleaners=resolved_column_cleaners,
             )
+            if earlier is not None and scd is not None:
+                cleaned = scd.merge(earlier, cleaned)
+            cleaned_dfs[path] = cleaned
         else:
             cleaned_dfs[path] = df
 

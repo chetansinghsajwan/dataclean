@@ -2,6 +2,7 @@
 
 from collections.abc import Iterable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import ClassVar, Self, override
 
 import pandas as pd
@@ -26,7 +27,7 @@ class PandasCatalog(Catalog):
     }
 
     WRITERS = {
-        ".csv": lambda df, p: df.df.to_csv(p),
+        ".csv": lambda df, p: df.df.to_csv(p, index=False),
         ".parquet": lambda df, p: df.df.to_parquet(p),
         ".xlsx": lambda df, p: df.df.to_excel(p, engine="openpyxl"),
         ".xls": lambda df, p: df.df.to_excel(p, engine="xlrd"),
@@ -40,6 +41,10 @@ class PandasCatalog(Catalog):
     @override
     def expand_paths(self, paths: Iterable[str]) -> set[str]:
         return expand_local_paths(paths)
+
+    @override
+    def exists(self, path: str) -> bool:
+        return Path(path).is_file()
 
     @override
     def read_df(self, path: str) -> PandasDataFrame:

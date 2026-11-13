@@ -354,3 +354,28 @@ class DataFrame(ABC):
                 values. If ``None``, apply to all columns.
         """
         pass
+
+    @abstractmethod
+    def anti_join(self, other: "DataFrame", cols: Iterable[str]) -> "DataFrame":
+        """Return a new :class:`DataFrame` of the rows whose ``cols`` are not in ``other``.
+
+        Rows are compared on the values of ``cols`` alone, and nulls match
+        nulls. ``other`` must come from the same engine.
+
+        Args:
+            other: The dataframe to look the rows up in.
+            cols: Columns, present in both dataframes, that identify a row.
+        """
+        pass
+
+    @abstractmethod
+    def union(self, other: "DataFrame") -> "DataFrame":
+        """Return a new :class:`DataFrame` with the rows of ``self`` then ``other``.
+
+        Columns are matched by name, so their order may differ. ``other``
+        must come from the same engine and have the same columns.
+
+        Raises:
+            ValueError: If the two dataframes do not have the same columns.
+        """
+        pass

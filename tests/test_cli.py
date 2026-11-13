@@ -95,7 +95,7 @@ def test_cli_end_to_end_cleans_a_csv(tmp_path) -> None:
 
     assert result.exit_code == 0, result.output
     written = pd.read_csv(dest)
-    assert list(written.columns)[1:] == ["client_country"]
+    assert list(written.columns) == ["client_country"]
     assert written["client_country"].iloc[0] == "India"
 
 

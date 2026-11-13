@@ -431,3 +431,37 @@ class BaseDataFrameTests:
 
         assert len(seen) == 2
         assert all(v is None or isinstance(v, str) for v in seen), seen
+
+    # -- joins ----------------------------------------------------------
+
+    def test_anti_join_keeps_rows_missing_from_other(
+        self, make_frame: FrameFactory
+    ) -> None:
+        """Verify ``anti_join`` drops rows whose key columns appear in ``other``, matching nulls too."""
+        left = make_frame({"k": ["a", "b", None, "d"], "v": [1, 2, 3, 4]})
+        right = make_frame({"k": ["a", None], "w": [9, 9]})
+        result = left.anti_join(right, ["k"])
+        assert sorted(_column(result, "v")) == [2, 4]
+
+    def test_anti_join_compares_every_listed_column(
+        self, make_frame: FrameFactory
+    ) -> None:
+        """Verify a row only counts as present when all listed columns match."""
+        left = make_frame({"k": ["a", "a"], "s": [True, False]})
+        right = make_frame({"k": ["a"], "s": [True]})
+        assert _column(left.anti_join(right, ["k", "s"]), "s") == [False]
+
+    def test_union_appends_rows_matching_columns_by_name(
+        self, make_frame: FrameFactory
+    ) -> None:
+        """Verify ``union`` puts ``other``'s rows after its own and matches columns by name."""
+        left = make_frame({"a": [1], "b": ["x"]})
+        right = make_frame({"b": ["y"], "a": [2]})
+        result = left.union(right)
+        assert [name for name, _ in result.cols()] == ["a", "b"]
+        assert sorted(result.collect()) == [(1, "x"), (2, "y")]
+
+    def test_union_rejects_different_columns(self, make_frame: FrameFactory) -> None:
+        """Verify ``union`` refuses dataframes whose columns differ."""
+        with pytest.raises(ValueError):
+            make_frame({"a": [1]}).union(make_frame({"b": [1]}))

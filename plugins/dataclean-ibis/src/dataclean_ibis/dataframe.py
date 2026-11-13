@@ -81,6 +81,13 @@ def _build_scalar_udf(
     return ibis.udf.scalar.python(wrapper_fn, null_handling="special")
 
 
+def _as_ibis(other: DataFrame) -> ibis.Table:
+    """Return the Ibis table inside ``other``, or fail if it is another engine's."""
+    if not isinstance(other, IbisDataFrame):
+        raise TypeError(f"expected an IbisDataFrame, got {type(other).__name__}")
+    return other.df
+
+
 @checked
 @dataclass
 class IbisDataFrame(DataFrame):
@@ -336,3 +343,16 @@ class IbisDataFrame(DataFrame):
         for c in target_cols:
             result = result.filter(result[c].notnull())
         return IbisDataFrame(df=result)
+
+    @override
+    def anti_join(self, other: DataFrame, cols: Iterable[str]) -> "IbisDataFrame":
+        theirs = _as_ibis(other)
+        same = [self.df[c].identical_to(theirs[c]) for c in cols]
+        return IbisDataFrame(df=self.df.anti_join(theirs, same))
+
+    @override
+    def union(self, other: DataFrame) -> "IbisDataFrame":
+        theirs = _as_ibis(other)
+        if set(theirs.columns) != set(self.df.columns):
+            raise ValueError("union needs both dataframes to have the same columns")
+        return IbisDataFrame(df=self.df.union(theirs.select(*self.df.columns)))

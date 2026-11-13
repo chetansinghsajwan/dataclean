@@ -52,6 +52,15 @@ class Catalog(ABC):
         """
         pass
 
+    def exists(self, path: str) -> bool:
+        """Whether something has been written at ``path``.
+
+        Decision: the default is ``False`` so a catalog that cannot tell is
+        treated as having no earlier output, and incremental cleaning falls
+        back to cleaning everything.
+        """
+        return False
+
     @abstractmethod
     def read_df(self, path: str) -> DataFrame:
         """Read the data at ``path`` and return it as a :class:`DataFrame`."""

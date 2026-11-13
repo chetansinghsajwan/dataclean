@@ -99,6 +99,20 @@ def clean(
     original_suffix: Annotated[
         str, typer.Option(help="Suffix of the retained original columns.")
     ] = "_uncleaned",
+    scd_key: Annotated[
+        list[str] | None,
+        typer.Option(
+            help="Key column of an SCD 2 table; repeat for several. Turns on "
+            "incremental cleaning of new and closed versions."
+        ),
+    ] = None,
+    scd_active: Annotated[
+        str, typer.Option(help="SCD 2 column that is true on current rows.")
+    ] = "scd_active",
+    scd_from: Annotated[
+        str, typer.Option(help="SCD 2 effective-from column.")
+    ] = "scd_from",
+    scd_to: Annotated[str, typer.Option(help="SCD 2 effective-to column.")] = "scd_to",
     log: Annotated[
         logs.LevelNames, typer.Option(help="Log level.")
     ] = logs.defaultLevel,
@@ -113,6 +127,17 @@ def clean(
     )
 
     parsed_col_map = dict(parse_mapping(x) for x in col) if col else {}
+
+    scd = (
+        dataclean.Scd2(
+            key_cols=tuple(scd_key),
+            active_col=scd_active,
+            from_col=scd_from,
+            to_col=scd_to,
+        )
+        if scd_key
+        else None
+    )
 
     dataclean.clean_paths(
         paths=paths,
@@ -129,6 +154,7 @@ def clean(
         keep_original=keep_original,
         original_suffix=original_suffix,
         column_cleaners=parsed_col_map,
+        scd=scd,
     )
 
 

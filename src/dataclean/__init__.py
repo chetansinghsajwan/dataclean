@@ -47,6 +47,7 @@ from .pipeline.exceptions import (
 )
 from .plugins import PluginInfo, PluginLoader
 from .preset import Preset
+from .scd import Scd2
 from .types import checked
 
 __version__ = "1.0.0"

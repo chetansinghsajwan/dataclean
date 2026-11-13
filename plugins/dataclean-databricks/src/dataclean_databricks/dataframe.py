@@ -2,6 +2,7 @@
 
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
+from functools import reduce
 from typing import Any, cast, override
 
 import pandas as pd
@@ -17,6 +18,13 @@ from dataclean_databricks.types import SparkDataFrame
 # values, such as when a cleaner scores a column, so a bounded head of the
 # table is enough and the whole table is never pulled.
 READ_SAMPLE_ROWS = 1000
+
+
+def _as_spark(other: DataFrame) -> SparkDataFrame:
+    """Return the Spark frame inside ``other``, or fail if it is another engine's."""
+    if not isinstance(other, PysparkDataFrame):
+        raise TypeError(f"expected a PysparkDataFrame, got {type(other).__name__}")
+    return other.df
 
 
 @checked
@@ -437,3 +445,18 @@ class PysparkDataFrame(DataFrame):
             cols_to_filter = [cols] if isinstance(cols, str) else list(cols)
             result_df = self.df.dropna(subset=cols_to_filter)
         return PysparkDataFrame(df=result_df)
+
+    @override
+    def anti_join(self, other: DataFrame, cols: Iterable[str]) -> "PysparkDataFrame":
+        theirs = _as_spark(other)
+        same = reduce(
+            lambda a, b: a & b, (self.df[c].eqNullSafe(theirs[c]) for c in cols)
+        )
+        return PysparkDataFrame(df=self.df.join(theirs, same, "left_anti"))
+
+    @override
+    def union(self, other: DataFrame) -> "PysparkDataFrame":
+        theirs = _as_spark(other)
+        if set(theirs.columns) != set(self.df.columns):
+            raise ValueError("union needs both dataframes to have the same columns")
+        return PysparkDataFrame(df=self.df.unionByName(theirs))
