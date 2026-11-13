@@ -52,7 +52,7 @@ class BoolCleaner(EnumCleaner):
         "enabled",
         "1.0",
         # Emoji: check marks and thumbs up, also with the emoji variation
-        # selector (\ufe0f) that phones add. Decision: they are clear yes values.
+        # selector (\ufe0f) that phones add.
         "\u2705",
         "\u2714",
         "\u2714\ufe0f",
