@@ -102,7 +102,12 @@ class AddressCleaner(Cleaner):
     )
 
     @override
-    def fit(self, df: DataFrame, role_columns: Mapping[str, str]) -> Cleaner:
+    def fit(
+        self,
+        df: DataFrame,
+        role_columns: Mapping[str, str],
+        role_words: Mapping[str, tuple[str, ...]],
+    ) -> Cleaner:
         """Return a copy that writes only the outputs whose input role has a column."""
         return replace(self, _given=frozenset(role_columns))
 

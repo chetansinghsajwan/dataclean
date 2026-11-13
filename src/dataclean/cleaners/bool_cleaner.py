@@ -158,7 +158,9 @@ class BoolCleaner(EnumCleaner):
         )
 
     @override
-    def match_score(self, df: DataFrame, cols: tuple[str, ...]) -> float:
+    def match_score(
+        self, df: DataFrame, cols: tuple[str, ...], words: tuple[str, ...]
+    ) -> float:
         """Score confidence that ``cols[0]`` is a boolean-like column.
 
         Columns already typed boolean match outright. Numeric columns need
@@ -169,6 +171,7 @@ class BoolCleaner(EnumCleaner):
         Args:
             df: The dataframe to inspect.
             cols: A single-element tuple naming the candidate column.
+            words: The lowercase words of the column name, split with the same aliases for every cleaner.
 
         Returns:
             A confidence score between 0.0 and 1.0.
@@ -180,7 +183,7 @@ class BoolCleaner(EnumCleaner):
         if dtype is DataType.BOOL:
             return Cleaner.MAX_SCORE
 
-        return super().match_score(df, cols)
+        return super().match_score(df, cols, words)
 
     @property
     def truthy_values(self) -> frozenset[str]:

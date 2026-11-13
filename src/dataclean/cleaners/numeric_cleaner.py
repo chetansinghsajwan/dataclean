@@ -11,7 +11,12 @@ from typing import ClassVar, override
 
 from dataclean.engine import DataFrame, DataReader, DataType
 from dataclean.types import checked
-from dataclean.utils import COMMON_NULL_TOKENS, looks_like_id_name, null_token_set
+from dataclean.utils import (
+    COMMON_NULL_TOKENS,
+    has_words,
+    looks_like_id_name,
+    null_token_set,
+)
 
 from .cleaner import Cleaner
 
@@ -74,8 +79,8 @@ class NumericCleaner(Cleaner):
     _INT64_MIN: ClassVar[int] = -(2**63)
     _INT64_MAX: ClassVar[int] = 2**63 - 1
 
-    # Column-name tokens. Short ones must be a whole word ("age" is in "page").
-    _QUANTITY_SUBSTRINGS: ClassVar[tuple[str, ...]] = (
+    # Column-name words that hint at a quantity.
+    _QUANTITY_WORDS: ClassVar[tuple[str, ...]] = (
         "amount",
         "price",
         "count",
@@ -87,9 +92,12 @@ class NumericCleaner(Cleaner):
         "salary",
         "weight",
         "height",
-    )
-    _QUANTITY_WORDS: ClassVar[frozenset[str]] = frozenset(
-        {"fee", "cost", "qty", "age", "rate", "score"}
+        "fee",
+        "cost",
+        "qty",
+        "age",
+        "rate",
+        "score",
     )
     # The shared placeholders, plus a blank cell and the infinities, which are
     # not numbers a column can hold either.
@@ -280,7 +288,9 @@ class NumericCleaner(Cleaner):
         return "".join(groups) if standard or indian else None
 
     @override
-    def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
+    def match_score(
+        self, df: DataFrame, cols: Iterable[str], words: tuple[str, ...]
+    ) -> float:
         """Score confidence via a column-name heuristic plus a data-sampling pass.
 
         Identifier-like columns score 0.0. Otherwise combines a 30% weight
@@ -292,6 +302,7 @@ class NumericCleaner(Cleaner):
         Args:
             df: The dataframe to sample values from.
             cols: Candidate column name(s); only the first is considered.
+            words: The lowercase words of the column name, split with the same aliases for every cleaner.
 
         Returns:
             A confidence score between 0.0 and 1.0.
@@ -300,8 +311,7 @@ class NumericCleaner(Cleaner):
         if not cols_tuple:
             return 0.0
 
-        col_name = cols_tuple[0].lower()
-        if looks_like_id_name(col_name):
+        if looks_like_id_name(words):
             return 0.0
 
         samples: list[str] = []
@@ -318,7 +328,7 @@ class NumericCleaner(Cleaner):
         if self._looks_like_id_values(samples):
             return 0.0
 
-        confidence = 0.3 if self._has_quantity_hint(col_name) else 0.0
+        confidence = 0.3 if self._has_quantity_hint(words) else 0.0
         valid = sum(self.clean_row(s) is not None for s in samples)
         confidence += valid / len(samples) * 0.7
         return min(confidence, 1.0)
@@ -331,11 +341,9 @@ class NumericCleaner(Cleaner):
         return str(val).strip().lower() in cls._NULL_LIKE
 
     @classmethod
-    def _has_quantity_hint(cls, col_name: str) -> bool:
-        """Return whether the column name hints at a quantity."""
-        if any(token in col_name for token in cls._QUANTITY_SUBSTRINGS):
-            return True
-        return any(w in cls._QUANTITY_WORDS for w in re.split(r"[^a-z0-9]+", col_name))
+    def _has_quantity_hint(cls, words: tuple[str, ...]) -> bool:
+        """Return whether the column name words hint at a quantity."""
+        return any(has_words(words, hint) for hint in cls._QUANTITY_WORDS)
 
     @classmethod
     def _looks_like_id_values(cls, samples: list[str]) -> bool:

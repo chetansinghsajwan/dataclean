@@ -2,7 +2,9 @@
 
 import pytest
 
-from dataclean import DataType, GenderCleaner
+from dataclean import ColRenamer, DataType, GenderCleaner
+
+_words = ColRenamer().words
 
 # ==============================================================================
 # 1. CORE PROPERTY TESTS
@@ -35,7 +37,10 @@ def test_gender_cleaner_confidence_heuristics(
     # Name-based matching (matching word) short-circuits before value-based
     # auto matching, so an empty collect() is fine for all cases here.
     mock_df = mock_df_with_value_counts([])
-    assert cleaner.match_score(mock_df, (col_name,)) == expected_confidence
+    assert (
+        cleaner.match_score(mock_df, (col_name,), _words(col_name))
+        == expected_confidence
+    )
 
 
 # ==============================================================================
@@ -50,7 +55,10 @@ def test_gender_cleaner_auto_matches_by_value_when_name_does_not_match(
     # "identity" hits neither the "gender"/"sex" match words nor any prefix/suffix
     cleaner = GenderCleaner()
     mock_df = mock_df_with_value_counts([("male", 6), ("female", 4)])
-    assert cleaner.match_score(mock_df, ("identity",)) == GenderCleaner.MAX_SCORE
+    assert (
+        cleaner.match_score(mock_df, ("identity",), _words("identity"))
+        == GenderCleaner.MAX_SCORE
+    )
 
 
 def test_gender_cleaner_auto_matching_partial_ratio(mock_df_with_value_counts):
@@ -60,7 +68,9 @@ def test_gender_cleaner_auto_matching_partial_ratio(mock_df_with_value_counts):
         [("male", 4), ("female", 4), ("unknown", 2)],
     )
     # 4 + 4 matched out of 10 total occurrences
-    assert cleaner.match_score(mock_df, ("identity",)) == pytest.approx(0.8)
+    assert cleaner.match_score(
+        mock_df, ("identity",), _words("identity")
+    ) == pytest.approx(0.8)
 
 
 def test_gender_cleaner_auto_matching_below_threshold_scores_zero(
@@ -72,21 +82,30 @@ def test_gender_cleaner_auto_matching_below_threshold_scores_zero(
         [("male", 3), ("female", 3), ("unknown", 4)],
     )
     # 60% matched, under the 70% value-only threshold
-    assert cleaner.match_score(mock_df, ("identity",)) == GenderCleaner.MIN_SCORE
+    assert (
+        cleaner.match_score(mock_df, ("identity",), _words("identity"))
+        == GenderCleaner.MIN_SCORE
+    )
 
 
 def test_gender_cleaner_auto_matching_no_values_match(mock_df_with_value_counts):
     """A column of compass directions has nothing gender-like in it. It should score zero so we never grab it by accident."""
     cleaner = GenderCleaner()
     mock_df = mock_df_with_value_counts([("north", 1), ("south", 1)])
-    assert cleaner.match_score(mock_df, ("identity",)) == GenderCleaner.MIN_SCORE
+    assert (
+        cleaner.match_score(mock_df, ("identity",), _words("identity"))
+        == GenderCleaner.MIN_SCORE
+    )
 
 
 def test_gender_cleaner_auto_matching_case_insensitive(mock_df_with_value_counts):
     """Values arrive as MALE and Female in whatever case the source used. Detection should treat them the same as lowercase, because capitalisation says nothing about meaning."""
     cleaner = GenderCleaner()
     mock_df = mock_df_with_value_counts([("MALE", 1), ("Female", 1)])
-    assert cleaner.match_score(mock_df, ("identity",)) == GenderCleaner.MAX_SCORE
+    assert (
+        cleaner.match_score(mock_df, ("identity",), _words("identity"))
+        == GenderCleaner.MAX_SCORE
+    )
 
 
 # ==============================================================================
@@ -162,7 +181,10 @@ def test_gender_cleaner_rejects_numeric_id_columns():
 
     # Mostly 1 (which could look like a gender code) but with other values: an ID.
     df = _pandas_df(companyid=[1, 1, 1, 1, 1, 1, 1, 1, 2, 3])
-    assert GenderCleaner().match_score(df, ("companyid",)) == GenderCleaner.MIN_SCORE
+    assert (
+        GenderCleaner().match_score(df, ("companyid",), _words("companyid"))
+        == GenderCleaner.MIN_SCORE
+    )
 
 
 def test_gender_cleaner_still_matches_string_values():
@@ -170,7 +192,7 @@ def test_gender_cleaner_still_matches_string_values():
     from dataclean import GenderCleaner
 
     df = _pandas_df(who=["M", "F", "male", "female"])
-    assert GenderCleaner().match_score(df, ("who",)) > 0.5
+    assert GenderCleaner().match_score(df, ("who",), _words("who")) > 0.5
 
 
 # ==============================================================================
@@ -284,8 +306,8 @@ def test_gender_cleaner_binary_output_is_an_integer_column():
 def test_gender_cleaner_honours_custom_matching_words():
     """A team can swap in its own column-name words, such as pronoun. Their word should then match, and the default word gender should stop matching."""
     cleaner = GenderCleaner(cleaner_matching_words=["pronoun"])
-    assert cleaner._matches_name("user_pronoun")
-    assert not cleaner._matches_name("gender")
+    assert cleaner._matches_name(_words("user_pronoun"))
+    assert not cleaner._matches_name(_words("gender"))
 
 
 def test_gender_cleaner_instances_do_not_share_defaults():
@@ -303,4 +325,7 @@ def test_gender_cleaner_does_not_claim_an_id_like_digit_column(
     # "contacttypeid" holds 1 to 5; only 1 and 2 are gender codes.
     mock_df = mock_df_with_value_counts([("1", 5), ("2", 4), ("3", 3), ("5", 2)])
     cleaner = GenderCleaner()
-    assert cleaner.match_score(mock_df, ("contacttypeid",)) == GenderCleaner.MIN_SCORE
+    assert (
+        cleaner.match_score(mock_df, ("contacttypeid",), _words("contacttypeid"))
+        == GenderCleaner.MIN_SCORE
+    )

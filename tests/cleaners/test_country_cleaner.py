@@ -4,7 +4,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from dataclean import Cleaner, CountryCleaner, DataFrame, DataType
+from dataclean import Cleaner, ColRenamer, CountryCleaner, DataFrame, DataType
+
+_words = ColRenamer().words
 
 # ==============================================================================
 # 1. CORE PROPERTY TESTS
@@ -34,7 +36,10 @@ def test_match_score(col_name, expected_confidence):
     """The mock frame has no data at all, so only the column name can drive the score. Country-like names should score high and the rest should score zero."""
     cleaner = CountryCleaner()
     mock_df = MagicMock(spec=DataFrame)
-    assert cleaner.match_score(mock_df, (col_name,)) == expected_confidence
+    assert (
+        cleaner.match_score(mock_df, (col_name,), _words(col_name))
+        == expected_confidence
+    )
 
 
 # ==============================================================================

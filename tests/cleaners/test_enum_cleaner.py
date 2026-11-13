@@ -4,8 +4,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from dataclean import ColRenamer
 from dataclean.cleaners.enum_cleaner import EnumCleaner
 from dataclean.engine.dataframe import DataFrame
+
+_words = ColRenamer().words
 
 # ==============================================================================
 # 1. CORE METADATA & MATCH SCORE TESTS
@@ -53,7 +56,7 @@ def test_match_score_by_column_name(col_name, prefixes, suffixes, words, expecte
     # Name-based matching (prefix/suffix/word) must short-circuit before any
     # value-based auto matching is attempted, so an empty collect() is fine.
     mock_df = _mock_df_with_value_counts([])
-    assert cleaner.match_score(mock_df, (col_name,)) == expected
+    assert cleaner.match_score(mock_df, (col_name,), _words(col_name)) == expected
 
 
 # ==============================================================================
@@ -69,7 +72,9 @@ def test_match_score_auto_matches_by_value_when_name_does_not_match():
         [("active", 5), ("inactive", 3), ("unknown", 2)]
     )
     # 5 + 3 matched out of 10 total occurrences
-    assert cleaner.match_score(mock_df, ("status",)) == pytest.approx(0.8)
+    assert cleaner.match_score(mock_df, ("status",), _words("status")) == pytest.approx(
+        0.8
+    )
 
 
 def test_match_score_auto_matching_all_values_match():
@@ -77,7 +82,10 @@ def test_match_score_auto_matching_all_values_match():
     can be. The score is the maximum."""
     cleaner = EnumCleaner(cases=["active", "inactive"])
     mock_df = _mock_df_with_value_counts([("active", 4), ("inactive", 6)])
-    assert cleaner.match_score(mock_df, ("status",)) == EnumCleaner.MAX_SCORE
+    assert (
+        cleaner.match_score(mock_df, ("status",), _words("status"))
+        == EnumCleaner.MAX_SCORE
+    )
 
 
 def test_match_score_auto_matching_no_values_match():
@@ -85,7 +93,10 @@ def test_match_score_auto_matching_no_values_match():
     gets the lowest score so another cleaner can claim it."""
     cleaner = EnumCleaner(cases=["active", "inactive"])
     mock_df = _mock_df_with_value_counts([("pending", 1), ("archived", 9)])
-    assert cleaner.match_score(mock_df, ("status",)) == EnumCleaner.MIN_SCORE
+    assert (
+        cleaner.match_score(mock_df, ("status",), _words("status"))
+        == EnumCleaner.MIN_SCORE
+    )
 
 
 def test_match_score_auto_matching_with_no_rows_returns_min_score():
@@ -93,7 +104,10 @@ def test_match_score_auto_matching_with_no_rows_returns_min_score():
     instead of dividing by zero."""
     cleaner = EnumCleaner(cases=["active", "inactive"])
     mock_df = _mock_df_with_value_counts([])
-    assert cleaner.match_score(mock_df, ("status",)) == EnumCleaner.MIN_SCORE
+    assert (
+        cleaner.match_score(mock_df, ("status",), _words("status"))
+        == EnumCleaner.MIN_SCORE
+    )
 
 
 def test_match_score_auto_matching_uses_registered_matchers():
@@ -109,7 +123,9 @@ def test_match_score_auto_matching_uses_registered_matchers():
     )
     mock_df = _mock_df_with_value_counts([("male", 8), ("mal", 1), ("xyz123", 1)])
     # "male" and "mal" (close fuzzy match) count, "xyz123" does not
-    assert cleaner.match_score(mock_df, ("gender",)) == pytest.approx(9 / 10)
+    assert cleaner.match_score(mock_df, ("gender",), _words("gender")) == pytest.approx(
+        9 / 10
+    )
 
 
 def test_match_score_auto_matching_queries_expected_dataframe_chain():
@@ -118,7 +134,7 @@ def test_match_score_auto_matching_queries_expected_dataframe_chain():
     query so nobody accidentally turns it into a full scan."""
     cleaner = EnumCleaner(cases=["active"])
     mock_df = _mock_df_with_value_counts([("active", 1)])
-    cleaner.match_score(mock_df, ("status",))
+    cleaner.match_score(mock_df, ("status",), _words("status"))
 
     mock_df.select.assert_called_once_with("status")
     mock_df.select.return_value.strip.assert_called_once_with()
@@ -346,8 +362,8 @@ def test_enum_cleaner_numeric_column_needs_every_value_accepted():
     only_flags = PandasDataFrame(df=pd.DataFrame({"x": [0, 1, 1, 0]}))
     with_other = PandasDataFrame(df=pd.DataFrame({"x": [0, 1, 1, 7]}))
 
-    assert cleaner.match_score(only_flags, ("x",)) == EnumCleaner.MAX_SCORE
-    assert cleaner.match_score(with_other, ("x",)) == EnumCleaner.MIN_SCORE
+    assert cleaner.match_score(only_flags, ("x",), _words("x")) == EnumCleaner.MAX_SCORE
+    assert cleaner.match_score(with_other, ("x",), _words("x")) == EnumCleaner.MIN_SCORE
 
 
 # ==============================================================================
@@ -362,7 +378,9 @@ def test_match_score_digit_only_column_needs_every_value_to_match():
     # though "1" and "2" match.
     cleaner = EnumCleaner(cases=["1", "2"])
     mock_df = _mock_df_with_value_counts([("1", 4), ("2", 3), ("3", 2), ("5", 1)])
-    assert cleaner.match_score(mock_df, ("kind",)) == EnumCleaner.MIN_SCORE
+    assert (
+        cleaner.match_score(mock_df, ("kind",), _words("kind")) == EnumCleaner.MIN_SCORE
+    )
 
 
 def test_match_score_digit_only_column_scores_full_when_all_match():
@@ -370,7 +388,9 @@ def test_match_score_digit_only_column_scores_full_when_all_match():
     code list of 1 and 2. In that situation the score is the maximum."""
     cleaner = EnumCleaner(cases=["1", "2"])
     mock_df = _mock_df_with_value_counts([("1", 4), ("2", 3)])
-    assert cleaner.match_score(mock_df, ("kind",)) == EnumCleaner.MAX_SCORE
+    assert (
+        cleaner.match_score(mock_df, ("kind",), _words("kind")) == EnumCleaner.MAX_SCORE
+    )
 
 
 def test_match_score_digit_values_count_in_a_mixed_column():
@@ -379,7 +399,7 @@ def test_match_score_digit_values_count_in_a_mixed_column():
     cleaner = EnumCleaner(cases=["m", "f", "1", "2"])
     mock_df = _mock_df_with_value_counts([("m", 4), ("f", 4), ("1", 1), ("x", 1)])
     # "m", "f" and "1" all count, since non-digit values match as well
-    assert cleaner.match_score(mock_df, ("kind",)) == pytest.approx(0.9)
+    assert cleaner.match_score(mock_df, ("kind",), _words("kind")) == pytest.approx(0.9)
 
 
 def test_match_score_digits_alone_do_not_carry_a_mixed_column():
@@ -388,7 +408,9 @@ def test_match_score_digits_alone_do_not_carry_a_mixed_column():
     the score is the minimum."""
     cleaner = EnumCleaner(cases=["1", "2"])
     mock_df = _mock_df_with_value_counts([("1", 8), ("2", 1), ("x", 1)])
-    assert cleaner.match_score(mock_df, ("kind",)) == EnumCleaner.MIN_SCORE
+    assert (
+        cleaner.match_score(mock_df, ("kind",), _words("kind")) == EnumCleaner.MIN_SCORE
+    )
 
 
 def test_match_score_digit_values_count_on_a_name_hit():
@@ -396,4 +418,6 @@ def test_match_score_digit_values_count_on_a_name_hit():
     normal, and the unknown 9 does not drag the score down."""
     cleaner = EnumCleaner(cases=["1", "2"], cleaner_matching_words=("kind",))
     mock_df = _mock_df_with_value_counts([("1", 4), ("9", 3)])
-    assert cleaner.match_score(mock_df, ("kind",)) == EnumCleaner.MAX_SCORE
+    assert (
+        cleaner.match_score(mock_df, ("kind",), _words("kind")) == EnumCleaner.MAX_SCORE
+    )

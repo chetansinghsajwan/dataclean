@@ -1,21 +1,12 @@
 """Tell identifier columns from their names, for the cleaners that detect by value."""
 
-import re
-
-# A name that ends in "id", "guid", "key", "code" and similar. A glued word such
-# as "contactid" needs a letter before the ending, so "paid" and "valid" are
-# listed apart as words that only look like ids.
-_ID_NAME = re.compile(
-    r"(?:^|[^a-z0-9])(?:id|guid|uuid|key|code|pin|zip|postcode|pincode)$"
-    r"|(?<=[a-z])(?:id|guid|uuid|code|postcode|pincode)$"
+# Words that end an id column name: "contact_id", "zip_code", "row_guid".
+_ID_WORDS = frozenset(
+    {"id", "ids", "guid", "uuid", "key", "code", "pin", "zip", "postcode", "pincode"}
 )
-_NOT_ID_WORDS = ("paid", "valid", "void", "humid")
-
-# A copy number after a separator: "contacttypeid_2", "user id 3".
-_COPY_NUMBER = re.compile(r"[^a-z0-9]?\d+$")
 
 
-def looks_like_id_name(col_name: str) -> bool:
+def looks_like_id_name(words: tuple[str, ...]) -> bool:
     """Whether the column name says identifier or code.
 
     An id is never a quantity, a flag or a label, so the cleaners that guess by
@@ -27,12 +18,11 @@ def looks_like_id_name(col_name: str) -> bool:
     cleaned as a number or a flag.
 
     Args:
-        col_name: The column name, in any case.
+        words: The lowercase words of the column name.
 
     Returns:
         True when the name ends in an id word such as ``id`` or ``code``.
     """
-    name = _COPY_NUMBER.sub("", col_name.lower())
-    if name.endswith(_NOT_ID_WORDS):
-        return False
-    return _ID_NAME.search(name) is not None
+    while words and words[-1].isdigit():
+        words = words[:-1]
+    return bool(words) and words[-1] in _ID_WORDS

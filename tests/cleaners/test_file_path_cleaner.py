@@ -6,9 +6,11 @@ import pandas as pd
 import pytest
 from dataclean_pandas import PandasDataFrame
 
-from dataclean import FilePathCleaner
+from dataclean import ColRenamer, FilePathCleaner
 from dataclean.pipeline import Pipeline
 from dataclean.pipeline.cleaner_resolver import Resolver
+
+_words = ColRenamer().words
 
 
 def _clean(value: str, **kwargs: Any) -> str | None:
@@ -135,7 +137,7 @@ def test_file_path_cleaner_claims_file_like_column_names(name: str) -> None:
     The cleaner should say it is fully confident about them."""
     df = PandasDataFrame(df=pd.DataFrame({name: ["x"]}))
 
-    assert FilePathCleaner().match_score(df, (name,)) == 1.0
+    assert FilePathCleaner().match_score(df, (name,), _words(name)) == 1.0
 
 
 @pytest.mark.parametrize(
@@ -146,7 +148,7 @@ def test_file_path_cleaner_ignores_other_column_names(name: str) -> None:
     something else. The cleaner should score them zero and stay out of the way."""
     df = PandasDataFrame(df=pd.DataFrame({name: ["x"]}))
 
-    assert FilePathCleaner().match_score(df, (name,)) == 0.0
+    assert FilePathCleaner().match_score(df, (name,), _words(name)) == 0.0
 
 
 def test_resolver_assigns_file_path_cleaner_to_each_file_column() -> None:

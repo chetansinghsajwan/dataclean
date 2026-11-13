@@ -24,6 +24,10 @@ DEFAULT_ALIASES: dict[str, tuple[str, ...]] = {
     "lname": ("last", "name"),
     "lnamefname": ("last", "name", "first", "name"),
     "guid": ("guid",),
+    "lastname": ("last", "name"),
+    "uuid": ("uuid",),
+    "addr": ("address",),
+    "birthdate": ("birth", "date"),
     "rowguid": ("row", "guid"),
     "dob": ("date", "of", "birth"),
     "dateofbirth": ("date", "of", "birth"),
@@ -32,7 +36,14 @@ DEFAULT_ALIASES: dict[str, tuple[str, ...]] = {
     "username": ("user", "name"),
 }
 
-_SEPARATORS = re.compile(r"[^A-Za-z0-9]+")
+# A piece of a name is a run of letters or of digits; camelCase parts are a
+# run of capitals ending before a capitalised word, or a capitalised or
+# lowercase word.
+_PIECES = re.compile(r"[A-Za-z]+|\d+")
+_CAMEL_PARTS = re.compile(r"[A-Z]+(?![a-z])|[A-Z]?[a-z]+")
+# "e-mail", "e_mail" and "eMail" are written ``email`` before words are split,
+# since splitting would give the two words "e" and "mail".
+_EMAIL = re.compile(r"(?<![A-Za-z])e[\W_]*mail", re.IGNORECASE)
 
 
 @checked
@@ -154,6 +165,33 @@ class ColRenamer:
         }
         return maps[case]
 
+    def words(self, col: str) -> tuple[str, ...]:
+        """Return the lowercase words of ``col``, for cleaners to match on.
+
+        The words do not depend on ``case``, so matching works the same when
+        renaming is off or uses another case.
+        """
+        return tuple(word.lower() for word in self._get_words(col))
+
+    def _split_around_kept(self, piece: str) -> tuple[str, ...]:
+        """Split ``piece`` into words, keeping whole any word whose alias is itself.
+
+        An alias that maps a name to itself (``guid`` to ``("guid",)``) marks a
+        word that word splitting would cut apart, so it is also kept whole
+        inside a glued name: ``customeruuid`` gives ``customer``, ``uuid``.
+        """
+        kept = [key for key, words in self.aliases.items() if words == (key,)]
+        if not kept:
+            return split_words(piece)
+        pattern = "(" + "|".join(map(re.escape, kept)) + ")"
+        words: list[str] = []
+        for part in re.split(pattern, piece, flags=re.IGNORECASE):
+            if part.lower() in kept:
+                words.append(part)
+            elif part:
+                words.extend(split_words(part))
+        return tuple(words)
+
     def _get_words(self, v: str) -> tuple[str, ...]:
         """Clean ``v`` and split it into words using ``split_words``."""
         v = replace_control_chars(remove_invisible(remove_emoji(strip_html(v))))
@@ -164,12 +202,22 @@ class ColRenamer:
             for ch in unicodedata.normalize("NFKD", v)
             if not unicodedata.combining(ch)
         )
-        # Decision: aliases are looked up per piece between separators, so
-        # ``fname_2`` and ``FName`` both match ``fname``.
+        # Decision: aliases are looked up on a run of letters first, then on
+        # its camelCase parts. So ``fname_2``, ``FName`` and ``addr1`` match
+        # whole, and ``GuidName`` finds ``guid``, which word splitting would
+        # otherwise cut apart (``gu``, ``id``).
         words: list[str] = []
-        for piece in filter(None, _SEPARATORS.split(v)):
+        for piece in _PIECES.findall(_EMAIL.sub("email", v)):
             alias = self.aliases.get(piece.lower())
-            words.extend(alias if alias is not None else split_words(piece))
+            if alias is not None:
+                words.extend(alias)
+                continue
+            parts = _CAMEL_PARTS.findall(piece)
+            if any(part.lower() in self.aliases for part in parts):
+                for part in parts:
+                    words.extend(self.aliases.get(part.lower()) or split_words(part))
+            else:
+                words.extend(self._split_around_kept(piece))
         return tuple(words)
 
     def _snake_case_renamer(self, words: tuple[str, ...]) -> str:

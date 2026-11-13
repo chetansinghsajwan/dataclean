@@ -4,7 +4,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from dataclean import DataFrame, TextCleaner
+from dataclean import ColRenamer, DataFrame, TextCleaner
+
+_words = ColRenamer().words
 
 # ==============================================================================
 # 1. CORE PROPERTIES & SCHEMA VERIFICATION
@@ -38,7 +40,10 @@ def test_text_cleaner_confidence(col_name, expected_confidence):
     so a more specific cleaner can win."""
     cleaner = TextCleaner()
     mock_df = MagicMock(spec=DataFrame)
-    assert cleaner.match_score(mock_df, (col_name,)) == expected_confidence
+    assert (
+        cleaner.match_score(mock_df, (col_name,), _words(col_name))
+        == expected_confidence
+    )
 
 
 # ==============================================================================

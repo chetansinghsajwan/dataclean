@@ -19,12 +19,16 @@ class Upper(Cleaner):
         assert value is not None
         return value.upper()
 
-    def match_score(self, df: object, cols: tuple[str, ...]) -> float:
+    def match_score(
+        self, df: object, cols: tuple[str, ...], words: tuple[str, ...]
+    ) -> float:
         return 0.9 if cols[0].startswith("up") else 0.0
 
 
 class UpperPerfect(Upper):
-    def match_score(self, df: object, cols: tuple[str, ...]) -> float:
+    def match_score(
+        self, df: object, cols: tuple[str, ...], words: tuple[str, ...]
+    ) -> float:
         return 1.0 if cols[0].startswith("up") else 0.0
 
 

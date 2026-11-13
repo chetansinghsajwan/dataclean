@@ -10,6 +10,7 @@ from typing import ClassVar, override
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
+from dataclean.utils import has_words
 
 from .cleaner import Cleaner
 
@@ -128,13 +129,16 @@ class UuidCleaner(Cleaner):
         return None
 
     @override
-    def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
+    def match_score(
+        self, df: DataFrame, cols: Iterable[str], words: tuple[str, ...]
+    ) -> float:
         """Score confidence based on the column name looking UUID/GUID-related.
 
         Args:
             df: The dataframe being inspected (unused; scoring here is
                 name-based only).
             cols: Candidate column name(s); only the first is considered.
+        words: The lowercase words of the column name, split with the same aliases for every cleaner.
 
         Returns:
             1.0 if the column name contains a UUID/GUID-related token,
@@ -144,12 +148,10 @@ class UuidCleaner(Cleaner):
         if not cols_tuple:
             return 0.0
 
-        col_name = cols_tuple[0]
-        col_name_lower = col_name.lower()
         # Heuristic 1: Explicit structural column name targeting
         if any(
-            token in col_name_lower
-            for token in ("uuid", "guid", "pk_id", "session_token")
+            has_words(words, hint)
+            for hint in ("uuid", "guid", "pk_id", "session_token")
         ):
             return 1.0
 

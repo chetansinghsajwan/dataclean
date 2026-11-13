@@ -13,6 +13,7 @@ from rapidfuzz.distance import OSA
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
+from dataclean.utils import has_words
 
 from .cleaner import Cleaner
 
@@ -233,21 +234,24 @@ class CountryCleaner(Cleaner):
         return None
 
     @override
-    def match_score(self, df: DataFrame, cols: tuple[str, ...]) -> float:
+    def match_score(
+        self, df: DataFrame, cols: tuple[str, ...], words: tuple[str, ...]
+    ) -> float:
         """Score confidence based on whether the column name contains "country".
 
         Args:
             df: The dataframe containing the candidate column (unused).
             cols: A single-element tuple with the candidate column name.
+            words: The lowercase words of the column name, split with the same aliases for every cleaner.
 
         Returns:
-            MAX_SCORE if "country" appears in the column name (case
-            insensitive), otherwise MIN_SCORE.
+            MAX_SCORE if "country" is a word of the column name, otherwise
+            MIN_SCORE.
         """
 
         assert len(cols) == 1, "cols must be a tuple of length 1"
 
-        if "country" in cols[0].lower():
+        if has_words(words, "country"):
             return Cleaner.MAX_SCORE
 
         return Cleaner.MIN_SCORE

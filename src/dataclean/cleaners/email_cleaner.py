@@ -10,7 +10,7 @@ from rapidfuzz.distance import OSA
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
-from dataclean.utils import html_hrefs, plain_text, remove_invisible
+from dataclean.utils import has_words, html_hrefs, plain_text, remove_invisible
 
 from .cleaner import Cleaner
 
@@ -189,21 +189,24 @@ class EmailCleaner(Cleaner):
         return f"{email.local}@{email.domain}"
 
     @override
-    def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
-        """Score confidence based on the column name containing "email".
+    def match_score(
+        self, df: DataFrame, cols: Iterable[str], words: tuple[str, ...]
+    ) -> float:
+        """Score confidence based on the column name having the word "email".
 
         Args:
             df: The dataframe being inspected (unused; scoring here is
                 name-based only).
             cols: Candidate column name(s); only the first is considered.
+        words: The lowercase words of the column name, split with the same aliases for every cleaner.
 
         Returns:
-            1.0 if the column name contains "email", otherwise 0.0.
+            1.0 if the column name has the word "email", otherwise 0.0.
         """
         cols_tuple = tuple(cols)
         if not cols_tuple:
             return 0.0
-        return 1.0 if "email" in cols_tuple[0].lower() else 0.0
+        return 1.0 if has_words(words, "email") else 0.0
 
     @staticmethod
     def _mailto_targets(v: str) -> list[str]:

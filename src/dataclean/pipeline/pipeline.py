@@ -129,7 +129,8 @@ class Pipeline:
         self._keep_original = keep_original
         self._original_suffix = original_suffix
         self._ignore_cols = frozenset(ignore_cols) if ignore_cols else frozenset()
-        self._resolver = Resolver(cleaners=self._cleaners)
+        self._words_fn = ColRenamer().words
+        self._resolver = Resolver(cleaners=self._cleaners, words_fn=self._words_fn)
 
         extractor = EntityExtractor(words_fn=ColRenamer()._get_words)
         self._dependency_resolver = DependencyResolver(entity_extractor=extractor)
@@ -179,7 +180,14 @@ class Pipeline:
         assignments = tuple(
             replace(
                 assignment,
-                cleaner=assignment.cleaner.fit(df, assignment.role_columns),
+                cleaner=assignment.cleaner.fit(
+                    df,
+                    assignment.role_columns,
+                    {
+                        role: self._words_fn(column)
+                        for role, column in assignment.role_columns.items()
+                    },
+                ),
             )
             for assignment in assignments
         )

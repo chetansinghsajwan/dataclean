@@ -11,7 +11,7 @@ import phonenumbers
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
-from dataclean.utils import plain_text
+from dataclean.utils import has_words, plain_text
 
 from .cleaner import Cleaner
 from .country_cleaner import CountryCleaner
@@ -211,26 +211,28 @@ class PhoneCleaner(Cleaner):
         return (region, *(r for r in self.default_regions if r != region))
 
     @override
-    def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
+    def match_score(
+        self, df: DataFrame, cols: Iterable[str], words: tuple[str, ...]
+    ) -> float:
         """Score confidence based on the column name looking phone-related.
 
         Args:
             df: The dataframe being inspected (unused; scoring here is
                 name-based only).
             cols: Candidate column name(s); only the first is considered.
+        words: The lowercase words of the column name, split with the same aliases for every cleaner.
 
         Returns:
-            1.0 if the column name contains a phone-related token,
+            1.0 if the column name has a phone-related word,
             otherwise 0.0.
         """
         cols_tuple = tuple(cols)
         if not cols_tuple:
             return 0.0
 
-        col_name = cols_tuple[0].lower()
         if any(
-            token in col_name
-            for token in ("phone", "tel", "mobile", "fax", "contact_no")
+            has_words(words, hint)
+            for hint in ("phone", "tel", "telephone", "mobile", "fax", "contact_no")
         ):
             return 1.0
 

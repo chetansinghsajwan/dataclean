@@ -17,8 +17,8 @@ repeated branching or validation cost per row during cleaning.
 - **`InputSchema.Column`** describes one expected input: a `key` (the role
   name — `PRIMARY` = `"value"` for the common single-argument case),
   `required`, an optional `detector` (a sub-cleaner used just to score
-  candidate columns for this role), and `name_hints` (candidate substrings
-  used when matching a raw column name to this role).
+  candidate columns for this role), and `name_hints` (candidate words,
+  such as `post_code`, matched as whole words of the column name).
 - **`OutputSchema.Column`** describes one produced column: an optional
   `name` (`None` means "reuse the input column's name"), a `dtype`
   (`DataType`), and `roles` — semantic tags like `"country"` or `"postcode"`
@@ -29,11 +29,14 @@ repeated branching or validation cost per row during cleaning.
   `PRIMARY` role; multiple named parameters become named roles 1:1. This is
   why most simple cleaners never need to write an explicit `InputSchema` —
   see [Writing a Custom Cleaner](custom-cleaners.md).
-- `match_score(df, cols) -> float` is how a cleaner tells the resolver how
+- `match_score(df, cols, words) -> float` is how a cleaner tells the resolver how
   confident it is that it applies to a given column, on a `0.0`–`1.0` scale
   (`Cleaner.MIN_SCORE`/`MAX_SCORE`). The base implementation always returns
   `0.0` — every built-in cleaner that wants to participate in auto-detection
-  overrides it. See [Auto-detection mechanics](#auto-detection-mechanics).
+  overrides it. `words` is always given: the lowercase words of the column
+  name (`First Name`, `firstName` and `fname` all give `first`, `name`),
+  split the same way whether or not columns are renamed. See
+  [Auto-detection mechanics](#auto-detection-mechanics).
 
 ::: dataclean.cleaners.Cleaner
 
@@ -109,9 +112,10 @@ will see repeated across the built-ins (see [Built-in Cleaners](cleaners.md)
 for exactly which cleaner uses which):
 
 - **Column-name matching** — the cheapest and most common: check whether the
-  column name contains/starts with/ends with certain substrings (e.g.
-  `EmailCleaner` checking for `"email"`, `PhoneCleaner` checking for
-  `phone`/`tel`/`mobile`/`fax`). These never look at the actual data.
+  column name's words contain/start with/end with certain words (e.g.
+  `EmailCleaner` checking for `email`, `PhoneCleaner` checking for
+  `phone`/`tel`/`mobile`/`fax`). Whole words only, so `tel` matches `home_tel`
+  but not `hotel`; use `has_words` from `dataclean.utils`. These never look at the actual data.
 - **Prefix/suffix/word matching with a value-sampling fallback**
   (`EnumCleaner`, inherited by `BoolCleaner` and `GenderCleaner`): if no
   configured name pattern matches, it samples up to the 100 most frequent

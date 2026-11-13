@@ -232,7 +232,12 @@ class Cleaner(ABC):
         """
         return Cleaner.OutputSchema(cols=(Cleaner.OutputSchema.Column(),))
 
-    def fit(self, df: DataFrame, role_columns: Mapping[str, str]) -> "Cleaner":
+    def fit(
+        self,
+        df: DataFrame,
+        role_columns: Mapping[str, str],
+        role_words: Mapping[str, tuple[str, ...]],
+    ) -> "Cleaner":
         """Return the cleaner to run on the columns it was assigned.
 
         Called once per assignment before any cleaning. A cleaner whose output
@@ -245,15 +250,24 @@ class Cleaner(ABC):
             df: The dataframe being cleaned.
             role_columns: The input role keys mapped to the column names that
                 fill them.
+            role_words: The same role keys mapped to the lowercase words of
+                those column names, split the same way as for
+                ``match_score``. Read names from these, not from the raw
+                column names.
         """
         return self
 
-    def match_score(self, df: DataFrame, cols: tuple[str, ...]) -> float:
+    def match_score(
+        self, df: DataFrame, cols: tuple[str, ...], words: tuple[str, ...]
+    ) -> float:
         """Score how confident this cleaner is that it applies to cols.
 
         Args:
             df: The dataframe containing the candidate column(s).
             cols: The candidate column name(s) being evaluated.
+            words: The lowercase words of ``cols[0]``, always given, split the
+                same way whether or not columns are renamed. Match names on
+                these, not on the raw column name.
 
         Returns:
             A confidence score between MIN_SCORE and MAX_SCORE (inclusive).

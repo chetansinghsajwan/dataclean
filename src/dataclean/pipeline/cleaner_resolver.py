@@ -1,12 +1,14 @@
 """Resolve raw dataframe columns to unified cleaner assignments."""
 
 import logging
-from collections.abc import Mapping
-from dataclasses import dataclass
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field
 
 from dataclean.cleaners import PRIMARY, Cleaner, ColumnRole
+from dataclean.col_renamer import ColRenamer
 from dataclean.engine import DataFrame
 from dataclean.types import checked
+from dataclean.utils import has_words
 
 from .assignments import Assignment
 
@@ -20,9 +22,15 @@ class Resolver:
 
     Attributes:
         cleaners: The candidate cleaners to consider when resolving columns.
+        words_fn: Splits a column name into the lowercase words that cleaners
+            match on. It is the same whether or not columns are renamed, so
+            matching does not depend on the rename settings.
     """
 
     cleaners: tuple[Cleaner, ...]
+    words_fn: Callable[[str], tuple[str, ...]] = field(
+        default_factory=lambda: ColRenamer().words
+    )
 
     def resolve(
         self,
@@ -211,8 +219,8 @@ class Resolver:
         A role with an explicit `detector` cleaner defers to that detector's
         own `match_score`. A primary (`PRIMARY`) role defers to the owning
         cleaner's `match_score`. Any other role falls back to a name-hint
-        match: 0.8 if the role's key or any of its `name_hints` appears in the
-        column name (case-insensitively), otherwise 0.0.
+        match: 0.8 if the role's key or any of its `name_hints` is a whole word
+        (or run of words) of the column name, otherwise 0.0.
 
         Args:
             df: The dataframe whose columns are being resolved.
@@ -224,15 +232,16 @@ class Resolver:
             A confidence score in the range 0.0-1.0. Returns 0.0 if scoring
             the cleaner raises `AttributeError`, `TypeError`, or `ValueError`.
         """
+        words = self.words_fn(column)
         try:
             if role.detector is not None:
-                return role.detector.match_score(df, (column,))
+                return role.detector.match_score(df, (column,), words)
             if role.key == PRIMARY:
-                return cleaner.match_score(df, (column,))
+                return cleaner.match_score(df, (column,), words)
 
         except (AttributeError, TypeError, ValueError) as error:
             _logger.debug("Error scoring %s on %s: %s", cleaner.name, column, error)
             return 0.0
 
         hints = role.name_hints or (role.key,)
-        return 0.8 if any(hint.lower() in column.lower() for hint in hints) else 0.0
+        return 0.8 if any(has_words(words, hint) for hint in hints) else 0.0

@@ -9,7 +9,12 @@ from rapidfuzz import fuzz
 
 from dataclean.engine.dataframe import Aggregators, DataFrame, DataType
 from dataclean.types import checked
-from dataclean.utils import looks_like_id_name
+from dataclean.utils import (
+    ends_with_words,
+    has_words,
+    looks_like_id_name,
+    starts_with_words,
+)
 
 from .cleaner import Cleaner
 
@@ -252,7 +257,7 @@ class EnumCleaner(Cleaner):
 
     @property
     def cleaner_matching_words(self) -> frozenset[str]:
-        """Return the column-name substrings that force a max match score."""
+        """Return the column-name words that force a max match score."""
         return self._cleaner_matching_words
 
     @staticmethod
@@ -329,7 +334,9 @@ class EnumCleaner(Cleaner):
         return None
 
     @override
-    def match_score(self, df: DataFrame, cols: tuple[str, ...]) -> float:
+    def match_score(
+        self, df: DataFrame, cols: tuple[str, ...], words: tuple[str, ...]
+    ) -> float:
         """Score confidence that this cleaner's cases apply to ``cols[0]``.
 
         Numeric columns are usually IDs or codes rather than enumerated
@@ -347,6 +354,7 @@ class EnumCleaner(Cleaner):
         Args:
             df: The dataframe to sample values from.
             cols: A single-element tuple naming the candidate column.
+            words: The lowercase words of the column name, split with the same aliases for every cleaner.
 
         Returns:
             A confidence score between 0.0 and 1.0.
@@ -357,7 +365,7 @@ class EnumCleaner(Cleaner):
         # Decision: an id column, such as "contacttypeid_3" holding only 1s, is
         # never a flag or a label, so it is left alone unless the cleaner's own
         # name hints say otherwise.
-        if looks_like_id_name(cols[0]) and not self._matches_name(cols[0]):
+        if looks_like_id_name(words) and not self._matches_name(words):
             return Cleaner.MIN_SCORE
 
         if dict(df.cols()).get(cols[0]) in (
@@ -369,7 +377,7 @@ class EnumCleaner(Cleaner):
             ratio = self._value_match_ratio(df, cols[0])
             return ratio if ratio == Cleaner.MAX_SCORE else Cleaner.MIN_SCORE
 
-        if self._matches_name(cols[0]):
+        if self._matches_name(words):
             return Cleaner.MAX_SCORE
 
         # Decision: without a name hit, digit-only values such as "1" and "2"
@@ -386,30 +394,29 @@ class EnumCleaner(Cleaner):
             ratio = 0.0
         return ratio if ratio >= self._MIN_VALUE_RATIO else Cleaner.MIN_SCORE
 
-    def _matches_name(self, column: str) -> bool:
-        """Return whether the column name hits a configured prefix, suffix or word."""
+    def _matches_name(self, words: tuple[str, ...]) -> bool:
+        """Return whether the column name words hit a configured prefix, suffix or word."""
 
         logger = _logger.getChild("match_score")
 
-        col = column.lower()
-        logger.debug("col: %s", col)
+        logger.debug("words: %s", words)
 
         logger.debug("cleaner_matching_prefixes: %s", self._cleaner_matching_prefixes)
         logger.debug("cleaner_matching_suffixes: %s", self._cleaner_matching_suffixes)
         logger.debug("cleaner_matching_words: %s", self._cleaner_matching_words)
 
         for prefix in self._cleaner_matching_prefixes:
-            if col.startswith(prefix):
+            if starts_with_words(words, prefix):
                 logger.debug("Matched prefix: %s", prefix)
                 return True
 
         for suffix in self._cleaner_matching_suffixes:
-            if col.endswith(suffix):
+            if ends_with_words(words, suffix):
                 logger.debug("Matched suffix: %s", suffix)
                 return True
 
         for word in self._cleaner_matching_words:
-            if word in col:
+            if has_words(words, word):
                 logger.debug("Matched word: %s", word)
                 return True
 

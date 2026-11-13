@@ -3,7 +3,7 @@
 import pandas as pd
 from dataclean_pandas import PandasDataFrame
 
-from dataclean import Cleaner
+from dataclean import Cleaner, EmailCleaner, NameCleaner
 from dataclean.engine import DataFrame
 from dataclean.pipeline.cleaner_resolver import Resolver
 
@@ -20,7 +20,9 @@ class ByName(Cleaner):
     def clean_row(self, value: str | None) -> str | None:
         return value
 
-    def match_score(self, df: DataFrame, cols: tuple[str, ...]) -> float:
+    def match_score(
+        self, df: DataFrame, cols: tuple[str, ...], words: tuple[str, ...]
+    ) -> float:
         return self.SCORES.get(cols[0], 0.0)
 
 
@@ -132,7 +134,9 @@ def test_scoring_errors_count_as_no_match() -> None:
     behaved cleaner shouldn't be able to bring down the whole resolution."""
 
     class Broken(ByName):
-        def match_score(self, df: DataFrame, cols: tuple[str, ...]) -> float:
+        def match_score(
+            self, df: DataFrame, cols: tuple[str, ...], words: tuple[str, ...]
+        ) -> float:
             raise ValueError("boom")
 
     assert Resolver(cleaners=(Broken(),)).resolve(_df("a"), {"a"}) == ()
@@ -144,7 +148,9 @@ class PrimaryWithContext(Cleaner):
     def clean_row(self, value: str | None, country: str | None = None) -> str | None:
         return value
 
-    def match_score(self, df: DataFrame, cols: tuple[str, ...]) -> float:
+    def match_score(
+        self, df: DataFrame, cols: tuple[str, ...], words: tuple[str, ...]
+    ) -> float:
         return 1.0 if cols[0].startswith("ph") else 0.0
 
 
@@ -225,4 +231,20 @@ def test_address_cleaner_matches_without_a_first_line_column() -> None:
     assert dict(assignments[0].role_columns) == {
         "county": "county",
         "postcode": "postcode",
+    }
+
+
+def test_resolver_matches_on_words_of_the_raw_column_name() -> None:
+    """Names are matched on their split words, with no renaming step, so
+    spaces, ``fname`` and ``E-Mail`` all reach the cleaners they should."""
+    cols = {"First Name", "fname", "E-Mail", "hotel"}
+    df = PandasDataFrame(df=pd.DataFrame({col: ["v"] for col in cols}))
+
+    assignments = Resolver(cleaners=(NameCleaner(), EmailCleaner())).resolve(df, cols)
+
+    claimed = {(type(a.cleaner).__name__, a.role_columns["value"]) for a in assignments}
+    assert claimed == {
+        ("NameCleaner", "First Name"),
+        ("NameCleaner", "fname"),
+        ("EmailCleaner", "E-Mail"),
     }

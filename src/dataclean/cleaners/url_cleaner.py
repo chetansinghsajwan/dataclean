@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
-from dataclean.utils import html_hrefs, plain_text, remove_invisible
+from dataclean.utils import has_words, html_hrefs, plain_text, remove_invisible
 
 from .cleaner import Cleaner
 
@@ -33,11 +33,19 @@ _DEFAULT_PORTS = {"http": 80, "https": 443}
 _WRAPPERS = "<>\"'`"
 # Link targets that are not web addresses, so they are not read as URLs.
 _NON_WEB_LINKS = ("mailto:", "tel:", "sms:", "javascript:", "#")
-# Splits a lowercased column name into words for the name hints below.
-_TOKEN_SPLIT = re.compile(r"[^a-z0-9]+")
-# Name hints: words, and run-together words, that mark a URL column.
-_NAME_TOKENS = frozenset({"url", "urls", "uri", "href", "link", "links"})
-_NAME_WORDS = ("website", "homepage", "webaddress", "weburl")
+# Name hints: words that mark a URL column.
+_NAME_TOKENS = (
+    "url",
+    "uri",
+    "href",
+    "link",
+    "website",
+    "web site",
+    "homepage",
+    "home page",
+    "web address",
+    "web url",
+)
 
 
 @checked
@@ -99,28 +107,28 @@ class UrlCleaner(Cleaner):
         return None
 
     @override
-    def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
+    def match_score(
+        self, df: DataFrame, cols: Iterable[str], words: tuple[str, ...]
+    ) -> float:
         """Score confidence from the column name looking URL-related.
 
         Args:
             df: The dataframe being inspected (unused; scoring is name-based).
             cols: Candidate column name(s); only the first is considered.
+            words: The lowercase words of the column name, split with the same aliases for every cleaner.
 
         Returns:
-            1.0 if the name has a ``url``, ``uri``, ``href`` or ``link`` word,
-            or contains ``website``, ``homepage``, ``webaddress`` or
-            ``weburl`` (ignoring separators), else 0.0. A name with an ``id``
+            1.0 if the name has a ``url``, ``uri``, ``href``, ``link``,
+            ``website`` or ``homepage`` word, or ``web site``, ``web address`` or
+            ``web url``, else 0.0. A name with an ``id``
             word, such as ``link_id``, scores 0.0.
         """
         cols_tuple = tuple(cols)
         if not cols_tuple:
             return 0.0
-        name = cols_tuple[0].lower()
-        tokens = set(_TOKEN_SPLIT.split(name)) - {""}
-        if "id" in tokens:
+        if has_words(words, "id"):
             return 0.0
-        collapsed = "".join(_TOKEN_SPLIT.split(name))
-        if tokens & _NAME_TOKENS or any(word in collapsed for word in _NAME_WORDS):
+        if any(has_words(words, hint) for hint in _NAME_TOKENS):
             return 1.0
         return 0.0
 

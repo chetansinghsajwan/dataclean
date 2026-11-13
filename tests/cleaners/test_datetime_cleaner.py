@@ -5,7 +5,9 @@ from zoneinfo import ZoneInfoNotFoundError
 
 import pytest
 
-from dataclean import DataFrame, DataType, DateTimeCleaner
+from dataclean import ColRenamer, DataFrame, DataType, DateTimeCleaner
+
+_words = ColRenamer().words
 
 # ==============================================================================
 # 1. METADATA & PROPERTY HEURISTICS
@@ -43,7 +45,10 @@ def test_datetime_cleaner_confidence(col_name, expected_confidence):
     and format, must not be fooled into scoring."""
     cleaner = DateTimeCleaner()
     mock_df = MagicMock(spec=DataFrame)
-    assert cleaner.match_score(mock_df, (col_name,)) == expected_confidence
+    assert (
+        cleaner.match_score(mock_df, (col_name,), _words(col_name))
+        == expected_confidence
+    )
 
 
 # ==============================================================================
@@ -261,8 +266,8 @@ def test_datetime_cleaner_skips_columns_that_are_already_temporal():
     cleaner = DateTimeCleaner()
 
     assert dict(df.cols())["created_at"] == DataType.DATETIME
-    assert cleaner.match_score(df, ("created_at",)) == 0.0
-    assert cleaner.match_score(df, ("date_text",)) == 1.0
+    assert cleaner.match_score(df, ("created_at",), _words("created_at")) == 0.0
+    assert cleaner.match_score(df, ("date_text",), _words("date_text")) == 1.0
 
 
 def test_pipeline_does_not_turn_temporal_columns_into_strings():
@@ -344,3 +349,25 @@ def test_datetime_removes_emoji_before_parsing():
     cleaner = DateTimeCleaner(out_format=DateTimeCleaner.Format.ISO_DATE)
     assert cleaner.clean_row("2003-04-08 \U0001f4c5") == "2003-04-08"
     assert cleaner.clean_row("\U0001f4c5") is None
+
+
+@pytest.mark.parametrize(
+    "column, expected",
+    [
+        ("Start Time", DateTimeCleaner.Format.ISO_TIME),
+        ("start_datetime", DateTimeCleaner.Format.ISO_DATE),
+        ("created_on", DateTimeCleaner.Format.ISO_DATE),
+    ],
+)
+def test_datetime_fit_uses_name_words_for_a_mixed_column(column, expected):
+    """A column mixing dates and times is read as a time only when its name
+    has the word "time" and not "date"."""
+    import pandas as pd
+    from dataclean_pandas import PandasDataFrame
+
+    df = PandasDataFrame(df=pd.DataFrame({column: ["2026-06-19", "10:30"]}))
+
+    fitted = DateTimeCleaner().fit(df, {"value": column}, {"value": _words(column)})
+
+    assert isinstance(fitted, DateTimeCleaner)
+    assert fitted.out_format == expected

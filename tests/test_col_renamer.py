@@ -205,3 +205,25 @@ def test_custom_aliases_replace_defaults() -> None:
     assert ColRenamer(aliases={"cust": ("customer",)}).rename("cust id") == (
         "customer_id"
     )
+
+
+def test_email_spellings_map_to_email() -> None:
+    renamer = ColRenamer()
+    for name in ("e-mail", "E_Mail", "eMail", "E mail", "Email"):
+        assert renamer.words(name) == ("email",)
+    assert renamer.words("work e-mail address") == ("work", "email", "address")
+
+
+def test_words_are_lowercase_and_ignore_case_setting() -> None:
+    assert ColRenamer(case="pascal").words("First Name") == ("first", "name")
+    assert ColRenamer().words("addr1") == ("address", "1")
+
+
+def test_aliases_are_found_inside_glued_and_camel_case_names() -> None:
+    renamer = ColRenamer()
+    assert renamer.words("LastName") == ("last", "name")
+    assert renamer.words("FName") == ("first", "name")
+    assert renamer.words("GuidName") == ("guid", "name")
+    assert renamer.words("customeruuid") == ("customer", "uuid")
+    assert renamer.words("1guid") == ("1", "guid")
+    assert renamer.words("addressline1") == ("address", "line", "1")

@@ -2,8 +2,10 @@
 
 import pytest
 
-from dataclean import BoolCleaner, DataType
+from dataclean import BoolCleaner, ColRenamer, DataType
 from dataclean.utils.case import TextCase
+
+_words = ColRenamer().words
 
 # ==============================================================================
 # 1. CORE METADATA & DATA TYPE HEURISTICS
@@ -41,7 +43,10 @@ def test_boolean_cleaner_confidence(
     # Name-based matching (prefix/suffix) short-circuits before value-based
     # auto matching, so an empty collect() is fine for all cases here.
     mock_df = mock_df_with_value_counts([])
-    assert cleaner.match_score(mock_df, (col_name,)) == expected_confidence
+    assert (
+        cleaner.match_score(mock_df, (col_name,), _words(col_name))
+        == expected_confidence
+    )
 
 
 # ==============================================================================
@@ -56,7 +61,10 @@ def test_boolean_cleaner_auto_matches_by_value_when_name_does_not_match(
     # "toggle" hits neither the default prefixes/suffixes nor any match word
     cleaner = BoolCleaner()
     mock_df = mock_df_with_value_counts([("true", 7), ("false", 3)])
-    assert cleaner.match_score(mock_df, ("toggle",)) == BoolCleaner.MAX_SCORE
+    assert (
+        cleaner.match_score(mock_df, ("toggle",), _words("toggle"))
+        == BoolCleaner.MAX_SCORE
+    )
 
 
 def test_boolean_cleaner_auto_matching_partial_ratio(mock_df_with_value_counts):
@@ -66,21 +74,29 @@ def test_boolean_cleaner_auto_matching_partial_ratio(mock_df_with_value_counts):
         [("yes", 4), ("no", 4), ("maybe", 2)],
     )
     # 4 + 4 matched out of 10 total occurrences
-    assert cleaner.match_score(mock_df, ("toggle",)) == pytest.approx(0.8)
+    assert cleaner.match_score(mock_df, ("toggle",), _words("toggle")) == pytest.approx(
+        0.8
+    )
 
 
 def test_boolean_cleaner_auto_matching_no_values_match(mock_df_with_value_counts):
     """A column of fruit names has nothing to do with booleans. It scores zero so we never claim it by mistake."""
     cleaner = BoolCleaner()
     mock_df = mock_df_with_value_counts([("apple", 1), ("banana", 1)])
-    assert cleaner.match_score(mock_df, ("toggle",)) == BoolCleaner.MIN_SCORE
+    assert (
+        cleaner.match_score(mock_df, ("toggle",), _words("toggle"))
+        == BoolCleaner.MIN_SCORE
+    )
 
 
 def test_boolean_cleaner_auto_matching_case_insensitive(mock_df_with_value_counts):
     """Sources write YES, Yes and yes interchangeably. Detection should not care about case."""
     cleaner = BoolCleaner()
     mock_df = mock_df_with_value_counts([("YES", 1), ("NO", 1)])
-    assert cleaner.match_score(mock_df, ("toggle",)) == BoolCleaner.MAX_SCORE
+    assert (
+        cleaner.match_score(mock_df, ("toggle",), _words("toggle"))
+        == BoolCleaner.MAX_SCORE
+    )
 
 
 # ==============================================================================
@@ -140,32 +156,47 @@ def test_boolean_cleaner_rejects_numeric_id_column_that_is_mostly_ones():
     """A column of mostly 1s with a few 2s and 3s looks flag-like at first glance. A real flag never holds 2 or 3, so this is an ID or code and is left alone."""
     # 1 is a recognized flag value, but 2 and 3 are not: a flag column never has them.
     df = _pandas_df(contacttypeid=[1, 1, 1, 1, 1, 1, 2, 2, 3, 1])
-    assert BoolCleaner().match_score(df, ("contacttypeid",)) == BoolCleaner.MIN_SCORE
+    assert (
+        BoolCleaner().match_score(df, ("contacttypeid",), _words("contacttypeid"))
+        == BoolCleaner.MIN_SCORE
+    )
 
 
 def test_boolean_cleaner_accepts_numeric_column_with_only_flag_values():
     """A number column that holds nothing but 0s and 1s is a true flag. It should be claimed with full score."""
     df = _pandas_df(externaluse=[0, 1, 1, 0, 1])
-    assert BoolCleaner().match_score(df, ("externaluse",)) == BoolCleaner.MAX_SCORE
+    assert (
+        BoolCleaner().match_score(df, ("externaluse",), _words("externaluse"))
+        == BoolCleaner.MAX_SCORE
+    )
 
 
 def test_boolean_cleaner_ignores_status_name_for_numeric_codes():
     """Names ending in status usually do suggest a flag, but this one holds codes from 0 to 3. The values override the name and the score is zero."""
     # "status" suffix would match by name, but these are multi-valued codes.
     df = _pandas_df(idvstatus=[0, 1, 2, 3, 1, 0])
-    assert BoolCleaner().match_score(df, ("idvstatus",)) == BoolCleaner.MIN_SCORE
+    assert (
+        BoolCleaner().match_score(df, ("idvstatus",), _words("idvstatus"))
+        == BoolCleaner.MIN_SCORE
+    )
 
 
 def test_boolean_cleaner_name_match_still_works_for_string_columns():
     """For text columns the name is trusted. A column called is_active is claimed even if one value, like maybe, is not a clean boolean."""
     df = _pandas_df(is_active=["Y", "N", "maybe"])
-    assert BoolCleaner().match_score(df, ("is_active",)) == BoolCleaner.MAX_SCORE
+    assert (
+        BoolCleaner().match_score(df, ("is_active",), _words("is_active"))
+        == BoolCleaner.MAX_SCORE
+    )
 
 
 def test_boolean_cleaner_boolean_typed_column_matches_regardless_of_name():
     """A column that is already stored as true and false is plainly a flag. The cleaner claims it whatever it is called."""
     df = _pandas_df(whatever=[True, False, True])
-    assert BoolCleaner().match_score(df, ("whatever",)) == BoolCleaner.MAX_SCORE
+    assert (
+        BoolCleaner().match_score(df, ("whatever",), _words("whatever"))
+        == BoolCleaner.MAX_SCORE
+    )
 
 
 # ==============================================================================
@@ -216,8 +247,11 @@ def test_bool_cleaner_ignores_an_id_column_of_ones() -> None:
         df=pd.DataFrame({"contacttypeid_3": ["1", "1", "1"], "optout": ["1", "0", "1"]})
     )
 
-    assert BoolCleaner().match_score(df, ("contacttypeid_3",)) == 0.0
-    assert BoolCleaner().match_score(df, ("optout",)) > 0.0
+    assert (
+        BoolCleaner().match_score(df, ("contacttypeid_3",), _words("contacttypeid_3"))
+        == 0.0
+    )
+    assert BoolCleaner().match_score(df, ("optout",), _words("optout")) > 0.0
 
 
 @pytest.mark.parametrize(

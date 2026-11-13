@@ -2,7 +2,10 @@
 
 import pytest
 
+from dataclean import ColRenamer
 from dataclean.utils import looks_like_id_name
+
+_words = ColRenamer().words
 
 
 @pytest.mark.parametrize(
@@ -27,7 +30,7 @@ def test_looks_like_id_name_true(name: str) -> None:
     """Column names that follow the usual id patterns are recognised as identifiers.
     Identifiers should be left alone, not text-cleaned.
     """
-    assert looks_like_id_name(name)
+    assert looks_like_id_name(_words(name))
 
 
 @pytest.mark.parametrize(
@@ -37,4 +40,4 @@ def test_looks_like_id_name_false(name: str) -> None:
     """Ordinary column names must not be mistaken for ids. If they were, we would skip
     text cleaning on them for no good reason.
     """
-    assert not looks_like_id_name(name)
+    assert not looks_like_id_name(_words(name))

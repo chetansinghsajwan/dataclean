@@ -10,8 +10,7 @@ from zoneinfo import ZoneInfo
 
 from dataclean.engine import DataFrame, DataReader, DataType
 from dataclean.types import checked
-from dataclean.utils import plain_text
-from dataclean.utils.words import split_words
+from dataclean.utils import has_words, plain_text
 
 from .cleaner import PRIMARY, Cleaner
 
@@ -238,13 +237,18 @@ class DateTimeCleaner(Cleaner):
         return None
 
     @override
-    def fit(self, df: DataFrame, role_columns: Mapping[str, str]) -> Cleaner:
+    def fit(
+        self,
+        df: DataFrame,
+        role_columns: Mapping[str, str],
+        role_words: Mapping[str, tuple[str, ...]],
+    ) -> Cleaner:
         """Pick one output layout for the column when ``out_format`` is AUTO.
 
         A datetime at exactly midnight counts as a date, since it carries no
         time of day. When the column mixes dates and times, its name decides
-        which of the two it is: a ``time`` name without ``date`` in it means
-        time, anything else means date.
+        which of the two it is: a name with the word ``time`` and without the
+        word ``date`` means time, anything else means date.
 
         Decision: a column gets one output layout, chosen here once from all
         its values, so a column never mixes ``2026-06-19`` with
@@ -279,8 +283,8 @@ class DateTimeCleaner(Cleaner):
         elif "datetime" in kinds:
             fixed = DateTimeCleaner.Format.ISO_DATETIME
         else:
-            name = column.lower()
-            is_time = "time" in name and "date" not in name
+            words = role_words.get(PRIMARY, ())
+            is_time = has_words(words, "time") and not has_words(words, "date")
             fixed = (
                 DateTimeCleaner.Format.ISO_TIME
                 if is_time
@@ -289,7 +293,9 @@ class DateTimeCleaner(Cleaner):
         return replace(self, out_format=fixed)
 
     @override
-    def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
+    def match_score(
+        self, df: DataFrame, cols: Iterable[str], words: tuple[str, ...]
+    ) -> float:
         """Score confidence based on the column name looking date/time related.
 
         Columns that already have a date, datetime or time type are never
@@ -300,10 +306,11 @@ class DateTimeCleaner(Cleaner):
             df: The dataframe being inspected; used only to skip columns that
                 are already temporal.
             cols: Candidate column name(s); only the first is considered.
+            words: The lowercase words of the column name, split with the same aliases for every cleaner.
 
         Returns:
-            1.0 if the column name contains a date/time-related token or
-            ends with an "_at"/"At" suffix (and the column is not already
+            1.0 if the column name has a date/time-related word or an "at"
+            word, as in ``created_at`` (and the column is not already
             temporal), otherwise 0.0.
         """
         cols_tuple = tuple(cols)
@@ -317,10 +324,10 @@ class DateTimeCleaner(Cleaner):
         ):
             return 0.0
 
-        col_name = cols_tuple[0].lower()
         if any(
-            token in col_name for token in ("date", "time", "timestamp")
-        ) or "at" in (w.lower() for w in split_words(cols_tuple[0])):
+            has_words(words, hint)
+            for hint in ("date", "time", "timestamp", "datetime", "updated", "at")
+        ):
             return 1.0
 
         return 0.0

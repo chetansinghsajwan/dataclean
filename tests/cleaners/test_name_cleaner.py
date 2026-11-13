@@ -6,9 +6,11 @@ import pandas as pd
 import pytest
 from dataclean_pandas import PandasDataFrame
 
-from dataclean import DataFrame, DataType, NameCleaner
+from dataclean import ColRenamer, DataFrame, DataType, NameCleaner
 from dataclean.pipeline import Pipeline
 from dataclean.pipeline.cleaner_resolver import Resolver
+
+_words = ColRenamer().words
 
 # ==============================================================================
 # 1. METADATA & AUTO-DETECTION
@@ -49,7 +51,7 @@ def test_name_cleaner_matches_person_name_columns(col_name: str) -> None:
     or given_name, should be recognised with full confidence. This lets auto-
     detection hand them to the cleaner."""
     mock_df = MagicMock(spec=DataFrame)
-    assert NameCleaner().match_score(mock_df, (col_name,)) == 1.0
+    assert NameCleaner().match_score(mock_df, (col_name,), _words(col_name)) == 1.0
 
 
 @pytest.mark.parametrize(
@@ -60,20 +62,20 @@ def test_name_cleaner_ignores_non_person_name_columns(col_name: str) -> None:
     """Plain name, username, filename and hostname are not people, even though they
     contain the word name. They score zero so we do not tidy up the wrong data."""
     mock_df = MagicMock(spec=DataFrame)
-    assert NameCleaner().match_score(mock_df, (col_name,)) == 0.0
+    assert NameCleaner().match_score(mock_df, (col_name,), _words(col_name)) == 0.0
 
 
 def test_name_cleaner_ignores_non_string_columns() -> None:
     """Even with a name like first_name, a column of numbers is not a column of
     names. We leave it alone."""
     df = PandasDataFrame(df=pd.DataFrame({"first_name": [1, 2]}))
-    assert NameCleaner().match_score(df, ("first_name",)) == 0.0
+    assert NameCleaner().match_score(df, ("first_name",), _words("first_name")) == 0.0
 
 
 def test_name_cleaner_empty_cols_scores_zero() -> None:
     """If there are no columns to look at, the answer is simply zero. No crash and no
     guessing."""
-    assert NameCleaner().match_score(MagicMock(spec=DataFrame), ()) == 0.0
+    assert NameCleaner().match_score(MagicMock(spec=DataFrame), (), ()) == 0.0
 
 
 # ==============================================================================

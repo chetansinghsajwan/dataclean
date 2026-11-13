@@ -2,7 +2,9 @@
 
 import pytest
 
-from dataclean import DataType, NumericCleaner
+from dataclean import ColRenamer, DataType, NumericCleaner
+
+_words = ColRenamer().words
 
 # ==============================================================================
 # 1. CORE METADATA & DATA TYPE HEURISTICS
@@ -226,7 +228,7 @@ def _frame(values):
 
 
 def _score(column, values):
-    return NumericCleaner().match_score(_frame(values), (column,))
+    return NumericCleaner().match_score(_frame(values), (column,), _words(column))
 
 
 def test_numeric_detection_ignores_missing_and_placeholder_values():

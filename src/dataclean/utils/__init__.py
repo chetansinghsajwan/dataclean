@@ -21,4 +21,4 @@ from .paths import file_extension, map_path, map_paths
 from .patterns import expand_local_paths
 from .postcodes import format_postcode
 from .titlecase import title_case
-from .words import split_words
+from .words import ends_with_words, has_words, split_words, starts_with_words

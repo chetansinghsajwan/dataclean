@@ -6,9 +6,11 @@ import pandas as pd
 import pytest
 from dataclean_pandas import PandasDataFrame
 
-from dataclean import UrlCleaner
+from dataclean import ColRenamer, UrlCleaner
 from dataclean.pipeline import Pipeline
 from dataclean.pipeline.cleaner_resolver import Resolver
+
+_words = ColRenamer().words
 
 
 def _clean(value: str, **kwargs: Any) -> str | None:
@@ -178,7 +180,7 @@ def test_url_cleaner_claims_url_like_column_names(name: str) -> None:
     """Column names such as url, website, homepage and Link tell us what the column holds. The cleaner claims them at full score."""
     df = PandasDataFrame(df=pd.DataFrame({name: ["x"]}))
 
-    assert UrlCleaner().match_score(df, (name,)) == 1.0
+    assert UrlCleaner().match_score(df, (name,), _words(name)) == 1.0
 
 
 @pytest.mark.parametrize("name", ["link_id", "curly", "site", "name", "web"])
@@ -186,7 +188,7 @@ def test_url_cleaner_ignores_other_column_names(name: str) -> None:
     """Names like link_id, site and web only resemble URL words. They should score zero, so we do not clean columns that are not addresses."""
     df = PandasDataFrame(df=pd.DataFrame({name: ["x"]}))
 
-    assert UrlCleaner().match_score(df, (name,)) == 0.0
+    assert UrlCleaner().match_score(df, (name,), _words(name)) == 0.0
 
 
 def test_resolver_assigns_url_cleaner_to_each_url_column() -> None:

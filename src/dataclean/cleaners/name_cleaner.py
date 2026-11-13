@@ -12,6 +12,7 @@ from dataclean.engine import DataFrame, DataType
 from dataclean.types import checked
 from dataclean.utils import (
     TEXT_NULL_TOKENS,
+    has_words,
     is_null_token,
     looks_like_junk,
     null_token_set,
@@ -196,14 +197,19 @@ class NameCleaner(Cleaner):
     standardize_company_suffix: bool = True
     fix_case: bool = True
 
-    # Short forms must stand alone (or be concatenated, e.g. "lnamefname") so
-    # that "colname" or "filename" never match.
-    _SHORT_NAME_RE: ClassVar[re.Pattern[str]] = re.compile(
-        r"(?:^|[^a-z])(?:[flm]name)+(?:$|[^a-z])"
-    )
-    _LONG_NAME_RE: ClassVar[re.Pattern[str]] = re.compile(
-        r"first_?name|last_?name|middle_?name|full_?name|given_?name|"
-        r"family_?name|maiden_?name|forename|surname"
+    # Column-name phrases of a person's name. The short forms ``fname``,
+    # ``lname`` and ``mname`` become these words through the aliases, so
+    # "colname" or "filename" never match.
+    _NAME_PHRASES: ClassVar[tuple[str, ...]] = (
+        "first name",
+        "last name",
+        "middle name",
+        "full name",
+        "given name",
+        "family name",
+        "maiden name",
+        "forename",
+        "surname",
     )
 
     _null_set: frozenset[str] = frozenset()
@@ -242,13 +248,16 @@ class NameCleaner(Cleaner):
         return _fix_case(v) if self.fix_case else v
 
     @override
-    def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
+    def match_score(
+        self, df: DataFrame, cols: Iterable[str], words: tuple[str, ...]
+    ) -> float:
         """Score confidence from the column name looking like a person's name.
 
         Args:
             df: The dataframe being inspected; used only to skip columns that
                 are known not to be strings.
             cols: Candidate column name(s); only the first is considered.
+            words: The lowercase words of the column name, split with the same aliases for every cleaner.
 
         Returns:
             1.0 if the column is a string (or unknown-typed) column whose
@@ -262,8 +271,7 @@ class NameCleaner(Cleaner):
         if dict(df.cols()).get(column) not in (None, DataType.STR):
             return 0.0
 
-        name = column.lower()
-        if self._SHORT_NAME_RE.search(name) or self._LONG_NAME_RE.search(name):
+        if any(has_words(words, phrase) for phrase in self._NAME_PHRASES):
             return 1.0
 
         return 0.0

@@ -21,8 +21,6 @@ Work for later that is not part of the [release plan](release-plan.md).
 - Write a company's legal suffix one way in `AddressCleaner` lines: `C/O ACME LTD`
   becomes `C/O Acme Ltd`, not `C/O Acme LTD` as `NameCleaner` writes it. The
   suffix rules could be shared through a util.
-- Pass the words of a column name to `match_score`, already split, and let
-  cleaners receive their match words at construction time.
 - New cleaners: `BusinessCleaner` (corporate entity names), `ScaleCleaner` or
   categorical normaliser, `AddressLineCleaner` (level 2 deep clean),
   `CurrencyCleaner`, `GstinCleaner` (India tax id), `LanguageCodeCleaner`,

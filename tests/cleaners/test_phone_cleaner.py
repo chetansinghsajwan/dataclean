@@ -4,7 +4,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from dataclean import DataFrame, PhoneCleaner
+from dataclean import ColRenamer, DataFrame, PhoneCleaner
+
+_words = ColRenamer().words
 
 # ==============================================================================
 # 1. CORE PROPERTIES & HEURISTICS
@@ -40,7 +42,10 @@ def test_phone_cleaner_confidence(col_name, expected_confidence):
     so we don't mangle things that aren't phones."""
     cleaner = PhoneCleaner()
     mock_df = MagicMock(spec=DataFrame)
-    assert cleaner.match_score(mock_df, (col_name,)) == expected_confidence
+    assert (
+        cleaner.match_score(mock_df, (col_name,), _words(col_name))
+        == expected_confidence
+    )
 
 
 # ==============================================================================

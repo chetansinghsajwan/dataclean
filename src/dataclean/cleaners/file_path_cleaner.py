@@ -7,7 +7,7 @@ from typing import Literal, override
 
 from dataclean.engine import DataFrame
 from dataclean.types import checked
-from dataclean.utils import remove_invisible
+from dataclean.utils import has_words, remove_invisible
 
 from .cleaner import Cleaner
 
@@ -24,13 +24,10 @@ _DRIVE = re.compile(r"[A-Za-z]:(?=/|$)")
 # then up to 10 letters or digits.
 _EXTENSION = re.compile(r"(?<=[^/.])\.([A-Za-z0-9]{1,10})$")
 
-# Splits a lowercased column name into words for the name hints below.
-_TOKEN_SPLIT = re.compile(r"[^a-z0-9]+")
-# Name hints: a word that marks a path column, a run-together word that does
-# the same, and words that mean the column holds another kind of value.
-_NAME_TOKENS = frozenset({"file", "files", "path", "paths", "dir", "folder"})
-_NAME_WORDS = ("filename", "filepath", "fullpath", "dirname", "directory")
-_OTHER_KINDS = frozenset({"url", "uri", "link", "href", "id"})
+# Name hints: words that mark a path column, and words that mean the column
+# holds another kind of value.
+_NAME_TOKENS = ("file", "path", "dir", "folder", "directory")
+_OTHER_KINDS = ("url", "uri", "link", "href", "id")
 
 
 @checked
@@ -93,28 +90,27 @@ class FilePathCleaner(Cleaner):
         return (drive + path).replace("/", self.separator)
 
     @override
-    def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
+    def match_score(
+        self, df: DataFrame, cols: Iterable[str], words: tuple[str, ...]
+    ) -> float:
         """Score confidence from the column name looking file-related.
 
         Args:
             df: The dataframe being inspected (unused; scoring is name-based).
             cols: Candidate column name(s); only the first is considered.
+            words: The lowercase words of the column name, split with the same aliases for every cleaner.
 
         Returns:
-            1.0 if the name has a ``file``, ``path``, ``dir`` or ``folder``
-            word, or contains ``filename``, ``filepath``, ``fullpath``,
-            ``dirname`` or ``directory`` (ignoring separators), else 0.0. A
+            1.0 if the name has a ``file``, ``path``, ``dir``, ``folder`` or
+            ``directory`` word, else 0.0. A
             name with a ``url``, ``uri``, ``link``, ``href`` or ``id`` word,
             such as ``url_path`` or ``file_id``, scores 0.0.
         """
         cols_tuple = tuple(cols)
         if not cols_tuple:
             return 0.0
-        name = cols_tuple[0].lower()
-        tokens = set(_TOKEN_SPLIT.split(name)) - {""}
-        if tokens & _OTHER_KINDS:
+        if any(has_words(words, hint) for hint in _OTHER_KINDS):
             return 0.0
-        collapsed = "".join(_TOKEN_SPLIT.split(name))
-        if tokens & _NAME_TOKENS or any(word in collapsed for word in _NAME_WORDS):
+        if any(has_words(words, hint) for hint in _NAME_TOKENS):
             return 1.0
         return 0.0

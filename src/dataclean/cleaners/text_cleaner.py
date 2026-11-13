@@ -10,6 +10,7 @@ from typing import ClassVar, override
 from dataclean.engine import DataFrame
 from dataclean.types import checked
 from dataclean.utils import (
+    has_words,
     remove_emoji,
     remove_invisible,
     replace_control_chars,
@@ -227,25 +228,27 @@ class TextCleaner(Cleaner):
         return v
 
     @override
-    def match_score(self, df: DataFrame, cols: Iterable[str]) -> float:
+    def match_score(
+        self, df: DataFrame, cols: Iterable[str], words: tuple[str, ...]
+    ) -> float:
         """Score confidence based on the column name looking text-related.
 
         Args:
             df: The dataframe being inspected (unused; scoring here is
                 name-based only).
             cols: Candidate column name(s); only the first is considered.
+            words: The lowercase words of the column name, split with the same aliases for every cleaner.
 
         Returns:
-            0.8 if the column name contains a free-text-related token
+            0.8 if the column name has a free-text-related word
             (text, description, comment, etc.), otherwise 0.1 as a low
             baseline confidence.
         """
         if not tuple(cols):
             return 0.0
-        cols_tuple = tuple(cols)
         if any(
-            token in cols_tuple[0].lower()
-            for token in (
+            has_words(words, hint)
+            for hint in (
                 "text",
                 "description",
                 "comment",
